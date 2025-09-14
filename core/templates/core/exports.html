@@ -1,0 +1,14 @@
+{% extends 'core/base.html' %}
+{% block title %}Exports{% endblock %}
+{% block content %}
+<div class="card mx-auto shadow-lg" style="max-width: 600px; padding: 40px; border-radius: 20px;">
+    <h2>📦 Exports Page</h2>
+    <p>This is where you will manage export documents.</p>
+
+    <div class="d-grid gap-3 mt-4">
+        <a href="{% url 'generate_doc' %}" class="btn btn-warning btn-lg">📄 Generate Doc</a>
+    </div>
+
+    <a href="{% url 'home' %}" class="btn btn-secondary mt-4">⬅ Back to Home</a>
+</div>
+{% endblock %}

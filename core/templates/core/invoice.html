@@ -1,0 +1,113 @@
+{% load static %}
+
+<div style="max-width: 1100px; margin: auto; min-height: 100vh; font-family: Arial, sans-serif; font-size: 13px; padding: 30px;">
+
+    <!-- Header with Logo and Invoice Info -->
+    <table style="width: 100%; margin-bottom: 40px;">
+        <tr>
+            <td style="width: 50%; vertical-align: middle;">
+                <img src="{% static 'img/atc_logo.jpeg' %}" 
+                     alt="ATC Logo" 
+                     style="max-height: 140px; width: auto; display: block;">
+            </td>
+            <td style="width: 50%; vertical-align: middle; text-align: right;">
+                <h2 style="margin: 0; font-size: 20px;">INVOICE</h2>
+                <p style="margin: 4px 0;"><strong>No:</strong> {{ export.invoice_number }}</p>
+                <p style="margin: 4px 0;"><strong>Date:</strong> {{ export.created_at|date:"d/m/Y" }}</p>
+                <p style="margin: 4px 0;"><strong>Project No:</strong> {{ export.project_no }}</p>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Three Boxes (Seller, Sold To, Shipped To) -->
+    <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-bottom: 25px;">
+        <tr>
+            <td style="width: 33%; border: 1px solid #000; padding: 10px; vertical-align: top;">
+                <strong>Seller:</strong><br>
+                {{ export.seller }}<br>
+                ID: 404496121<br>
+                Mikheil Grigorashvili 27, 0198, Samgori District,<br>
+                Tbilisi, Georgia<br>
+                Country of Origin: Georgia
+            </td>
+            <td style="width: 33%; border: 1px solid #000; padding: 10px; vertical-align: top;">
+                <strong>Sold To:</strong><br>
+                {{ export.sold_to }}<br><br>
+                <strong>Incoterms 2010:</strong> EXW Tbilisi<br>
+                <strong>Terms of Payment:</strong> 15D
+            </td>
+            <td style="width: 34%; border: 1px solid #000; padding: 10px; vertical-align: top;">
+                <strong>Shipped To:</strong><br>
+                {{ export.shipped_to }}
+            </td>
+        </tr>
+    </table>
+
+    <!-- Grouped Items Pivot Table -->
+    <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-top: 20px; text-align: center;">
+        <thead style="background: #f2f2f2;">
+            <tr>
+                <th style="border: 1px solid #000; padding: 8px;">Customer PO</th>
+                <th style="border: 1px solid #000; padding: 8px;">PO Line</th>
+                <th style="border: 1px solid #000; padding: 8px;">PN</th>
+                <th style="border: 1px solid #000; padding: 8px; text-align: left;">Description</th>
+                <th style="border: 1px solid #000; padding: 8px;">Price (USD)</th>
+                <th style="border: 1px solid #000; padding: 8px;">Qty Total</th>
+                <th style="border: 1px solid #000; padding: 8px;">Total (USD)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in grouped_items %}
+            <tr>
+                <td style="border: 1px solid #000; padding: 6px;">{{ item.customer_po }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ item.po_line }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ item.cross_reference }}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: left;">{{ item.description }}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ item.price }}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ item.total_qty }}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ item.total_value }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="border: 1px solid #000; padding: 8px; text-align: center;">No items</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="background: #f9f9f9;">
+                <td colspan="5" style="border: 1px solid #000; padding: 8px; text-align: right;"><strong>GRAND TOTAL</strong></td>
+                <td style="border: 1px solid #000; padding: 8px; text-align: right;"><strong>{{ grand_total_qty }}</strong></td>
+                <td style="border: 1px solid #000; padding: 8px; text-align: right;"><strong>{{ grand_total_value }}</strong></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Notes + Signature + Payment -->
+    <table style="width: 100%; margin-top: 30px;">
+        <tr>
+            <td style="width: 60%; vertical-align: top;">
+                <!-- Notes Box -->
+                <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-bottom: 20px;">
+                    <tr>
+                        <td style="padding: 10px;">
+                            <strong>Notes:</strong><br>
+                            Civil Aviation Parts For Boeing 787; HS Code: 8807 30 000 01<br>
+                            Gross Weight: ______ KG
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Signature -->
+                <p><strong>Authorized Signature: _____________________</strong></p>
+
+                <!-- Payment Info -->
+                <p style="margin-top: 20px;">
+                    <strong>Payment should be affected to:</strong><br>
+                    ATC - Aero-Structure Technologies Cyclone JSC, ID: 404496121<br>
+                    Bank of Georgia, SWIFT: BAGAGE22, Account: GE92BG0000000553967900
+                </p>
+            </td>
+            <td style="width: 40%;"></td> <!-- Empty right side -->
+        </tr>
+    </table>
+</div>

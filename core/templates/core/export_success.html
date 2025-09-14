@@ -1,0 +1,26 @@
+{% extends 'core/base.html' %}
+{% block title %}Export Saved{% endblock %}
+{% block content %}
+<div class="card mx-auto shadow-lg" style="max-width: 600px; padding: 40px; border-radius: 20px;">
+    <h2>✅ Export Registered</h2>
+    <p>Your export has been saved successfully.</p>
+
+    <ul class="list-group text-start mt-3">
+        <li class="list-group-item"><strong>Export Number:</strong> {{ export.export_number }}</li>
+        <li class="list-group-item"><strong>Invoice Number:</strong> {{ export.invoice_number }}</li>
+        <li class="list-group-item"><strong>Packing List Number:</strong> {{ export.packing_list_number }}</li>
+        <li class="list-group-item"><strong>Seller:</strong> {{ export.seller }}</li>
+        <li class="list-group-item"><strong>Sold To:</strong> {{ export.sold_to }}</li>
+        <li class="list-group-item"><strong>Shipped To:</strong> {{ export.shipped_to }}</li>
+        <li class="list-group-item"><strong>Project No:</strong> {{ export.project_no }}</li>
+        <li class="list-group-item"><strong>Rows Saved:</strong> {{ rows }}</li>
+    </ul>
+
+    <div class="mt-4 d-flex justify-content-between">
+        <a href="{% url 'exports' %}" class="btn btn-primary">⬅ Back to Exports</a>
+        <a href="{% url 'invoice' export.id %}" class="btn btn-warning">📄 View Invoice</a>
+        <a href="{% url 'generate_doc' %}" class="btn btn-success">➕ New Export</a>
+    </div>
+    
+</div>
+{% endblock %}

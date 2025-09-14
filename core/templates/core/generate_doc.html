@@ -1,0 +1,76 @@
+{% extends 'core/base.html' %}
+{% block title %}Generate Document{% endblock %}
+{% block content %}
+<div class="card mx-auto shadow-lg" style="max-width: 700px; padding: 40px; border-radius: 20px;">
+    <h2>📄 Generate Document</h2>
+    <p>Select seller, buyer, consignee, project, and upload an Excel file.</p>
+
+    <!-- Messages -->
+    {% if messages %}
+        <div class="alert alert-warning">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Seller -->
+        <div class="mb-3 text-start">
+            <label class="form-label"><strong>Seller</strong></label>
+            <select class="form-select" disabled>
+                <option>{{ seller.name }}</option>
+            </select>
+            <small class="text-muted">
+                ID: {{ seller.id }}<br>
+                {{ seller.address }}<br>
+                Origin: {{ seller.origin }}
+            </small>
+        </div>
+
+        <!-- Sold To -->
+        <div class="mb-3 text-start">
+            <label for="sold_to" class="form-label"><strong>Sold To</strong></label>
+            <select id="sold_to" name="sold_to" class="form-select">
+                {% for buyer in sold_to_list %}
+                    <option value="{{ buyer.name }}">{{ buyer.name }} ({{ buyer.country }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Shipped To -->
+        <div class="mb-3 text-start">
+            <label for="shipped_to" class="form-label"><strong>Shipped To</strong></label>
+            <select id="shipped_to" name="shipped_to" class="form-select">
+                {% for consignee in shipped_to_list %}
+                    <option value="{{ consignee.name }}">{{ consignee.name }} ({{ consignee.country }})</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Project No -->
+        <div class="mb-3 text-start">
+            <label for="project" class="form-label"><strong>Project No</strong></label>
+            <select id="project" name="project" class="form-select">
+                {% for project in project_list %}
+                    <option value="{{ project }}">{{ project }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Excel Upload -->
+        <div class="mb-3 text-start">
+            <label for="excel_file" class="form-label"><strong>Upload Excel</strong></label>
+            <input type="file" id="excel_file" name="excel_file" class="form-control" accept=".xlsx,.xls" required>
+        </div>
+
+        <div class="d-grid gap-2 mt-4">
+            <button type="submit" class="btn btn-primary btn-lg">📥 Register Export</button>
+        </div>
+    </form>
+
+    <a href="{% url 'exports' %}" class="btn btn-secondary mt-4">⬅ Back to Exports</a>
+</div>
+{% endblock %}

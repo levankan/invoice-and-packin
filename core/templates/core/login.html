@@ -1,0 +1,26 @@
+{% extends 'core/base.html' %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="card mx-auto shadow-lg" style="max-width: 400px; padding: 30px; border-radius: 20px;">
+    <h3 class="mb-4">🔐 Login to Shipment System</h3>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-danger">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="mb-3 text-start">
+            <label class="form-label">Username</label>
+            <input type="text" name="username" class="form-control" placeholder="Enter your username" required>
+        </div>
+        <div class="mb-3 text-start">
+            <label class="form-label">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Login</button>
+    </form>
+</div>
+{% endblock %}
