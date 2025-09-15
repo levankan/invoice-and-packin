@@ -40,3 +40,14 @@ def invoice_pdf_view(request, export_id):
     HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
 
     return response
+
+
+
+
+def packing_list_pdf_view(request, export_id):
+    export = Export.objects.get(id=export_id)
+    html_string = render_to_string("core/packing_list.html", {"export": export})
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="PackingList_{export.packing_list_number}.pdf"'
+    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
+    return response
