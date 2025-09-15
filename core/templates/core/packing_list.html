@@ -1,9 +1,10 @@
 {% load static %}
+{% load custom_tags %}
 
 <style>
 @page {
     size: A4;
-    margin: 10mm; /* smaller margins */
+    margin: 10mm;
     @bottom-right {
         content: counter(page) " / " counter(pages);
         font-size: 11px;
@@ -14,14 +15,13 @@
 
 <div style="max-width: 1100px; margin: auto; font-family: Arial, sans-serif; font-size: 13px; padding: 20px;">
 
-    
     <!-- Header -->
     <table style="width: 100%; margin-bottom: 30px;">
         <tr>
             <td style="width: 50%; vertical-align: middle;">
                 <img src="{% static 'img/atc_logo.jpeg' %}" 
-                    alt="ATC Logo" 
-                    style="max-height: 120px; width: auto; display: block;">
+                     alt="ATC Logo" 
+                     style="max-height: 120px; width: auto; display: block;">
             </td>
             <td style="width: 50%; vertical-align: middle; text-align: right;">
                 <h2 style="margin: 0; font-size: 20px;">PACKING LIST</h2>
@@ -32,7 +32,6 @@
             </td>
         </tr>
     </table>
-
 
     <!-- Seller & Shipped To -->
     <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-bottom: 25px;">
@@ -53,6 +52,7 @@
     </table>
 
     <!-- Packing List Table -->
+    <h3 style="margin-bottom: 10px;">Items</h3>
     <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; text-align: center;">
         <thead style="background: #f2f2f2;">
             <tr>
@@ -79,4 +79,44 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- Pallet Summary -->
+    <h3 style="margin-top: 30px; margin-bottom: 10px;">Pallet Summary</h3>
+    <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; text-align: center;">
+        <thead style="background: #f2f2f2;">
+            <tr>
+                <th style="border: 1px solid #000; padding: 8px;">Pallet #</th>
+                <th style="border: 1px solid #000; padding: 8px;">Length (Cm)</th>
+                <th style="border: 1px solid #000; padding: 8px;">Width (Cm)</th>
+                <th style="border: 1px solid #000; padding: 8px;">Height (Cm)</th>
+                <th style="border: 1px solid #000; padding: 8px;">Gross Weight (Kg)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for pallet in export.pallets.all %}
+            <tr>
+                <td style="border: 1px solid #000; padding: 6px;">{{ pallet.pallet_number }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ pallet.length_cm }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ pallet.width_cm }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ pallet.height_cm }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ pallet.gross_weight_kg }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="border: 1px solid #000; padding: 8px;">No pallet data</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="background: #f9f9f9;">
+                <td colspan="4" style="border: 1px solid #000; padding: 8px; text-align: right;">
+                    <strong>Total Gross Weight</strong>
+                </td>
+                <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">
+                    {{ export.total_gross_weight }}
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+
 </div>

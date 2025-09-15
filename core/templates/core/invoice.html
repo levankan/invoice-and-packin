@@ -1,4 +1,6 @@
 {% load static %}
+{% load custom_tags %}
+
 
 <style>
 @page {
@@ -107,7 +109,8 @@
                         <td style="padding: 10px;">
                             <strong>Notes:</strong><br>
                             Civil Aviation Parts For Boeing 787; HS Code: 8807 30 000 01<br>
-                            Gross Weight: ______ KG
+                            Gross Weight: {{ export.total_gross_weight|default:"___" }} KG
+
                         </td>
                     </tr>
                 </table>

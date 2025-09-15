@@ -3,6 +3,9 @@ from django.db import models
 from django.db.models import Max
 
 
+# -----------------------------
+# User with Roles
+# -----------------------------
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('warehouse', 'Warehouse'),
@@ -15,9 +18,9 @@ class User(AbstractUser):
         return f"{self.username} ({self.get_role_display()})"
 
 
-# --- Auto number generators ---
-
-# Generate Export Numbers (EXP000001, ...)
+# -----------------------------
+# Auto number generators
+# -----------------------------
 def next_export_number():
     latest = Export.objects.aggregate(m=Max('export_number'))['m']
     if latest:
@@ -27,7 +30,7 @@ def next_export_number():
             pass
     return "EXP000001"
 
-# Generate Invoice Numbers (P_000001, ...)
+
 def next_invoice_number():
     latest = Export.objects.aggregate(m=Max('invoice_number'))['m']
     if latest and latest.startswith("P_"):
@@ -37,7 +40,7 @@ def next_invoice_number():
             pass
     return "P_000001"
 
-# Generate Packing List Numbers (PL-000001, ...)
+
 def next_packing_list_number():
     latest = Export.objects.aggregate(m=Max('packing_list_number'))['m']
     if latest and latest.startswith("PL-"):
@@ -48,6 +51,9 @@ def next_packing_list_number():
     return "PL-000001"
 
 
+# -----------------------------
+# Export Document
+# -----------------------------
 class Export(models.Model):
     export_number = models.CharField(max_length=20, unique=True, default=next_export_number)
     invoice_number = models.CharField(max_length=20, unique=True, default=next_invoice_number)
@@ -62,7 +68,15 @@ class Export(models.Model):
     def __str__(self):
         return f"{self.export_number} / {self.invoice_number} / {self.packing_list_number}"
 
+    @property
+    def total_gross_weight(self):
+        """Sum of all pallet weights"""
+        return sum(p.gross_weight_kg for p in self.pallets.all())
 
+
+# -----------------------------
+# Line Items
+# -----------------------------
 class LineItem(models.Model):
     export = models.ForeignKey(Export, on_delete=models.CASCADE, related_name="items")
 
@@ -89,3 +103,18 @@ class LineItem(models.Model):
 
     def __str__(self):
         return f"{self.export.export_number} - {self.serial_lot_number}"
+
+
+# -----------------------------
+# Pallet Data (Sheet2)
+# -----------------------------
+class Pallet(models.Model):
+    export = models.ForeignKey(Export, related_name="pallets", on_delete=models.CASCADE)
+    pallet_number = models.CharField(max_length=50)
+    length_cm = models.DecimalField(max_digits=10, decimal_places=2)
+    width_cm = models.DecimalField(max_digits=10, decimal_places=2)
+    height_cm = models.DecimalField(max_digits=10, decimal_places=2)
+    gross_weight_kg = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"Pallet {self.pallet_number} ({self.gross_weight_kg} Kg)"

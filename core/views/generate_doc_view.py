@@ -2,7 +2,9 @@ import pandas as pd
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from core.models import Export, LineItem
+from core.models import Export, LineItem, Pallet
+from decimal import Decimal
+
 
 EXPECTED_HEADERS = [
     "Serial/Lot Number","Document Number","Item Number","Cross Reference #",
@@ -10,6 +12,11 @@ EXPECTED_HEADERS = [
     "Shipment #","Description","Carbon QTY","Carbon LOT","Customer PO",
     "PO Line","Sales Order","Sales Order Line","Pallet #","Price","LU"
 ]
+
+EXPECTED_PALLET_HEADERS = [
+    "Pallet #", "Lenght (Cm)", "Width (Cm)", "Height (Cm)", "Gross Weight (Kg)"
+]
+
 
 @login_required
 def generate_doc_view(request):
@@ -44,24 +51,29 @@ def generate_doc_view(request):
             messages.error(request, "⚠ Please upload an Excel file.")
             return redirect("generate_doc")
 
-        # Read Excel
         try:
-            df = pd.read_excel(file)
+            # 🔹 Load all sheets
+            xls = pd.ExcelFile(file)
         except Exception:
             messages.error(request, "⚠ Could not read Excel file. Make sure it's .xlsx or .xls")
             return redirect("generate_doc")
 
-        # Validate headers
+        # 🔹 Validate & read Sheet1 (LineItems)
+        if "Sheet1" not in xls.sheet_names:
+            messages.error(request, "⚠ Missing Sheet1 for items.")
+            return redirect("generate_doc")
+
+        df = pd.read_excel(xls, sheet_name="Sheet1")
+
         if list(df.columns) != EXPECTED_HEADERS:
-            messages.error(request, "⚠ Headers do not match expected format.")
+            messages.error(request, "⚠ Sheet1 headers do not match expected format.")
             return redirect("generate_doc")
 
-        # Check duplicates
         if df["Serial/Lot Number"].duplicated().any():
-            messages.error(request, "⚠ Serial number is duplicated.")
+            messages.error(request, "⚠ Serial number is duplicated in Sheet1.")
             return redirect("generate_doc")
 
-        # Create Export (auto generates EXP, Invoice, and Packing List numbers)
+        # 🔹 Create Export
         export = Export.objects.create(
             seller=seller_info["name"],
             sold_to=sold_to,
@@ -69,7 +81,7 @@ def generate_doc_view(request):
             project_no=project,
         )
 
-        # Save LineItems
+        # 🔹 Save LineItems
         for _, row in df.iterrows():
             LineItem.objects.create(
                 export=export,
@@ -95,11 +107,29 @@ def generate_doc_view(request):
                 lu=row["LU"],
             )
 
+        # 🔹 Save Pallets from Sheet2
+        if "Sheet2" in xls.sheet_names:
+            df2 = pd.read_excel(xls, sheet_name="Sheet2")
+
+            if list(df2.columns) != EXPECTED_PALLET_HEADERS:
+                messages.warning(request, "⚠ Sheet2 headers do not match expected pallet format. Skipped pallets.")
+            else:
+                for _, row in df2.iterrows():
+                    Pallet.objects.create(
+                        export=export,
+                        pallet_number=row["Pallet #"],
+                        length_cm=Decimal(str(row["Lenght (Cm)"])) if row["Lenght (Cm)"] is not None else None,
+                        width_cm=Decimal(str(row["Width (Cm)"])) if row["Width (Cm)"] is not None else None,
+                        height_cm=Decimal(str(row["Height (Cm)"])) if row["Height (Cm)"] is not None else None,
+                        gross_weight_kg=Decimal(str(row["Gross Weight (Kg)"])) if row["Gross Weight (Kg)"] is not None else None,
+                    )
+
         return render(request, "core/export_success.html", {
             "export": export,
             "rows": len(df)
         })
 
+    # GET request → form
     return render(request, "core/generate_doc.html", {
         "seller": seller_info,
         "sold_to_list": sold_to_list,
