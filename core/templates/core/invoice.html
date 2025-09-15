@@ -1,7 +1,18 @@
 {% load static %}
 
-<div style="max-width: 1100px; margin: auto; min-height: 100vh; font-family: Arial, sans-serif; font-size: 13px; padding: 30px;">
+<style>
+@page {
+    size: A4;
+    margin: 10mm; /* smaller margins everywhere */
+    @bottom-right {
+        content: counter(page) " / " counter(pages);
+        font-size: 11px;
+        color: black;
+    }
+}
+</style>
 
+<div style="max-width: 1100px; margin: auto; min-height: 100vh; font-family: Arial, sans-serif; font-size: 13px; padding: 20px;">
     <!-- Header with Logo and Invoice Info -->
     <table style="width: 100%; margin-bottom: 40px;">
         <tr>
@@ -15,6 +26,7 @@
                 <p style="margin: 4px 0;"><strong>No:</strong> {{ export.invoice_number }}</p>
                 <p style="margin: 4px 0;"><strong>Date:</strong> {{ export.created_at|date:"d/m/Y" }}</p>
                 <p style="margin: 4px 0;"><strong>Project No:</strong> {{ export.project_no }}</p>
+                <p style="margin: 4px 0;"><strong>Export No:</strong> {{ export.export_number }}</p>
             </td>
         </tr>
     </table>

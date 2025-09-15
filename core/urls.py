@@ -2,7 +2,8 @@ from django.urls import path
 from core.views import (
     login_view, home_view, logout_view, 
     exports_view, tracking_view, generate_doc_view,
-    invoice_view   # ✅ make sure this is imported
+    invoice_view,  # ✅ make sure this is imported
+    invoice_pdf_view, 
 )
 
 
@@ -14,4 +15,6 @@ urlpatterns = [
     path('tracking/', tracking_view, name='tracking'),
     path('generate-doc/', generate_doc_view, name='generate_doc'),
     path('invoice/<int:export_id>/', invoice_view, name='invoice'),   # ✅ new
+    path("invoice/<int:export_id>/pdf/", invoice_pdf_view, name="invoice_pdf"),
+    
 ]

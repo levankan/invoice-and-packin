@@ -20,6 +20,9 @@
         <a href="{% url 'exports' %}" class="btn btn-primary">⬅ Back to Exports</a>
         <a href="{% url 'invoice' export.id %}" class="btn btn-warning">📄 View Invoice</a>
         <a href="{% url 'generate_doc' %}" class="btn btn-success">➕ New Export</a>
+        <a href="{% url 'invoice_pdf' export.id %}" class="btn btn-danger">
+            📥 Download PDF
+        </a>
     </div>
     
 </div>
