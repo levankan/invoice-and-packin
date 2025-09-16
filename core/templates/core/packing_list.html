@@ -25,10 +25,10 @@
             </td>
             <td style="width: 50%; vertical-align: middle; text-align: right;">
                 <h2 style="margin: 0; font-size: 20px;">PACKING LIST</h2>
-                <p style="margin: 4px 0;"><strong>No:</strong> {{ export.packing_list_number }}</p>
-                <p style="margin: 4px 0;"><strong>Date:</strong> {{ export.created_at|date:"d/m/Y" }}</p>
-                <p style="margin: 4px 0;"><strong>Export No:</strong> {{ export.export_number }}</p>
-                <p style="margin: 4px 0;"><strong>Invoice No:</strong> {{ export.invoice_number }}</p>
+                <p><strong>No:</strong> {{ export.packing_list_number }}</p>
+                <p><strong>Date:</strong> {{ export.created_at|date:"d/m/Y" }}</p>
+                <p><strong>Export No:</strong> {{ export.export_number }}</p>
+                <p><strong>Invoice No:</strong> {{ export.invoice_number }}</p>
             </td>
         </tr>
     </table>
@@ -36,7 +36,7 @@
     <!-- Seller & Shipped To -->
     <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-bottom: 25px;">
         <tr>
-            <td style="width: 50%; border: 1px solid #000; padding: 10px; vertical-align: top;">
+            <td style="width: 50%; border: 1px solid #000; padding: 10px;">
                 <strong>Ship from:</strong><br>
                 {{ export.seller }}<br>
                 ID: 404496121<br>
@@ -44,14 +44,14 @@
                 Tbilisi, Georgia<br>
                 Country of Origin: Georgia
             </td>
-            <td style="width: 50%; border: 1px solid #000; padding: 10px; vertical-align: top;">
+            <td style="width: 50%; border: 1px solid #000; padding: 10px;">
                 <strong>Ship To:</strong><br>
                 {{ export.shipped_to }}
             </td>
         </tr>
     </table>
 
-    <!-- Packing List Table -->
+    <!-- Items -->
     <h3 style="margin-bottom: 10px;">Items</h3>
     <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; text-align: center;">
         <thead style="background: #f2f2f2;">
@@ -66,7 +66,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for item in export.items.all %}
+            {% for item in items %}
             <tr>
                 <td style="border: 1px solid #000; padding: 6px;">{{ forloop.counter }}</td>
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.box_number }}</td>
@@ -77,9 +77,7 @@
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.pallet_number }}</td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="5" style="border: 1px solid #000; padding: 8px;">No items</td>
-            </tr>
+            <tr><td colspan="7">No items</td></tr>
             {% endfor %}
         </tbody>
     </table>
@@ -97,7 +95,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for pallet in export.pallets.all %}
+            {% for pallet in pallets %}
             <tr>
                 <td style="border: 1px solid #000; padding: 6px;">{{ pallet.pallet_number }}</td>
                 <td style="border: 1px solid #000; padding: 6px;">{{ pallet.length_cm }}</td>
@@ -106,9 +104,7 @@
                 <td style="border: 1px solid #000; padding: 6px;">{{ pallet.gross_weight_kg }}</td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="5" style="border: 1px solid #000; padding: 8px;">No pallet data</td>
-            </tr>
+            <tr><td colspan="5">No pallet data</td></tr>
             {% endfor %}
         </tbody>
         <tfoot>
@@ -117,7 +113,7 @@
                     <strong>Total Gross Weight</strong>
                 </td>
                 <td style="border: 1px solid #000; padding: 8px; font-weight: bold;">
-                    {{ export.total_gross_weight }}
+                    {{ total_gross_weight }}
                 </td>
             </tr>
         </tfoot>

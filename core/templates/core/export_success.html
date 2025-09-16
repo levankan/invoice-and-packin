@@ -1,11 +1,11 @@
 {% extends 'core/base.html' %}
 {% block title %}Export Saved{% endblock %}
 {% block content %}
-<div class="card mx-auto shadow-lg" style="max-width: 600px; padding: 40px; border-radius: 20px;">
-    <h2>✅ Export Registered</h2>
-    <p>Your export has been saved successfully.</p>
+<div class="card mx-auto shadow-lg" style="max-width: 700px; padding: 40px; border-radius: 20px;">
+    <h2 class="mb-3 text-success">✅ Export Registered</h2>
+    <p class="text-muted">Your export has been saved successfully.</p>
 
-    <ul class="list-group text-start mt-3">
+    <ul class="list-group text-start mt-3 mb-4">
         <li class="list-group-item"><strong>Export Number:</strong> {{ export.export_number }}</li>
         <li class="list-group-item"><strong>Invoice Number:</strong> {{ export.invoice_number }}</li>
         <li class="list-group-item"><strong>Packing List Number:</strong> {{ export.packing_list_number }}</li>
@@ -16,30 +16,43 @@
         <li class="list-group-item"><strong>Rows Saved:</strong> {{ rows }}</li>
     </ul>
 
-    <div class="mt-4 d-flex justify-content-between">
-        <a href="{% url 'exports' %}" class="btn btn-primary">⬅ Back to Exports</a>
-        <a href="{% url 'invoice' export.id %}" class="btn btn-warning">📄 View Invoice</a>
-        <a href="{% url 'generate_doc' %}" class="btn btn-success">➕ New Export</a>
-        <a href="{% url 'invoice_pdf' export.id %}" class="btn btn-danger">
-            📥 Download Invoice PDF
+    <!-- Main Action Buttons -->
+    <div class="d-flex flex-wrap gap-2 justify-content-center mb-4">
+        <a href="{% url 'exports' %}" class="btn btn-outline-primary">
+            ⬅ Back to Exports
         </a>
-        <a href="{% url 'packing_list_pdf' export.id %}" 
-            style="display: inline-block; margin: 10px; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">
-            Download Packing List (PDF)
+        <a href="{% url 'invoice' export.id %}" class="btn btn-outline-warning">
+            📄 View Invoice
+        </a>
+        <a href="{% url 'generate_doc' %}" class="btn btn-outline-success">
+            ➕ New Export
+        </a>
+        <a href="{% url 'invoice_pdf' export.id %}" class="btn btn-danger">
+            📥 Invoice PDF
+        </a>
+        <a href="{% url 'packing_list_pdf' export.id %}" class="btn btn-success">
+            📥 Packing List PDF
         </a>
     </div>
 
-    <h3>Download per Pallet</h3>
-        <ul>
+    <!-- Per Pallet Downloads -->
+    <h4 class="mt-4">📦 Download per Pallet</h4>
+    <ul class="list-group">
         {% for pallet in export.pallets.all %}
-            <li>
-            Pallet {{ pallet.pallet_number }} –
-            <a href="{% url 'invoice_pdf_per_pallet' export.id pallet.id %}">Download Invoice</a> |
-            <a href="{% url 'packing_list_pdf_per_pallet' export.id pallet.id %}">Download Packing List</a>
-            </li>
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+            <span><strong>Pallet {{ pallet.pallet_number }}</strong></span>
+            <div class="btn-group">
+                <a href="{% url 'invoice_pdf_per_pallet' export.id pallet.id %}" class="btn btn-sm btn-outline-danger">
+                    📄 Invoice
+                </a>
+                <a href="{% url 'packing_list_pdf_per_pallet' export.id pallet.id %}" class="btn btn-sm btn-outline-success">
+                    📦 Packing List
+                </a>
+            </div>
+        </li>
         {% empty %}
-            <li>No pallets available.</li>
+        <li class="list-group-item text-muted">No pallets available.</li>
         {% endfor %}
-        </ul>
+    </ul>
 </div>
 {% endblock %}
