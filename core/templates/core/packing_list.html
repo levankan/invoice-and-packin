@@ -37,7 +37,7 @@
     <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-bottom: 25px;">
         <tr>
             <td style="width: 50%; border: 1px solid #000; padding: 10px; vertical-align: top;">
-                <strong>Seller:</strong><br>
+                <strong>Ship from:</strong><br>
                 {{ export.seller }}<br>
                 ID: 404496121<br>
                 Mikheil Grigorashvili 27, 0198, Samgori District,<br>
@@ -45,7 +45,7 @@
                 Country of Origin: Georgia
             </td>
             <td style="width: 50%; border: 1px solid #000; padding: 10px; vertical-align: top;">
-                <strong>Shipped To:</strong><br>
+                <strong>Ship To:</strong><br>
                 {{ export.shipped_to }}
             </td>
         </tr>
@@ -58,7 +58,9 @@
             <tr>
                 <th style="border: 1px solid #000; padding: 8px;">Line</th>
                 <th style="border: 1px solid #000; padding: 8px;">Box No</th>
-                <th style="border: 1px solid #000; padding: 8px;">Cross Reference</th>
+                <th style="border: 1px solid #000; padding: 8px;">Customer PO</th>
+                <th style="border: 1px solid #000; padding: 8px;">PO Line</th>
+                <th style="border: 1px solid #000; padding: 8px;">PN</th>
                 <th style="border: 1px solid #000; padding: 8px; text-align: left;">Description</th>
                 <th style="border: 1px solid #000; padding: 8px;">Pallet No</th>
             </tr>
@@ -68,6 +70,8 @@
             <tr>
                 <td style="border: 1px solid #000; padding: 6px;">{{ forloop.counter }}</td>
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.box_number }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ item.customer_po }}</td>
+                <td style="border: 1px solid #000; padding: 6px;">{{ item.po_line }}</td>
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.cross_reference }}</td>
                 <td style="border: 1px solid #000; padding: 6px; text-align: left;">{{ item.description }}</td>
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.pallet_number }}</td>
