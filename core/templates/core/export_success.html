@@ -28,6 +28,18 @@
             Download Packing List (PDF)
         </a>
     </div>
-    
+
+    <h3>Download per Pallet</h3>
+        <ul>
+        {% for pallet in export.pallets.all %}
+            <li>
+            Pallet {{ pallet.pallet_number }} –
+            <a href="{% url 'invoice_pdf_per_pallet' export.id pallet.id %}">Download Invoice</a> |
+            <a href="{% url 'packing_list_pdf_per_pallet' export.id pallet.id %}">Download Packing List</a>
+            </li>
+        {% empty %}
+            <li>No pallets available.</li>
+        {% endfor %}
+        </ul>
 </div>
 {% endblock %}
