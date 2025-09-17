@@ -182,8 +182,9 @@ def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = (
-        f'attachment; filename="Invoice_{export.invoice_number}_Pallet{pallet.pallet_number}.pdf"'
-    )
+    f'attachment; filename="Invoice_{export.invoice_number}_{pallet.pallet_number}.pdf"'
+)
+
     HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
     return response
 
@@ -234,7 +235,8 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = (
-        f'attachment; filename="PackingList_{export.packing_list_number}_Pallet{pallet.pallet_number}.pdf"'
-    )
+    f'attachment; filename="Invoice_{export.invoice_number}_{pallet.pallet_number}.pdf"'
+)
+
     HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
     return response
