@@ -27,23 +27,50 @@ def generate_doc_view(request):
         "origin": "Georgia",
     }
 
-    sold_to_list = [
-        {"name": "Spirit AeroSystems, Inc.", "country": "USA"},
-        {"name": "Qarbon Aerospace", "country": "USA"},
-        {"name": "Elbit Systems Cyclone", "country": "Israel"},
-    ]
+    sold_to_default = {
+        "name": "Elbit Systems Cyclone",
+        "address": "Industrial Park Bar-Lev, P.O.B 114, Karmiel, Israel",
+        "id": "520033374",
+    }
 
     shipped_to_list = [
-        {"name": "Spirit AeroSystems Receiving Dock", "country": "USA"},
-        {"name": "Qarbon Aerospace Facility", "country": "USA"},
-        {"name": "Elbit Systems Warehouse", "country": "Israel"},
+        {
+            "name": "SPIRIT AEROSYSTEMS, INC.",
+            "address": "4555 E MacArthur Rd BLDG 3-213H, Wichita, KS 67210, United States",
+            "incoterms": "Incoterms 2010: EXW Tbilisi",
+        },
+        {
+            "name": "Qarbon Aerospace (Lafayette), LLC",
+            "address": "90 Hwy 22 West, Milledgeville, GA 31061-9600, United States",
+            "incoterms": "Incoterms 2010: EXW Tbilisi",
+        },
+        {
+            "name": "Boeing 787 / GXO Logistics",
+            "address": "7405 Magi Rd, Hanahan, SC 29410, United States",
+            "incoterms": "Incoterms 2010: EXW Tbilisi",
+        },
+        {
+            "name": "Boeing FSCA WHSE X28",
+            "address": "348 Millenium Drive, BLDG 88-998, Orangburg, SC 29115, United States",
+            "incoterms": "Incoterms 2010: EXW Tbilisi",
+        },
+        {
+            "name": "GKN AEROSPACE",
+            "address": "348 Millenium Dr, Orangeburg, SC 29115, United States",
+            "incoterms": "Incoterms 2010: EXW Tbilisi",
+        },
+        {
+            "name": "Elbit Systems Cyclone",
+            "address": "Industrial Park Bar-Lev, P.O.B 114, Karmiel, Israel",
+            "id": "520033374",
+            "incoterms": "Incoterms 2010: EXW Tbilisi",
+        },
     ]
 
     project_list = ["D638", "D640", "D735", "D632", "D640-634", "OPF", "NWD"]
 
     if request.method == "POST":
-        sold_to = request.POST.get("sold_to")
-        shipped_to = request.POST.get("shipped_to")
+        shipped_to_name = request.POST.get("shipped_to")
         project = request.POST.get("project")
         file = request.FILES.get("excel_file")
 
@@ -52,13 +79,12 @@ def generate_doc_view(request):
             return redirect("generate_doc")
 
         try:
-            # 🔹 Load all sheets
             xls = pd.ExcelFile(file)
         except Exception:
             messages.error(request, "⚠ Could not read Excel file. Make sure it's .xlsx or .xls")
             return redirect("generate_doc")
 
-        # 🔹 Validate & read Sheet1 (LineItems)
+        # 🔹 Validate Sheet1
         if "Sheet1" not in xls.sheet_names:
             messages.error(request, "⚠ Missing Sheet1 for items.")
             return redirect("generate_doc")
@@ -73,11 +99,27 @@ def generate_doc_view(request):
             messages.error(request, "⚠ Serial number is duplicated in Sheet1.")
             return redirect("generate_doc")
 
+        # 🔹 Build Shipped To block
+        consignee = next((c for c in shipped_to_list if c["name"] == shipped_to_name), None)
+        if not consignee:
+            messages.error(request, "⚠ Invalid 'Shipped To' selection.")
+            return redirect("generate_doc")
+
+        lines = [consignee["name"]]
+        if consignee.get("id"):
+            lines.append(f"ID: {consignee['id']}")
+        if consignee.get("address"):
+            lines.append(consignee["address"])
+        if consignee.get("incoterms"):
+            lines.append(consignee["incoterms"])
+
+        shipped_to_block = "\n".join(lines)
+
         # 🔹 Create Export
         export = Export.objects.create(
             seller=seller_info["name"],
-            sold_to=sold_to,
-            shipped_to=shipped_to,
+            sold_to=sold_to_default["name"],  # always Elbit
+            shipped_to=shipped_to_block,      # full block now
             project_no=project,
         )
 
@@ -132,7 +174,6 @@ def generate_doc_view(request):
     # GET request → form
     return render(request, "core/generate_doc.html", {
         "seller": seller_info,
-        "sold_to_list": sold_to_list,
         "shipped_to_list": shipped_to_list,
         "project_list": project_list,
     })

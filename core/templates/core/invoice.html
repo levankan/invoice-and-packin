@@ -40,7 +40,7 @@
     <!-- Parties -->
     <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; margin-bottom: 25px;">
         <tr>
-            <td style="width: 33%; border: 1px solid #000; padding: 10px;">
+            <td style="width: 33%; border: 1px solid #000; padding: 10px; vertical-align: top; text-align: left;">
                 <strong>Seller:</strong><br>
                 {{ export.seller }}<br>
                 ID: 404496121<br>
@@ -48,18 +48,27 @@
                 Tbilisi, Georgia<br>
                 Country of Origin: Georgia
             </td>
-            <td style="width: 33%; border: 1px solid #000; padding: 10px;">
+            <td style="width: 33%; border: 1px solid #000; padding: 10px; vertical-align: top; text-align: left;">
                 <strong>Sold To:</strong><br>
-                {{ export.sold_to }}<br><br>
-                <strong>Incoterms 2010:</strong> EXW Tbilisi<br>
-                <strong>Terms of Payment:</strong> 15D
+                Elbit Systems Cyclone<br>
+                ID: 520033374<br>
+                Industrial Park Bar-Lev, P.O.B 114,<br>
+                Karmiel, Israel<br>
             </td>
-            <td style="width: 34%; border: 1px solid #000; padding: 10px;">
-                <strong>Shipped To:</strong><br>
-                {{ export.shipped_to }}
-            </td>
+            <td style="width: 34%; border: 1px solid #000; padding: 10px; vertical-align: top; text-align: left;">
+                <strong>Shipped To:</strong>
+                {% if export.shipped_to %}
+                <p style="margin:0; font-family: Arial, sans-serif; font-size: 13px; 
+                          white-space: pre-wrap; line-height: 1.4; text-align: left;">
+                    {{ export.shipped_to }}
+                </p>
+                {% else %}
+                N/A
+                {% endif %}                
+            </td>            
         </tr>
     </table>
+    
 
     <!-- Invoice Items -->
     <table style="width: 100%; border: 1px solid #000; border-collapse: collapse; text-align: center;">

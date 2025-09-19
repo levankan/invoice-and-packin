@@ -2,8 +2,8 @@
 {% block title %}Generate Document{% endblock %}
 {% block content %}
 <div class="card mx-auto shadow-lg" style="max-width: 700px; padding: 40px; border-radius: 20px;">
-    <h2>📄 Generate Document</h2>
-    <p>Select seller, buyer, consignee, project, and upload an Excel file.</p>
+    <h2>Generate Document</h2>
+    <p>Select consignee, project, and upload an Excel file.</p>
 
     <!-- Messages -->
     {% if messages %}
@@ -30,24 +30,25 @@
             </small>
         </div>
 
-        <!-- Sold To -->
-        <div class="mb-3 text-start">
-            <label for="sold_to" class="form-label"><strong>Sold To</strong></label>
-            <select id="sold_to" name="sold_to" class="form-select">
-                {% for buyer in sold_to_list %}
-                    <option value="{{ buyer.name }}">{{ buyer.name }} ({{ buyer.country }})</option>
-                {% endfor %}
-            </select>
-        </div>
+        <!-- Sold To (Fixed) -->
+        <div class="mb-3">
+            <label class="form-label"><strong>Sold To</strong></label>
+            <p>
+                <strong>Elbit Systems Cyclone</strong><br>
+                ID: 520033374<br>
+                Industrial Park Bar-Lev, P.O.B 114,<br>
+                Karmiel, Israel
+            </p>
+        </div>        
 
         <!-- Shipped To -->
         <div class="mb-3 text-start">
             <label for="shipped_to" class="form-label"><strong>Shipped To</strong></label>
             <select id="shipped_to" name="shipped_to" class="form-select">
                 {% for consignee in shipped_to_list %}
-                    <option value="{{ consignee.name }}">{{ consignee.name }} ({{ consignee.country }})</option>
+                  <option value="{{ consignee.name }}">{{ consignee.name }}</option>
                 {% endfor %}
-            </select>
+              </select>              
         </div>
 
         <!-- Project No -->
