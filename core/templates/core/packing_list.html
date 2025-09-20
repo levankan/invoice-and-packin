@@ -31,7 +31,10 @@
                 </p>                
                 <p><strong>Date:</strong> {{ export.created_at|date:"d/m/Y" }}</p>
                 <p><strong>Export No:</strong> {{ export.export_number }}</p>
-                <p><strong>Invoice No:</strong> {{ export.invoice_number }}</p>
+                <p>
+                    <strong>Invoice No:</strong> {{ export.invoice_number }}
+                    {% if pallet %} / {{ pallet.pallet_number }}{% endif %}
+                </p>                
             </td>
         </tr>
     </table>
