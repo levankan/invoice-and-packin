@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-b72_s3x*%w9lymhcj19i)30odu@93(%gj1ngdh9=mul1y-isry
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['shipmnent.com', '95.217.188.223']
 
 
 
@@ -34,7 +34,10 @@ AUTH_USER_MODEL = 'core.User'
 import os
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'core' / 'static']
+STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
 
 
 # Application definition
