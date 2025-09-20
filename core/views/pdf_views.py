@@ -5,6 +5,7 @@ from core.models import Export
 from collections import defaultdict
 from decimal import Decimal
 
+
 # ===========================
 # Invoice PDF (all items)
 # ===========================
@@ -193,6 +194,10 @@ def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
 # ===========================
 # Packing List PDF (per pallet)
 # ===========================
+
+
+
+
 def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
     export = Export.objects.get(id=export_id)
     pallet = export.pallets.get(id=pallet_id)
@@ -214,6 +219,7 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
         grouped[key]["total_qty"] += item.qty or 0
 
     grouped_items = []
+    grand_total_qty = 0
     for (box, pallet_no, cross_ref, customer_po, po_line), values in grouped.items():
         grouped_items.append({
             "box_number": box,
@@ -224,19 +230,21 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
             "description": values["description"],
             "total_qty": values["total_qty"],
         })
+        grand_total_qty += values["total_qty"]
 
     html_string = render_to_string("core/packing_list.html", {
         "export": export,
         "items": grouped_items,
         "pallets": [pallet],  # only this pallet
         "total_gross_weight": pallet.gross_weight_kg,
+        "grand_total_qty": grand_total_qty,
         "pallet": pallet,
     })
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = (
-    f'attachment; filename="Invoice_{export.invoice_number}_{pallet.pallet_number}.pdf"'
-)
+        f'attachment; filename="PackingList_{export.packing_list_number}_{pallet.pallet_number}.pdf"'
+    )
 
     HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
     return response

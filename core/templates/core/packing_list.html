@@ -79,6 +79,7 @@
                 <th style="border: 1px solid #000; padding: 8px;">PO Line</th>
                 <th style="border: 1px solid #000; padding: 8px;">PN</th>
                 <th style="border: 1px solid #000; padding: 8px; text-align: left;">Description</th>
+                <th style="border: 1px solid #000; padding: 8px;">Qty</th>
                 <th style="border: 1px solid #000; padding: 8px;">Pallet No</th>
             </tr>
         </thead>
@@ -91,12 +92,24 @@
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.po_line }}</td>
                 <td style="border: 1px solid #000; padding: 6px; white-space: nowrap;">{{ item.cross_reference }}</td>
                 <td style="border: 1px solid #000; padding: 6px; text-align: left;">{{ item.description }}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ item.total_qty }}</td>
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.pallet_number }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="7">No items</td></tr>
+            <tr><td colspan="8">No items</td></tr>
             {% endfor %}
         </tbody>
+        <tfoot>
+            <tr style="background: #f9f9f9; font-weight: bold;">
+                <td colspan="6" style="border: 1px solid #000; padding: 8px; text-align: right;">
+                    TOTAL QUANTITY
+                </td>
+                <td style="border: 1px solid #000; padding: 8px; text-align: right;">
+                    {{ grand_total_qty }}
+                </td>
+                <td style="border: 1px solid #000; padding: 8px;"></td>
+            </tr>
+        </tfoot>        
     </table>
 
     <!-- Pallet Summary -->
