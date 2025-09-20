@@ -74,14 +74,11 @@ from decimal import Decimal
 
 def packing_list_pdf_view(request, export_id):
     export = Export.objects.get(id=export_id)
+    items = export.items.all()
 
-    # Grouped data container
-    grouped = defaultdict(lambda: {
-        "total_qty": 0,
-    })
+    grouped = defaultdict(lambda: {"total_qty": 0})
 
-    # Group by (box, pallet, PN, Customer PO, PO line)
-    for item in export.items.all():
+    for item in items:
         key = (
             item.box_number,
             item.pallet_number,
@@ -92,27 +89,26 @@ def packing_list_pdf_view(request, export_id):
         grouped[key]["description"] = item.description
         grouped[key]["total_qty"] += item.qty or 0
 
-    # Convert into list for template
     grouped_items = []
-    for (box, pallet, cross_ref, customer_po, po_line), values in grouped.items():
+    grand_total_qty = 0
+    for (box, pallet_no, cross_ref, customer_po, po_line), values in grouped.items():
         grouped_items.append({
             "box_number": box,
-            "pallet_number": pallet,
+            "pallet_number": pallet_no,
             "cross_reference": cross_ref,
             "customer_po": customer_po,
             "po_line": po_line,
             "description": values["description"],
             "total_qty": values["total_qty"],
         })
+        grand_total_qty += values["total_qty"]
 
-    pallets = export.pallets.all()
-
-    # ---- Render template ----
     html_string = render_to_string("core/packing_list.html", {
         "export": export,
-        "items": grouped_items,   # now grouped
-        "pallets": pallets,
-        "total_gross_weight": export.total_gross_weight,
+        "items": grouped_items,
+        "pallets": export.pallets.all(),
+        "total_gross_weight": sum(p.gross_weight_kg for p in export.pallets.all()),
+        "grand_total_qty": grand_total_qty,   # ✅ now passed
     })
 
     response = HttpResponse(content_type="application/pdf")
