@@ -99,6 +99,14 @@ def generate_doc_view(request):
             messages.error(request, "⚠ Serial number is duplicated in Sheet1.")
             return redirect("generate_doc")
 
+        if "Box #" in df.columns and "Pallet #" in df.columns:
+            box_pallet = df.groupby("Box #")["Pallet #"].nunique()
+            bad_boxes = box_pallet[box_pallet > 1].index.tolist()
+            if bad_boxes:
+                messages.error(request, f"⚠ Box numbers on multiple pallets: {', '.join(map(str, bad_boxes))}")
+                return redirect("generate_doc")
+
+
         # 🔹 Build Shipped To block
         consignee = next((c for c in shipped_to_list if c["name"] == shipped_to_name), None)
         if not consignee:
