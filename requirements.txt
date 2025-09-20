@@ -14,6 +14,7 @@ pycparser==2.23
 pydyf==0.11.0
 pyphen==0.17.2
 python-dateutil==2.9.0.post0
+python-decouple==3.8
 pytz==2025.2
 reportlab==4.4.3
 six==1.17.0
