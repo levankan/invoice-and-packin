@@ -11,6 +11,22 @@
         color: black;
     }
 }
+
+/* General table styles */
+td, th {
+    font-family: "DejaVu Sans", Arial, sans-serif;
+    font-size: 12px;
+    vertical-align: top;
+}
+
+/* Fix for description column */
+td.description {
+    white-space: normal !important;
+    word-wrap: break-word;
+    max-width: 300px;
+    text-align: left;
+    vertical-align: top;
+}
 </style>
 
 <div style="max-width: 1100px; margin: auto; min-height: 100vh; font-family: Arial, sans-serif; font-size: 13px; padding: 20px;">
@@ -92,7 +108,9 @@
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.customer_po }}</td>
                 <td style="border: 1px solid #000; padding: 6px;">{{ item.po_line }}</td>
                 <td style="border: 1px solid #000; padding: 6px; white-space: nowrap;">{{ item.cross_reference }}</td>
-                <td style="border: 1px solid #000; padding: 6px; text-align: left;">{{ item.description }}</td>
+                <td class="description" style="border: 1px solid #000; padding: 6px;">
+                    {{ item.description }}
+                </td>
                 <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ item.price|floatformat:2 }}</td>
                 <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ item.total_qty }}</td>
                 <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ item.total_value|floatformat:2 }}</td>
@@ -120,11 +138,11 @@
                     <tr>
                         <td style="padding: 10px;">
                             <strong>Notes:</strong><br>
-                            Civil Aviation Parts For Boeing 787; HS Code: 8807 30 000 01<br>
+                            Civil Aviation Parts For Boeing 787; <br> HS Code: 8807 30 000 01;<br>
                             {% if pallet %}
-                                Gross Weight: {{ pallet.gross_weight_kg|floatformat:2|default:"___" }} KG
+                                Gross Weight: {{ pallet.gross_weight_kg|floatformat:2|default:"___" }} KG;
                             {% else %}
-                                Gross Weight: {{ export.total_gross_weight|floatformat:2|default:"___" }} KG
+                                Gross Weight: {{ export.total_gross_weight|floatformat:2|default:"___" }} KG;
                             {% endif %}
                         </td>
                     </tr>

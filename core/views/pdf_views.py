@@ -32,6 +32,7 @@ def invoice_pdf_view(request, export_id):
         )
         grouped[key]["total_qty"] += item.qty or 0
         grouped[key]["total_value"] += (item.price or 0) * (item.qty or 0)
+        grouped[key]["description"] = item.description
 
     # Convert into list for template
     grouped_items = []
@@ -46,6 +47,7 @@ def invoice_pdf_view(request, export_id):
             "price": price,
             "customer_po": customer_po,
             "po_line": po_line,
+            "description": values["description"], 
             "total_qty": values["total_qty"],
             "total_value": values["total_value"],
         })
