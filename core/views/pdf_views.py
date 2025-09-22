@@ -76,24 +76,27 @@ from decimal import Decimal
 
 def packing_list_pdf_view(request, export_id):
     export = Export.objects.get(id=export_id)
-    items = export.items.all()
 
     grouped = defaultdict(lambda: {"total_qty": 0})
 
-    for item in items:
+    # Group by same keys as invoice (include price for consistency)
+    for item in export.items.all():
         key = (
             item.box_number,
             item.pallet_number,
             item.cross_reference,
+            item.price,          # ✅ added to match invoice grouping
             item.customer_po,
             item.po_line,
         )
         grouped[key]["description"] = item.description
         grouped[key]["total_qty"] += item.qty or 0
+        grouped[key]["price"] = item.price   # ✅ store but we don’t use in total $
 
     grouped_items = []
     grand_total_qty = 0
-    for (box, pallet_no, cross_ref, customer_po, po_line), values in grouped.items():
+
+    for (box, pallet_no, cross_ref, price, customer_po, po_line), values in grouped.items():
         grouped_items.append({
             "box_number": box,
             "pallet_number": pallet_no,
@@ -101,6 +104,7 @@ def packing_list_pdf_view(request, export_id):
             "customer_po": customer_po,
             "po_line": po_line,
             "description": values["description"],
+            "price": price,   # ✅ optional, for display only
             "total_qty": values["total_qty"],
         })
         grand_total_qty += values["total_qty"]
@@ -110,7 +114,7 @@ def packing_list_pdf_view(request, export_id):
         "items": grouped_items,
         "pallets": export.pallets.all(),
         "total_gross_weight": sum(p.gross_weight_kg for p in export.pallets.all()),
-        "grand_total_qty": grand_total_qty,   # ✅ now passed
+        "grand_total_qty": grand_total_qty,
     })
 
     response = HttpResponse(content_type="application/pdf")
