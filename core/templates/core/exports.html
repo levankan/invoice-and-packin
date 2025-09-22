@@ -6,6 +6,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-light shadow-sm rounded">
     <h2 class="m-0">📦 Exports</h2>
     <div>
+        <a href="{% url 'download_export_template' %}" class="btn btn-success mb-3">
+            📥 Download Export Template (Excel)
+        </a>        
         <a href="{% url 'generate_doc' %}" class="btn btn-warning me-2">📄 Generate Doc</a>
         <a href="{% url 'home' %}" class="btn btn-secondary">⬅ Back to Home</a>
     </div>

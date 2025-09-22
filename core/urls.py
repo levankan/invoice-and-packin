@@ -10,6 +10,7 @@ from core.views import (
     packing_list_pdf_view,
     invoice_pdf_per_pallet_view,
     packing_list_pdf_per_pallet_view,
+    download_export_template,
 
     # exports (from export_views.py)
     exports_view,
@@ -26,6 +27,7 @@ urlpatterns = [
     path('exports/', exports_view, name='exports_view'),
     path('exports/<int:export_id>/edit/', edit_export, name='edit_export'),
     path('exports/<int:export_id>/delete/', delete_export, name='delete_export'),
+    path("exports/template/download/", download_export_template, name="download_export_template"),
 
     path('tracking/', tracking_view, name='tracking'),
     path('generate-doc/', generate_doc_view, name='generate_doc'),
