@@ -121,13 +121,13 @@ td.description {
             </tr>
             {% endfor %}
         </tbody>
-        <tfoot>
-            <tr style="background: #f9f9f9; font-weight: bold;">
-                <td colspan="6" style="border: 1px solid #000; padding: 8px; text-align: right;">GRAND TOTAL</td>
-                <td style="border: 1px solid #000; padding: 8px; text-align: right;">{{ grand_total_qty }}</td>
-                <td style="border: 1px solid #000; padding: 8px; text-align: right;">{{ grand_total_value|floatformat:2 }}</td>
-            </tr>
-        </tfoot>
+            <tfoot style="display: table-row-group;">
+                <tr style="background: #f9f9f9; font-weight: bold;">
+                    <td colspan="6" style="border: 1px solid #000; padding: 8px; text-align: right;">GRAND TOTAL</td>
+                    <td style="border: 1px solid #000; padding: 8px; text-align: right;">{{ grand_total_qty }}</td>
+                    <td style="border: 1px solid #000; padding: 8px; text-align: right;">{{ grand_total_value|floatformat:2 }}</td>
+                </tr>
+            </tfoot>            
     </table>
 
     <!-- Notes + Signature -->
