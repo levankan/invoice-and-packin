@@ -77,7 +77,7 @@ td.description {
                 {% if export.shipped_to %}
                 <p style="margin:0; font-family: Arial, sans-serif; font-size: 13px; 
                           white-space: pre-wrap; line-height: 1.4; text-align: left;">
-                    {{ export.shipped_to }}
+                    {{ export.shipped_to | trim}}
                 </p>
                 {% else %}
                 N/A
