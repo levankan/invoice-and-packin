@@ -6,6 +6,8 @@ from core.models import Export
 from core.forms import ExportForm
 import openpyxl
 from django.http import HttpResponse
+from django.http import HttpResponseForbidden
+
 
 
 
@@ -41,11 +43,17 @@ def edit_export(request, export_id):
 
 @login_required
 def delete_export(request, export_id):
-    export = get_object_or_404(Export, id=export_id)
-    export.delete()
-    messages.success(request, "Export deleted successfully 🗑")
-    return redirect("exports_view")
+    # ✅ Only superuser (admin) can delete
+    if not request.user.is_superuser:
+        return HttpResponseForbidden("You do not have permission to delete exports.")
 
+    export = get_object_or_404(Export, id=export_id)
+
+    if request.method == "POST":
+        export.delete()
+        return redirect("exports_view")
+
+    return render(request, "core/delete_export.html", {"export": export})
 
 
 
