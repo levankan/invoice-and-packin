@@ -8,7 +8,7 @@ from .logout_view import logout_view
 from .home_view import home_view, tracking_view
 
 # Exports
-from .export_views import exports_view, edit_export, delete_export, download_export_template
+from .export_views import exports_view, edit_export, delete_export, download_export_template,export_database_excel
 
 # Document generation
 from .generate_doc_view import generate_doc_view

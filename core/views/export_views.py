@@ -105,3 +105,57 @@ def download_export_template(request):
 
     wb.save(response)
     return response
+
+
+
+
+
+
+
+
+
+@login_required
+def export_database_excel(request):
+    # Create workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Exports + Items"
+
+    # Headers
+    headers = [
+        "Export ID", "Invoice No", "Export No", "Project No", "Created At",
+        "Sold To", "Shipped To",
+        "Box No", "Pallet No", "Customer PO", "PO Line",
+        "PN (Cross Ref)", "Description", "Qty", "Price", "Total Value"
+    ]
+    ws.append(headers)
+
+    # Data rows
+    for exp in Export.objects.all().prefetch_related("items").order_by("id"):
+        for item in exp.items.all():
+            ws.append([
+                exp.id,
+                exp.invoice_number,
+                exp.export_number,
+                exp.project_no,
+                exp.created_at.strftime("%Y-%m-%d"),
+                exp.sold_to or "",
+                exp.shipped_to or "",
+                item.box_number or "",
+                item.pallet_number or "",
+                item.customer_po or "",
+                item.po_line or "",
+                item.cross_reference or "",
+                item.description or "",
+                item.qty or 0,
+                item.price or 0,
+                (item.price or 0) * (item.qty or 0),
+            ])
+
+    # Response
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="Exports_Database.xlsx"'
+    wb.save(response)
+    return response

@@ -1,4 +1,5 @@
 from django.urls import path
+
 from core.views import (
     login_view,
     home_view,
@@ -16,6 +17,7 @@ from core.views import (
     exports_view,
     edit_export,
     delete_export,
+    export_database_excel,
 )
 
 urlpatterns = [
@@ -28,6 +30,8 @@ urlpatterns = [
     path('exports/<int:export_id>/edit/', edit_export, name='edit_export'),
     path('exports/<int:export_id>/delete/', delete_export, name='delete_export'),
     path("exports/template/download/", download_export_template, name="download_export_template"),
+    path("exports/database/download/", export_database_excel, name="export_database_excel"),
+
 
     path('tracking/', tracking_view, name='tracking'),
     path('generate-doc/', generate_doc_view, name='generate_doc'),
