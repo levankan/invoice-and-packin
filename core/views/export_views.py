@@ -7,6 +7,8 @@ from core.forms import ExportForm
 import openpyxl
 from django.http import HttpResponse
 from django.http import HttpResponseForbidden
+from core.models import Export, LineItem
+
 
 
 
@@ -112,21 +114,21 @@ def download_export_template(request):
 
 
 
-
-
 @login_required
 def export_database_excel(request):
     # Create workbook
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Exports + Items"
+    ws.title = "Exports Full"
 
-    # Headers
+    # Headers in your requested order
     headers = [
-        "Export ID", "Invoice No", "Export No", "Project No", "Created At",
-        "Sold To", "Shipped To",
-        "Box No", "Pallet No", "Customer PO", "PO Line",
-        "PN (Cross Ref)", "Description", "Qty", "Price", "Total Value"
+        "Serial/Lot Number", "Document Number", "Item Number", "Cross Reference #",
+        "QTY", "Unit of Measure", "Box #", "Commercial Invoice #", "Posting Date",
+        "Shipment #", "Description", "Carbon QTY", "Carbon LOT", "Customer PO",
+        "PO Line", "Sales Order", "Sales Order Line", "Pallet #", "Price", "LU",
+        "Invoice No", "Packing List No", "Export No", "Project No", "Created At",
+        "Seller", "Sold To", "Shipped To", "Export ID"
     ]
     ws.append(headers)
 
@@ -134,22 +136,35 @@ def export_database_excel(request):
     for exp in Export.objects.all().prefetch_related("items").order_by("id"):
         for item in exp.items.all():
             ws.append([
-                exp.id,
-                exp.invoice_number,
-                exp.export_number,
-                exp.project_no,
-                exp.created_at.strftime("%Y-%m-%d"),
-                exp.sold_to or "",
-                exp.shipped_to or "",
+                item.serial_lot_number or "",
+                item.document_number or "",
+                item.item_number or "",
+                item.cross_reference or "",
+                item.qty or 0,
+                item.unit_of_measure or "",
                 item.box_number or "",
-                item.pallet_number or "",
+                item.commercial_invoice_number or "",
+                item.posting_date.strftime("%Y-%m-%d") if item.posting_date else "",
+                item.shipment_number or "",
+                item.description or "",
+                item.carbon_qty or "",
+                item.carbon_lot or "",
                 item.customer_po or "",
                 item.po_line or "",
-                item.cross_reference or "",
-                item.description or "",
-                item.qty or 0,
+                item.sales_order or "",
+                item.sales_order_line or "",
+                item.pallet_number or "",
                 item.price or 0,
-                (item.price or 0) * (item.qty or 0),
+                item.lu or "",
+                exp.invoice_number or "",
+                exp.packing_list_number or "",   # ✅ added packing list number
+                exp.export_number or "",
+                exp.project_no or "",
+                exp.created_at.strftime("%Y-%m-%d"),
+                exp.seller or "",
+                exp.sold_to or "",
+                exp.shipped_to or "",
+                exp.id,
             ])
 
     # Response
