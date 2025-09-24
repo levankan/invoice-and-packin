@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from core.models import Export, LineItem, Pallet
 from decimal import Decimal
+from django.db.models import Q
 
 
 EXPECTED_HEADERS = [
@@ -97,6 +98,17 @@ def generate_doc_view(request):
 
         if df["Serial/Lot Number"].duplicated().any():
             messages.error(request, "⚠ Serial number is duplicated in Sheet1.")
+            return redirect("generate_doc")
+        
+        existing_serials = set(
+            LineItem.objects.filter(serial_lot_number__in=df["Serial/Lot Number"].dropna().tolist())
+            .values_list("serial_lot_number", flat=True)
+            )
+        if existing_serials:
+            messages.error(
+                request,
+                f"⚠ These serial numbers already exist in the database: {', '.join(existing_serials)}"
+            )
             return redirect("generate_doc")
 
         if "Box #" in df.columns and "Pallet #" in df.columns:
