@@ -1,0 +1,39 @@
+{% extends 'core/base.html' %}
+{% block title %}Edit Export{% endblock %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h4 class="m-0">✏ Edit Export - {{ export.export_number }}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- Export Form Fields -->
+                <div class="mb-3">
+                    {{ form.as_p }}
+                </div>
+
+                <!-- Excel Upload -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>Update Line Items via Excel</strong></label>
+                    <input type="file" name="excel_file" class="form-control">
+                    <small class="form-text text-muted">
+                        Upload a new Excel file to replace existing Line Items & Pallets.  
+                        Leave empty if you only want to edit the Export fields above.
+                    </small>
+                </div>
+
+                <!-- Buttons -->
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% url 'exports_view' %}" class="btn btn-secondary">⬅ Back</a>
+                    <button type="submit" class="btn btn-success">💾 Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -8,9 +8,11 @@ import openpyxl
 from django.http import HttpResponse
 from django.http import HttpResponseForbidden
 from core.models import Export, LineItem
-
-
-
+import pandas as pd
+from decimal import Decimal
+from core.models import Export, LineItem, Pallet
+from core.forms import ExportForm
+from .generate_doc_view import EXPECTED_HEADERS, EXPECTED_PALLET_HEADERS
 
 
 
@@ -28,19 +30,93 @@ def exports_view(request):
     return render(request, "core/exports.html", {"exports": exports})
 
 
+
+
+
+
 @login_required
 def edit_export(request, export_id):
-    """Edit a single export"""
+    """Edit a single export (with option to re-upload Excel data)."""
     export = get_object_or_404(Export, id=export_id)
+
     if request.method == "POST":
         form = ExportForm(request.POST, instance=export)
+        file = request.FILES.get("excel_file")
+
         if form.is_valid():
-            form.save()
+            export = form.save()
+
+            if file:
+                try:
+                    xls = pd.ExcelFile(file)
+                except Exception:
+                    messages.error(request, "⚠ Could not read Excel file. Make sure it's .xlsx or .xls")
+                    return redirect("edit_export", export_id=export.id)
+
+                # 🔹 Replace LineItems
+                if "Sheet1" in xls.sheet_names:
+                    df = pd.read_excel(xls, sheet_name="Sheet1")
+
+                    if list(df.columns) != EXPECTED_HEADERS:
+                        messages.error(request, "⚠ Sheet1 headers do not match expected format.")
+                        return redirect("edit_export", export_id=export.id)
+
+                    # Delete old items
+                    export.items.all().delete()
+
+                    # Save new items
+                    for _, row in df.iterrows():
+                        LineItem.objects.create(
+                            export=export,
+                            serial_lot_number=row["Serial/Lot Number"],
+                            document_number=row["Document Number"],
+                            item_number=row["Item Number"],
+                            cross_reference=row["Cross Reference #"],
+                            qty=row["QTY"],
+                            unit_of_measure=row["Unit of Measure"],
+                            box_number=row["Box #"],
+                            commercial_invoice_number=row["Commercial Invoice #"],
+                            posting_date=row["Posting Date"],
+                            shipment_number=row["Shipment #"],
+                            description=row["Description"],
+                            carbon_qty=row["Carbon QTY"],
+                            carbon_lot=row["Carbon LOT"],
+                            customer_po=row["Customer PO"],
+                            po_line=row["PO Line"],
+                            sales_order=row["Sales Order"],
+                            sales_order_line=row["Sales Order Line"],
+                            pallet_number=row["Pallet #"],
+                            price=row["Price"],
+                            lu=row["LU"],
+                        )
+
+                # 🔹 Replace Pallets
+                if "Sheet2" in xls.sheet_names:
+                    df2 = pd.read_excel(xls, sheet_name="Sheet2")
+
+                    if list(df2.columns) == EXPECTED_PALLET_HEADERS:
+                        export.pallets.all().delete()
+                        for _, row in df2.iterrows():
+                            Pallet.objects.create(
+                                export=export,
+                                pallet_number=row["Pallet #"],
+                                length_cm=Decimal(str(row["Lenght (Cm)"])) if row["Lenght (Cm)"] is not None else None,
+                                width_cm=Decimal(str(row["Width (Cm)"])) if row["Width (Cm)"] is not None else None,
+                                height_cm=Decimal(str(row["Height (Cm)"])) if row["Height (Cm)"] is not None else None,
+                                gross_weight_kg=Decimal(str(row["Gross Weight (Kg)"])) if row["Gross Weight (Kg)"] is not None else None,
+                            )
+
+            # ✅ Always return response when form is valid
             messages.success(request, "Export updated successfully ✅")
             return redirect("exports_view")
+
     else:
         form = ExportForm(instance=export)
+
+    # ✅ GET or invalid POST returns edit page
     return render(request, "core/edit_export.html", {"form": form, "export": export})
+
+
 
 
 @login_required
