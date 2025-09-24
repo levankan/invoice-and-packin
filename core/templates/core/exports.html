@@ -46,7 +46,11 @@
                 <td>{{ forloop.counter }}</td>
                 <td>{{ export.invoice_number }}</td>
                 <td>{{ export.project_no }}</td>
-                <td>{{ export.export_number }}</td>
+                <td>
+                    <a href="{% url 'export_detail' export.id %}">
+                        {{ export.export_number }}
+                    </a>
+                </td>                
                 <td>{{ export.created_at|date:"d/m/Y" }}</td>
                 <td class="text-center">
                     <a href="{% url 'edit_export' export.id %}" class="btn btn-sm btn-outline-primary">✏ Edit</a>

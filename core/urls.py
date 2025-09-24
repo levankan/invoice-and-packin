@@ -1,4 +1,5 @@
 from django.urls import path
+from core.views.export_views import export_detail
 
 from core.views import (
     login_view,
@@ -31,7 +32,7 @@ urlpatterns = [
     path('exports/<int:export_id>/delete/', delete_export, name='delete_export'),
     path("exports/template/download/", download_export_template, name="download_export_template"),
     path("exports/database/download/", export_database_excel, name="export_database_excel"),
-
+    path("exports/<int:export_id>/", export_detail, name="export_detail"),
 
     path('tracking/', tracking_view, name='tracking'),
     path('generate-doc/', generate_doc_view, name='generate_doc'),

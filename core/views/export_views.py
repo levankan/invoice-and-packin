@@ -250,3 +250,12 @@ def export_database_excel(request):
     response["Content-Disposition"] = 'attachment; filename="Exports_Database.xlsx"'
     wb.save(response)
     return response
+
+
+
+
+
+@login_required
+def export_detail(request, export_id):
+    export = get_object_or_404(Export, id=export_id)
+    return render(request, "core/export_success.html", {"export": export})
