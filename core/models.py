@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Max
-
+from decimal import Decimal
 
 # -----------------------------
 # User with Roles
@@ -91,7 +91,7 @@ class LineItem(models.Model):
     posting_date = models.DateField(blank=True, null=True)
     shipment_number = models.CharField(max_length=100, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
-    carbon_qty = models.IntegerField(blank=True, null=True)
+    carbon_qty = models.DecimalField(max_digits=12, decimal_places=5, blank=True, null=True)
     carbon_lot = models.CharField(max_length=100, blank=True, null=True)
     customer_po = models.CharField(max_length=100, blank=True, null=True)
     po_line = models.CharField(max_length=100, blank=True, null=True)
