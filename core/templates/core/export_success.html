@@ -48,9 +48,11 @@
                 <a href="{% url 'packing_list_pdf_per_pallet' export.id pallet.id %}" class="btn btn-sm btn-outline-success">
                     📦 Packing List
                 </a>
-                <a href="{% url 'pallet_label_pdf' export.id pallet.id %}" class="btn btn-sm btn-outline-dark">
+                <a href="{% url 'pallet_label_pdf' export.id pallet.id %}" 
+                    class="btn btn-sm btn-outline-dark">
                     🏷 Label
-                </a>
+                 </a>
+
             </div>
         </li>
         {% empty %}

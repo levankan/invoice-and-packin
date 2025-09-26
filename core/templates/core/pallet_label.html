@@ -116,7 +116,7 @@
             <p><strong>Length (cm):</strong> {{ pallet.length_cm }}</p>
             <p><strong>Width (cm):</strong> {{ pallet.width_cm }}</p>
             <p><strong>Height (cm):</strong> {{ pallet.height_cm }}</p>
-            <p><strong>Gross Weight (kg):</strong> {{ pallet.gross_weight_kg }}</p>
+            <p><strong>Packing List:</strong> {{ export.packing_list_number|default:"-" }}</p>
             <p><strong>Contents:</strong> {{ pallet.sku_type|default:"Mixed SKU" }}</p>
         </div>
 
