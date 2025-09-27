@@ -11,6 +11,8 @@ from core.models import Export, Pallet
 from django.contrib.auth.decorators import login_required
 
 
+
+
 # ===========================
 # Invoice PDF (all items)
 # ===========================
@@ -76,8 +78,7 @@ def invoice_pdf_view(request, export_id):
 # ===========================
 # Packing List PDF (all items)
 # ===========================
-from collections import defaultdict
-from decimal import Decimal
+
 
 def packing_list_pdf_view(request, export_id):
     export = Export.objects.get(id=export_id)
@@ -136,8 +137,7 @@ def packing_list_pdf_view(request, export_id):
 # ===========================
 # Invoice PDF (per pallet)
 # ===========================
-from collections import defaultdict
-from decimal import Decimal
+
 
 def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
     export = Export.objects.get(id=export_id)
@@ -260,29 +260,3 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
 
 
 
-@login_required
-def pallet_label_pdf_view(request, export_id, pallet_id):
-    export = Export.objects.get(id=export_id)
-    pallet = Pallet.objects.get(id=pallet_id, export=export)
-
-    # ✅ Generate QR Code (example: encode Export + Pallet info)
-    qr_data = f"Export:{export.export_number} | Invoice:{export.invoice_number} | Pallet:{pallet.pallet_number}"
-    qr = qrcode.make(qr_data)
-    buffer = BytesIO()
-    qr.save(buffer, format="PNG")
-    qr_code_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    qr_code_url = f"data:image/png;base64,{qr_code_base64}"
-
-    # Render template
-    html_string = render_to_string("core/pallet_label.html", {
-        "export": export,
-        "pallet": pallet,
-        "qr_code_url": qr_code_url,
-    })
-
-    # Generate PDF
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="PalletLabel_{export.export_number}_{pallet.pallet_number}.pdf"'
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
-
-    return response

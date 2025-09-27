@@ -42,17 +42,11 @@
         <li class="list-group-item d-flex justify-content-between align-items-center">
             <span><strong>Pallet {{ pallet.pallet_number }}</strong></span>
             <div class="btn-group">
-                <a href="{% url 'invoice_pdf_per_pallet' export.id pallet.id %}" class="btn btn-sm btn-outline-danger">
-                    📄 Invoice
-                </a>
-                <a href="{% url 'packing_list_pdf_per_pallet' export.id pallet.id %}" class="btn btn-sm btn-outline-success">
-                    📦 Packing List
-                </a>
-                <a href="{% url 'pallet_label_pdf' export.id pallet.id %}" 
-                    class="btn btn-sm btn-outline-dark">
-                    🏷 Label
-                 </a>
+                <a href="{% url 'invoice_pdf_per_pallet' export.id pallet.id %}" 
+                    class="btn btn-sm btn-outline-danger">📄 Invoice</a>
 
+                <a href="{% url 'packing_list_pdf_per_pallet' export.id pallet.id %}" 
+                    class="btn btn-sm btn-outline-success">📦 Packing List</a>
             </div>
         </li>
         {% empty %}
