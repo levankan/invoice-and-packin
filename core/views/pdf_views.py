@@ -17,7 +17,15 @@ from core.models import Export, Pallet
 import qrcode
 import base64
 from io import BytesIO
-
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
+from weasyprint import HTML
+from django.contrib.auth.decorators import login_required
+from core.models import Export, Pallet
+import barcode
+from barcode.writer import ImageWriter
+import base64
+from io import BytesIO
 
 
 
@@ -271,31 +279,67 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
 
 
 
+
+# ---------- Barcode Helper ----------
+def generate_barcode_base64(data, barcode_type="code128"):
+    """Generate a barcode image and return base64 data URI."""
+    BARCODE = barcode.get_barcode_class(barcode_type)
+    my_barcode = BARCODE(data, writer=ImageWriter())
+    buf = BytesIO()
+    my_barcode.write(buf, options={"module_height": 15.0, "font_size": 10})
+    encoded = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return f"data:image/png;base64,{encoded}"
+
+# ---------- SSCC Helper ----------
+def calc_check_digit(number):
+    """Calculate GS1 check digit (mod 10)."""
+    total = 0
+    reversed_digits = list(map(int, str(number)))[::-1]
+    for idx, n in enumerate(reversed_digits, start=1):
+        if idx % 2 == 0:
+            total += n
+        else:
+            total += n * 3
+    return (10 - (total % 10)) % 10
+
+def generate_sscc(company_prefix, pallet_id):
+    """
+    Build SSCC:
+      Extension (0) + CompanyPrefix + PalletID(serial) + CheckDigit
+    """
+    base = f"0{company_prefix}{str(pallet_id).zfill(9)}"
+    check = calc_check_digit(base)
+    return f"{base}{check}"
+
+# ---------- View ----------
 @login_required
 def pallet_label_pdf_view(request, export_id, pallet_id):
     export = get_object_or_404(Export, id=export_id)
     pallet = get_object_or_404(Pallet, id=pallet_id, export=export)
 
-    # --- QR Code payload ---
-    qr_payload = {
-        "export_no": export.export_number or "",
-        "invoice_no": export.invoice_number or "",
-        "packing_list_no": export.packing_list_number or "",
-        "pallet_no": pallet.pallet_number or "",
-    }
-    qr = qrcode.make(qr_payload)
-    buf = BytesIO()
-    qr.save(buf, format="PNG")
-    qr_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
-    qr_data_uri = f"data:image/png;base64,{qr_base64}"
+    # Example GTIN (usually product-level code, here fixed)
+    gtin_value = "00712345678905"
 
-    # Context for template
+    # Auto-generate SSCC from company prefix + pallet_id
+    company_prefix = "0789012"  # <-- replace with your real GS1 prefix!
+    sscc_value = generate_sscc(company_prefix, pallet.id)
+
+    # Generate barcodes
+    gtin_barcode_uri = generate_barcode_base64(gtin_value)
+    sscc_barcode_uri = generate_barcode_base64(sscc_value)
+
+    unique_boxes_count = pallet.unique_boxes_count
+
     ctx = {
         "export": export,
         "pallet": pallet,
-        "qr_data_uri": qr_data_uri,
-        "sku_type": getattr(pallet, "sku_type", None) or "Mixed SKU",
+        "gtin_barcode_uri": gtin_barcode_uri,
+        "sscc_barcode_uri": sscc_barcode_uri,
+        "gtin_value": gtin_value,
+        "sscc_value": sscc_value,
+        "unique_boxes_count": unique_boxes_count,
     }
+
 
     html_string = render(request, "core/pallet_label.html", ctx).content.decode("utf-8")
 

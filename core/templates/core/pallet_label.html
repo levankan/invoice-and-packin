@@ -1,152 +1,134 @@
+
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Pallet Label</title>
+  <meta charset="UTF-8">
   <style>
-    @page { size: A5 landscape; margin: 10mm; }
-    body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-
-    .label {
-      width: 100%;
-      border: 4px solid #000;
-      padding: 14px;
-      display: grid;
-      grid-template-rows: auto auto 1fr auto;
-      gap: 10px;
+    @page { size: A4 portrait; margin: 15mm; }
+    body { font-family: Arial, sans-serif; font-size: 13px; margin: 0; padding: 0; }
+    .label { 
+      border: 3px solid #000; 
+      max-width: 560px;  /* fit inside A4 printable area */
+      margin: auto; 
+      padding: 12px; 
     }
 
-    /* Header (logo + numbers) */
-    .header {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      align-items: center;
-      border-bottom: 3px solid #000;
-      padding-bottom: 8px;
-    }
-    .header img { max-height: 70px; }
-    .numbers {
-      text-align: right;
-      line-height: 1.35;
-      font-size: 16px;
-    }
-    .numbers b { font-size: 17px; }
-
-    /* Big pallet title */
-    .title {
+    /* Top Section */
+    .top {
       text-align: center;
-      font-weight: 800;
-      font-size: 34px;
-      border: 3px solid #000;
-      padding: 6px 10px;
-      background: #f2f2f2;
+      border-bottom: 2px solid #000;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
     }
-
-    /* Pallet facts row */
-    .facts {
-      display: grid;
-      grid-template-columns: 1.2fr 1.2fr 1.2fr 1fr 1fr;
-      gap: 6px;
-    }
-    .fact {
-      border: 2px solid #000;
-      padding: 6px 8px;
+    .company-name img { height: 60px; }
+    .fragile {
+      border: 2px solid red;
+      color: red;
       font-size: 16px;
-      display: grid;
-      grid-template-rows: auto auto;
+      font-weight: bold;
+      margin-top: 4px;
+      display: inline-block;
+      padding: 2px 6px;
     }
-    .fact .label { font-size: 13px; color: #333; }
-    .fact .value { font-size: 18px; font-weight: 700; }
 
-    /* From/To + QR row */
-    .bottom {
-      display: grid;
-      grid-template-columns: 1.4fr 1.4fr 0.8fr;
+    /* Ship Info Section */
+    .ship-info {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed #000;
+      padding-bottom: 8px;
+      margin-bottom: 8px;
+    }
+    .ship-block { width: 48%; font-size: 13px; }
+    .ship-block h4 { margin: 0 0 4px; font-size: 14px; text-decoration: underline; }
+    .ship-to b { font-size: 14px; }
+
+    /* Product Details */
+    .product {
+      border-bottom: 1px dashed #000;
+      padding: 8px 0;
+      margin-bottom: 8px;
+    }
+    .product h3 { margin: 0 0 6px; font-size: 15px; }
+    .qty { font-size: 24px; font-weight: bold; margin: 6px 0; }
+    .pallet-qty { font-size: 24px; font-weight: bold; margin: 6px 0; }
+
+    /* Barcode Section */
+    .barcode-section { 
+      display: flex;
+      justify-content: space-between;
       gap: 10px;
-      align-items: stretch;
+      padding-top: 8px; 
     }
-    .panel {
-      border: 2px solid #000;
-      padding: 8px 10px;
-      background: #fafafa;
-      font-size: 14px;
-      display: grid;
-      grid-template-rows: auto 1fr;
-      white-space: pre-wrap;
+    .barcode-block { text-align: center; }
+    .barcode-block h4 { margin: 0 0 3px; font-size: 13px; }
+    .barcode-text { font-size: 15px; font-weight: bold; margin-bottom: 4px; }
+    .barcode-img {
+      border: 1px solid #000;
+      padding: 4px;
+      display: inline-block;
     }
-    .panel h4 {
-      margin: 0 0 6px 0;
-      font-size: 16px;
-      text-decoration: underline;
-    }
-    .qrbox {
-      border: 2px solid #000;
-      display: grid;
-      place-items: center;
-      background: #fff;
-    }
-    .qrbox img {
-      width: 130px;
-      height: 130px;
-      display: block;
-    }
+    .barcode-img img { max-width: 100%; height: 65px; }
+    .barcode-img.large img { height: 110px; } /* SSCC larger */
+
+    /* Size ratio */
+    .gtin-block { flex: 0 0 40%; }
+    .sscc-block { flex: 0 0 60%; }
   </style>
 </head>
 <body>
   <div class="label">
-    <!-- Header -->
-    <div class="header">
-      <div>
-        <img src="{% static 'img/atc_logo.jpeg' %}" alt="ATC Logo">
+    <!-- I. Top Section -->
+    <div class="top">
+      <div class="company-name">
+        <img src="{% static 'img/atc_logo.jpeg' %}" alt="Company Logo">
+      </div>      
+      <div>Label</div>
+      <div class="fragile">Do Not Stack</div>
+    </div>
+
+    <!-- II. Ship Info Section -->
+    <div class="ship-info">
+      <div class="ship-block">
+        <h4>SHIP FROM:</h4>
+        <b>Jsc Aero-Structure Technologies Cyclone, 
+          Mikheil Grigorashvili Street #27, Zip:0198 
+          Tbilisi<br>
+          Republic of Georgia</b><br>
       </div>
-      <div class="numbers">
-        <div><b>Export No:</b> {{ export.export_number }}</div>
-        <div><b>Invoice No:</b> {{ export.invoice_number }}</div>
-        <div><b>Packing List No:</b> {{ export.packing_list_number }}</div>
+      <div class="ship-block ship-to">
+        <h4>SHIP TO:</h4>
+        <b>{{ export.shipped_to }}</b><br>
+        {{ export.shipped_to_address|linebreaksbr }}
       </div>
     </div>
 
-    <!-- Pallet Title -->
-    <div class="title">📦 PALLET {{ pallet.pallet_number }}</div>
-
-    <!-- Facts -->
-    <div class="facts">
-      <div class="fact">
-        <div class="label">Length (cm)</div>
-        <div class="value">{{ pallet.length_cm|default:"—" }}</div>
-      </div>
-      <div class="fact">
-        <div class="label">Width (cm)</div>
-        <div class="value">{{ pallet.width_cm|default:"—" }}</div>
-      </div>
-      <div class="fact">
-        <div class="label">Height (cm)</div>
-        <div class="value">{{ pallet.height_cm|default:"—" }}</div>
-      </div>
-      <div class="fact">
-        <div class="label">Gross Wt (kg)</div>
-        <div class="value">{{ pallet.gross_weight_kg|default:"—" }}</div>
-      </div>
-      <div class="fact">
-        <div class="label">Contents</div>
-        <div class="value">{{ sku_type }}</div>
-      </div>
+    <!-- III. Middle Section (Product Details) -->
+    <div class="product">
+      <h3>PRODUCT: Civil Aviation Parts</h3>
+      <div class="qty">QTY Boxes on Pallet: {{ unique_boxes_count }}</div>
+      <div class="pallet-qty">Pallet Number: {{ pallet.pallet_number }} of {{ export.total_pallets }}</div>
+      <div>Dimensions: {{ pallet.length_cm }} Cm × {{ pallet.width_cm }} Cm × {{ pallet.height_cm }} Cm</div>
+      <div>Gross Weight: {{ pallet.gross_weight_kg }} Kg</div>
     </div>
 
-    <!-- From / To / QR -->
-    <div class="bottom">
-      <div class="panel">
-        <h4>Shipped From</h4>
-        <div>{{ export.seller }}
-Tbilisi, Georgia</div>
+    <!-- IV. Barcode Section -->
+    <div class="barcode-section">
+      <div class="barcode-block gtin-block">
+        <h4>GTIN (01):</h4>
+        <div class="barcode-text">(01) {{ gtin_value }}</div>
+        <div class="barcode-img">
+          <img src="{{ gtin_barcode_uri }}" alt="GTIN Barcode">
+        </div>
       </div>
-      <div class="panel">
-        <h4>Shipped To</h4>
-        <div>{{ export.shipped_to }}</div>
-      </div>
-      <div class="qrbox">
-        <img src="{{ qr_data_uri }}" alt="QR Code">
+
+      <div class="barcode-block sscc-block">
+        <h4>SSCC (00):</h4>
+        <div class="barcode-text">(00) {{ sscc_value }}</div>
+        <div class="barcode-img large">
+          <img src="{{ sscc_barcode_uri }}" alt="SSCC Barcode">
+        </div>
       </div>
     </div>
   </div>

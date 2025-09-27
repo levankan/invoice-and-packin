@@ -73,6 +73,9 @@ class Export(models.Model):
         """Sum of all pallet weights"""
         return sum(p.gross_weight_kg for p in self.pallets.all())
 
+    @property
+    def total_pallets(self):
+        return self.pallets.count()
 
 # -----------------------------
 # Line Items
@@ -118,3 +121,17 @@ class Pallet(models.Model):
 
     def __str__(self):
         return f"Pallet {self.pallet_number} ({self.gross_weight_kg} Kg)"
+
+    @property
+    def unique_boxes_count(self):
+        """Count unique box numbers assigned to this pallet."""
+        return (
+            self.export.items
+            .filter(pallet_number=self.pallet_number)
+            .exclude(box_number__isnull=True)
+            .exclude(box_number__exact="")
+            .values("box_number")
+            .distinct()
+            .count()
+        )
+    
