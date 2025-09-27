@@ -20,4 +20,5 @@ from .pdf_views import (
     packing_list_pdf_view,
     invoice_pdf_per_pallet_view,       # ✅ NEW
     packing_list_pdf_per_pallet_view,  # ✅ NEW
+    pallet_label_pdf_view,
 )

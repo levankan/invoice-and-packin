@@ -1,5 +1,6 @@
 from django.urls import path
 from core.views.export_views import export_detail
+from core.views.pdf_views import pallet_label_pdf_view
 
 
 from core.views import (
@@ -44,5 +45,10 @@ urlpatterns = [
     path("packing-list/<int:export_id>/pdf/", packing_list_pdf_view, name="packing_list_pdf"),
     path("invoice/<int:export_id>/pallet/<int:pallet_id>/pdf/", invoice_pdf_per_pallet_view, name="invoice_pdf_per_pallet"),
     path("packing-list/<int:export_id>/pallet/<int:pallet_id>/pdf/", packing_list_pdf_per_pallet_view, name="packing_list_pdf_per_pallet"),
-]
+    path(
+        "pallet-label/<int:export_id>/<int:pallet_id>/pdf/",
+        pallet_label_pdf_view,
+        name="pallet_label_pdf",
+    ),
+]   
 

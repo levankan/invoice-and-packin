@@ -9,6 +9,14 @@ import base64
 from io import BytesIO
 from core.models import Export, Pallet
 from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404
+from django.http import HttpResponse
+from weasyprint import HTML
+from django.contrib.auth.decorators import login_required
+from core.models import Export, Pallet
+import qrcode
+import base64
+from io import BytesIO
 
 
 
@@ -260,3 +268,40 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
 
 
 
+
+
+
+@login_required
+def pallet_label_pdf_view(request, export_id, pallet_id):
+    export = get_object_or_404(Export, id=export_id)
+    pallet = get_object_or_404(Pallet, id=pallet_id, export=export)
+
+    # --- QR Code payload ---
+    qr_payload = {
+        "export_no": export.export_number or "",
+        "invoice_no": export.invoice_number or "",
+        "packing_list_no": export.packing_list_number or "",
+        "pallet_no": pallet.pallet_number or "",
+    }
+    qr = qrcode.make(qr_payload)
+    buf = BytesIO()
+    qr.save(buf, format="PNG")
+    qr_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    qr_data_uri = f"data:image/png;base64,{qr_base64}"
+
+    # Context for template
+    ctx = {
+        "export": export,
+        "pallet": pallet,
+        "qr_data_uri": qr_data_uri,
+        "sku_type": getattr(pallet, "sku_type", None) or "Mixed SKU",
+    }
+
+    html_string = render(request, "core/pallet_label.html", ctx).content.decode("utf-8")
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="PalletLabel_{export.export_number}_P{pallet.pallet_number}.pdf"'
+    )
+    HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf(response)
+    return response
