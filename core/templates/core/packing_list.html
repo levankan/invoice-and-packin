@@ -2,16 +2,42 @@
 {% load custom_tags %}
 
 <style>
-@page {
-    size: A4;
-    margin: 10mm;
-    @bottom-right {
-        content: counter(page) " / " counter(pages);
-        font-size: 11px;
-        color: black;
+    @page {
+        size: A4;
+        margin: 10mm;
+        @bottom-right {
+            content: counter(page) " / " counter(pages);
+            font-size: 11px;
+            color: black;
+        }
     }
-}
-</style>
+    
+    /* General table styles */
+    td, th {
+        font-family: "DejaVu Sans", Arial, sans-serif;
+        font-size: 12px;
+        vertical-align: top;
+        page-break-inside: avoid;  /* 👈 NEW */
+    }
+    
+    tr {
+        page-break-inside: avoid;  /* 👈 NEW */
+    }
+    
+    thead, tbody, tfoot {
+        page-break-inside: avoid;  /* 👈 NEW */
+    }
+    
+    /* Fix for description column */
+    td.description {
+        white-space: normal !important;
+        word-wrap: break-word;
+        max-width: 300px;
+        text-align: left;
+        vertical-align: top;
+    }
+    </style>
+    
 
 <div style="max-width: 1100px; margin: auto; font-family: Arial, sans-serif; font-size: 13px; padding: 20px;">
 
