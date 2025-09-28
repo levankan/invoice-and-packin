@@ -22,5 +22,4 @@ from .pdf_views import (
     packing_list_pdf_per_pallet_view,  # ✅ NEW
     pallet_label_pdf_view,
     generate_barcode_base64,
-    calc_check_digit,
 )

@@ -26,6 +26,16 @@ import barcode
 from barcode.writer import ImageWriter
 import base64
 from io import BytesIO
+import io
+import io, base64, os
+from django.conf import settings
+from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
+from weasyprint import HTML
+import barcode
+from barcode.writer import ImageWriter
+from django.templatetags.static import static
 
 
 
@@ -280,72 +290,48 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
 
 
 
-# ---------- Barcode Helper ----------
-def generate_barcode_base64(data, barcode_type="code128"):
-    """Generate a barcode image and return base64 data URI."""
-    BARCODE = barcode.get_barcode_class(barcode_type)
-    my_barcode = BARCODE(data, writer=ImageWriter())
-    buf = BytesIO()
-    my_barcode.write(buf, options={"module_height": 15.0, "font_size": 10})
-    encoded = base64.b64encode(buf.getvalue()).decode("utf-8")
-    return f"data:image/png;base64,{encoded}"
 
-# ---------- SSCC Helper ----------
-def calc_check_digit(number):
-    """Calculate GS1 check digit (mod 10)."""
-    total = 0
-    reversed_digits = list(map(int, str(number)))[::-1]
-    for idx, n in enumerate(reversed_digits, start=1):
-        if idx % 2 == 0:
-            total += n
-        else:
-            total += n * 3
-    return (10 - (total % 10)) % 10
 
-def generate_sscc(company_prefix, pallet_id):
-    """
-    Build SSCC:
-      Extension (0) + CompanyPrefix + PalletID(serial) + CheckDigit
-    """
-    base = f"0{company_prefix}{str(pallet_id).zfill(9)}"
-    check = calc_check_digit(base)
-    return f"{base}{check}"
 
-# ---------- View ----------
+
+
+def generate_barcode_base64(data, code_type="code128"):
+    """Generate a 1D barcode (default Code128) as base64 string."""
+    buffer = io.BytesIO()
+    barcode_class = barcode.get_barcode_class(code_type)
+    barcode_obj = barcode_class(data, writer=ImageWriter())
+    barcode_obj.write(buffer, options={"module_height": 15, "font_size": 10})
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+
 @login_required
 def pallet_label_pdf_view(request, export_id, pallet_id):
     export = get_object_or_404(Export, id=export_id)
     pallet = get_object_or_404(Pallet, id=pallet_id, export=export)
 
-    # Example GTIN (usually product-level code, here fixed)
-    gtin_value = "00712345678905"
+    # --- Build barcode data (with pallet references) ---
+    barcode_data = (
+        f"EXP:{export.export_number} | "
+        f"INV:{export.invoice_number}/{pallet.pallet_number} | "
+        f"PL:{export.packing_list_number}/{pallet.pallet_number}"
+    )
 
-    # Auto-generate SSCC from company prefix + pallet_id
-    company_prefix = "0789012"  # <-- replace with your real GS1 prefix!
-    sscc_value = generate_sscc(company_prefix, pallet.id)
+    # --- Generate barcode ---
+    pallet_barcode_uri = generate_barcode_base64(barcode_data)
 
-    # Generate barcodes
-    gtin_barcode_uri = generate_barcode_base64(gtin_value)
-    sscc_barcode_uri = generate_barcode_base64(sscc_value)
-
-    unique_boxes_count = pallet.unique_boxes_count
+    # --- Resolve absolute logo path ---
+    logo_path = os.path.join(settings.STATIC_ROOT, "img/atc_logo.jpeg")
+    logo_uri = "file://" + logo_path if os.path.exists(logo_path) else request.build_absolute_uri(static("img/atc_logo.jpeg"))
 
     ctx = {
         "export": export,
         "pallet": pallet,
-        "gtin_barcode_uri": gtin_barcode_uri,
-        "sscc_barcode_uri": sscc_barcode_uri,
-        "gtin_value": gtin_value,
-        "sscc_value": sscc_value,
-        "unique_boxes_count": unique_boxes_count,
+        "unique_boxes_count": pallet.unique_boxes_count,
+        "pallet_barcode_uri": pallet_barcode_uri,
+        "barcode_data": barcode_data,
+        "logo_uri": logo_uri,
     }
 
-
     html_string = render(request, "core/pallet_label.html", ctx).content.decode("utf-8")
-
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = (
-        f'attachment; filename="PalletLabel_{export.export_number}_P{pallet.pallet_number}.pdf"'
-    )
-    HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf(response)
-    return response
+    pdf_file = HTML(string=html_string).write_pdf()
+    return HttpResponse(pdf_file, content_type="application/pdf")

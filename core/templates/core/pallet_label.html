@@ -55,26 +55,20 @@
     .pallet-qty { font-size: 24px; font-weight: bold; margin: 6px 0; }
 
     /* Barcode Section */
+    /* Barcode Section */
     .barcode-section { 
       display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      padding-top: 8px; 
+      justify-content: center;   /* center horizontally */
+      align-items: center;       /* center vertically if taller */
+      margin-top: 15px;
     }
     .barcode-block { text-align: center; }
-    .barcode-block h4 { margin: 0 0 3px; font-size: 13px; }
-    .barcode-text { font-size: 15px; font-weight: bold; margin-bottom: 4px; }
     .barcode-img {
       border: 1px solid #000;
-      padding: 4px;
+      padding: 6px;
       display: inline-block;
     }
-    .barcode-img img { max-width: 100%; height: 65px; }
-    .barcode-img.large img { height: 110px; } /* SSCC larger */
-
-    /* Size ratio */
-    .gtin-block { flex: 0 0 40%; }
-    .sscc-block { flex: 0 0 60%; }
+    .barcode-img img { max-width: 100%; height: 100px; }  /* make barcode bigger */
   </style>
 </head>
 <body>
@@ -82,9 +76,9 @@
     <!-- I. Top Section -->
     <div class="top">
       <div class="company-name">
-        <img src="{% static 'img/atc_logo.jpeg' %}" alt="Company Logo">
+        <img src="{{ logo_uri }}" alt="Company Logo">
       </div>      
-      <div>Label</div>
+      <div>Pallet Label</div>
       <div class="fragile">Do Not Stack</div>
     </div>
 
@@ -92,8 +86,8 @@
     <div class="ship-info">
       <div class="ship-block">
         <h4>SHIP FROM:</h4>
-        <b>Jsc Aero-Structure Technologies Cyclone, 
-          Mikheil Grigorashvili Street #27, Zip:0198 
+        <b>Jsc Aero-Structure Technologies (Cyclone), 
+          Mikheil Grigorashvili Street #27, Zip:0198, 
           Tbilisi<br>
           Republic of Georgia</b><br>
       </div>
@@ -107,28 +101,17 @@
     <!-- III. Middle Section (Product Details) -->
     <div class="product">
       <h3>PRODUCT: Civil Aviation Parts</h3>
-      <div class="qty">QTY Boxes on Pallet: {{ unique_boxes_count }}</div>
+      <div class="qty">QTY Boxes: {{ unique_boxes_count }}</div>
       <div class="pallet-qty">Pallet Number: {{ pallet.pallet_number }} of {{ export.total_pallets }}</div>
       <div>Dimensions: {{ pallet.length_cm }} Cm × {{ pallet.width_cm }} Cm × {{ pallet.height_cm }} Cm</div>
       <div>Gross Weight: {{ pallet.gross_weight_kg }} Kg</div>
+      <div>Mixed SKU</div>
     </div>
 
-    <!-- IV. Barcode Section -->
+    <!-- Barcode Section -->
     <div class="barcode-section">
-      <div class="barcode-block gtin-block">
-        <h4>GTIN (01):</h4>
-        <div class="barcode-text">(01) {{ gtin_value }}</div>
-        <div class="barcode-img">
-          <img src="{{ gtin_barcode_uri }}" alt="GTIN Barcode">
-        </div>
-      </div>
-
-      <div class="barcode-block sscc-block">
-        <h4>SSCC (00):</h4>
-        <div class="barcode-text">(00) {{ sscc_value }}</div>
-        <div class="barcode-img large">
-          <img src="{{ sscc_barcode_uri }}" alt="SSCC Barcode">
-        </div>
+      <div class="barcode-img">
+        <img src="{{ pallet_barcode_uri }}" alt="Pallet Barcode">
       </div>
     </div>
   </div>
