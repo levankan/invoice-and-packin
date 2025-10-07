@@ -2,10 +2,34 @@
 {% block title %}Exports{% endblock %}
 {% block content %}
 
+<style>
+/* ✅ Make green rows visible even inside Bootstrap tables */
+.table tbody tr.has-declaration td {
+    background-color: #98fb98 !important;  /* light green */
+    transition: background-color 0.25s ease;
+}
+.table tbody tr.has-declaration:hover td {
+    background-color: #c3e6cb !important;  /* darker hover */
+}
+
+/* Normal hover for non-highlighted rows */
+.table tbody tr:hover td {
+    background-color: #f8f9fa;
+}
+
+/* Smaller subtext for register date */
+.declaration-date {
+    font-size: 12px;
+    color: #6c757d;
+    display: block;
+    margin-top: 2px;
+}
+</style>
+
 <!-- Top Navigation -->
 <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-light shadow-sm rounded">
     <h2 class="m-0">📦 Exports</h2>
-    <div class="d-flex gap-2">  <!-- ✅ flex row with spacing -->
+    <div class="d-flex gap-2">
         <a href="{% url 'export_database_excel' %}" class="btn btn-info">
             📊 Database (Excel)
         </a>        
@@ -36,25 +60,42 @@
                 <th>Invoice No</th>
                 <th>Project</th>
                 <th>Export No</th>
+                <th>Declaration C/A Number</th>
                 <th>Date</th>
                 <th class="text-center">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for export in exports %}
-            <tr>
-                <td>{{ forloop.counter }}</td>
+            <tr class="{% if export.declaration_a_number or export.declaration_c_number %}has-declaration{% endif %}">
+                <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
                 <td>{{ export.invoice_number }}</td>
                 <td>{{ export.project_no }}</td>
                 <td>
                     <a href="{% url 'export_detail' export.id %}">
                         {{ export.export_number }}
                     </a>
-                </td>                
+                </td>
+                <td>
+                    {% if export.declaration_c_number or export.declaration_a_number %}
+                        ✅ 
+                        {{ export.declaration_c_number|default:"" }}
+                        {% if export.declaration_c_number and export.declaration_a_number %}
+                            /
+                        {% endif %}
+                        {{ export.declaration_a_number|default:"" }}
+                        {% if export.declaration_register_date %}
+                            <span class="declaration-date">
+                                Registered: {{ export.declaration_register_date|date:"Y-m-d" }}
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
                 <td>{{ export.created_at|date:"d/m/Y" }}</td>
                 <td class="text-center">
                     <a href="{% url 'edit_export' export.id %}" class="btn btn-sm btn-outline-primary">✏ Edit</a>
-                    
                     {% if user.is_superuser %}
                         <a href="{% url 'delete_export' export.id %}"
                            class="btn btn-sm btn-outline-danger"
@@ -66,11 +107,42 @@
             </tr>
             {% empty %}
             <tr>
-                <td colspan="6" class="text-center">No exports found.</td>
+                <td colspan="7" class="text-center text-muted">No exports found.</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 </div>
+
+<!-- ✅ Pagination -->
+{% if page_obj.has_other_pages %}
+<nav aria-label="Exports Pagination" class="mt-3">
+  <ul class="pagination justify-content-center">
+    {% if page_obj.has_previous %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">« Previous</a>
+      </li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">« Previous</span></li>
+    {% endif %}
+
+    {% for i in page_obj.paginator.page_range %}
+      {% if page_obj.number == i %}
+        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+      {% elif i > page_obj.number|add:-3 and i < page_obj.number|add:3 %}
+        <li class="page-item"><a class="page-link" href="?page={{ i }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ i }}</a></li>
+      {% endif %}
+    {% endfor %}
+
+    {% if page_obj.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Next »</a>
+      </li>
+    {% else %}
+      <li class="page-item disabled"><span class="page-link">Next »</span></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
 
 {% endblock %}

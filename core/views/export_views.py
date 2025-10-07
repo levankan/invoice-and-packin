@@ -11,22 +11,42 @@ from core.models import Export, LineItem, Pallet
 from core.forms import ExportForm
 from .generate_doc_view import EXPECTED_HEADERS, EXPECTED_PALLET_HEADERS
 
+from django.core.paginator import Paginator
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db.models import Q
+from core.models import Export
+
 
 # ==========================
 # List Exports
 # ==========================
+
 @login_required
 def exports_view(request):
-    """List and search exports"""
+    """List and search exports with pagination"""
     q = request.GET.get("q", "")
     exports = Export.objects.all().order_by("-created_at")
+
     if q:
         exports = exports.filter(
-            Q(invoice_number__icontains=q)
-            | Q(project_no__icontains=q)
-            | Q(export_number__icontains=q)
+            Q(invoice_number__icontains=q) |
+            Q(project_no__icontains=q) |
+            Q(export_number__icontains=q)
         )
-    return render(request, "core/exports.html", {"exports": exports})
+
+    # ✅ PAGINATION — show 20 per page
+    paginator = Paginator(exports, 20)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, "core/exports.html", {
+        "page_obj": page_obj,
+        "exports": page_obj.object_list,
+        "q": q,
+    })
+
 
 
 # ==========================
