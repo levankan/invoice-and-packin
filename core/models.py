@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Max
 from decimal import Decimal
+from django.conf import settings
 
 # -----------------------------
 # User with Roles
@@ -54,6 +55,9 @@ def next_packing_list_number():
 # -----------------------------
 # Export Document
 # -----------------------------
+
+
+
 class Export(models.Model):
     export_number = models.CharField(max_length=20, unique=True, default=next_export_number)
     invoice_number = models.CharField(max_length=20, unique=True, default=next_invoice_number)
@@ -64,6 +68,19 @@ class Export(models.Model):
     shipped_to = models.CharField(max_length=255)
     project_no = models.CharField(max_length=50)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # ✅ NEW FIELDS
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exports_created"
+    )
+
+    declaration_c_number = models.CharField(max_length=100, blank=True, null=True)
+    declaration_a_number = models.CharField(max_length=100, blank=True, null=True)
+    declaration_register_date = models.DateField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.export_number} / {self.invoice_number} / {self.packing_list_number}"
@@ -76,6 +93,7 @@ class Export(models.Model):
     @property
     def total_pallets(self):
         return self.pallets.count()
+
 
 # -----------------------------
 # Line Items

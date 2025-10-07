@@ -16,12 +16,47 @@
                     {{ form.as_p }}
                 </div>
 
+                <!-- Customs Declaration Section -->
+                <hr class="my-4">
+                <h5 class="mb-3 text-primary">📄 Customs Declaration Information</h5>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="declaration_c_number" class="form-label"><strong>Declaration C Number</strong></label>
+                        <input type="text" name="declaration_c_number" id="declaration_c_number"
+                               value="{{ export.declaration_c_number|default_if_none:'' }}"
+                               class="form-control" placeholder="Enter Declaration C Number">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="declaration_a_number" class="form-label"><strong>Declaration A Number</strong></label>
+                        <input type="text" name="declaration_a_number" id="declaration_a_number"
+                               value="{{ export.declaration_a_number|default_if_none:'' }}"
+                               class="form-control" placeholder="Enter Declaration A Number">
+                    </div>
+
+                    <div class="col-md-4 mb-3">
+                        <label for="declaration_register_date" class="form-label"><strong>Declaration Register Date</strong></label>
+                        <input type="date" name="declaration_register_date" id="declaration_register_date"
+                               value="{{ export.declaration_register_date|date:'Y-m-d' }}"
+                               class="form-control">
+                    </div>
+                </div>
+
+                <!-- Created By Info -->
+                {% if export.created_by %}
+                <div class="alert alert-info mt-3 py-2">
+                    <strong>Created By:</strong> {{ export.created_by.username }}
+                </div>
+                {% endif %}
+
                 <!-- Excel Upload -->
+                <hr class="my-4">
                 <div class="mb-3">
-                    <label class="form-label"><strong>Update Line Items via Excel</strong></label>
+                    <label class="form-label"><strong>📤 Update Line Items via Excel</strong></label>
                     <input type="file" name="excel_file" class="form-control">
                     <small class="form-text text-muted">
-                        Upload a new Excel file to replace existing Line Items & Pallets.  
+                        Upload a new Excel file to replace existing Line Items & Pallets.<br>
                         Leave empty if you only want to edit the Export fields above.
                     </small>
                 </div>
