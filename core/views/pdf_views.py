@@ -245,6 +245,7 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
             item.box_number,
             item.pallet_number,
             item.cross_reference,
+            item.price,
             item.customer_po,
             item.po_line,
         )
@@ -253,7 +254,7 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
 
     grouped_items = []
     grand_total_qty = 0
-    for (box, pallet_no, cross_ref, customer_po, po_line), values in grouped.items():
+    for (box, pallet_no, cross_ref, price, customer_po, po_line), values in grouped.items():
         grouped_items.append({
             "box_number": box,
             "pallet_number": pallet_no,
