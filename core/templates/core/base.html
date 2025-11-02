@@ -7,14 +7,12 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const html = document.documentElement; // <html> element
+            const html = document.documentElement;
             const toggleBtn = document.getElementById("theme-toggle");
 
-            // 1. Apply saved theme on load
             const savedTheme = localStorage.getItem("theme") || "light";
             html.setAttribute("data-bs-theme", savedTheme);
 
-            // 2. Toggle theme on button click
             toggleBtn.addEventListener("click", function () {
                 const currentTheme = html.getAttribute("data-bs-theme");
                 const newTheme = currentTheme === "light" ? "dark" : "light";
@@ -31,6 +29,11 @@
         .logo {
             width: 60px;
             height: auto;
+            cursor: pointer;
+            transition: transform 0.2s ease-in-out;
+        }
+        .logo:hover {
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -39,7 +42,11 @@
 
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <img src="{% static 'img/atc_logo.jpeg' %}" alt="ATC Logo" class="logo">
+            <!-- ✅ Logo now links to Home -->
+            <a href="{% url 'home' %}" class="d-inline-block">
+                <img src="{% static 'img/atc_logo.jpeg' %}" alt="ATC Logo" class="logo">
+            </a>
+
             <button id="theme-toggle" class="btn btn-outline-secondary">🌓 Toggle Theme</button>
         </div>
 

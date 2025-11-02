@@ -1,5 +1,6 @@
 {% extends 'core/base.html' %}
 {% block title %}Home{% endblock %}
+
 {% block content %}
 <div class="card mx-auto shadow-lg" style="max-width: 600px; padding: 40px; border-radius: 20px;">
     <h2 class="mb-3">🚚 Welcome, {{ user.username }}</h2>
@@ -11,9 +12,9 @@
         <a href="{% url 'tracking' %}" class="btn btn-success btn-lg">📍 Tracking</a>
 
         {% if user.is_superuser %}
+            <a href="{% url 'imports_home' %}" class="btn btn-info btn-lg">📥 Imports</a>
             <a href="{% url 'admin_area' %}" class="btn btn-warning btn-lg">⚙️ Admin Area</a>
         {% endif %}
-
     </div>
 
     <a href="{% url 'logout' %}" class="btn btn-danger mt-4">Logout</a>

@@ -20,6 +20,7 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('core.urls')),  # this loads your login view at '/'
+    path('', include('core.urls')),  
     path('admin-area/', include('admin_area.urls')),
+    path('imports/', include('imports.urls')),  
 ]
