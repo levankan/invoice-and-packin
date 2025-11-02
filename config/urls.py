@@ -21,4 +21,5 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('core.urls')),  # this loads your login view at '/'
+    path('admin-area/', include('admin_area.urls')),
 ]

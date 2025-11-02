@@ -1,0 +1,32 @@
+{% extends 'core/base.html' %}
+{% block title %}Admin Area{% endblock %}
+
+{% block content %}
+<div class="card mx-auto shadow-lg" style="max-width: 900px; padding: 32px; border-radius: 20px;">
+
+  <!-- ===== Top Navbar Buttons ===== -->
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <h2 class="mb-0">⚙️ Admin Area</h2>
+    <div class="btn-group flex-wrap">
+      <a href="{% url 'admin:index' %}" class="btn btn-outline-secondary">Django Admin</a>
+      <a href="{% url 'aa_user_list' %}" class="btn btn-primary">User Management</a>
+      <a href="{% url 'aa_reports' %}" class="btn btn-success">System Reports</a>
+
+      <!-- ✅ New Buttons -->
+      <a href="{% url 'vendors_view' %}" class="btn btn-info">🏢 Vendors</a>
+      <a href="{% url 'items_view' %}" class="btn btn-warning text-dark">📦 Items</a>
+
+      <a href="{% url 'home' %}" class="btn btn-danger">⬅️ Home</a>
+    </div>
+  </div>
+
+  <hr>
+  <p class="text-muted">Only superusers can view this page.</p>
+
+  <!-- Placeholder for dashboard content -->
+  <div class="mt-4">
+    <p>Welcome to the Admin dashboard. Choose a section above to manage data.</p>
+  </div>
+
+</div>
+{% endblock %}

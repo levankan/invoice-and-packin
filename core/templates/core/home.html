@@ -9,6 +9,11 @@
     <div class="d-grid gap-3 mt-4">
         <a href="{% url 'exports_view' %}" class="btn btn-primary btn-lg">📦 Exports</a>
         <a href="{% url 'tracking' %}" class="btn btn-success btn-lg">📍 Tracking</a>
+
+        {% if user.is_superuser %}
+            <a href="{% url 'admin_area' %}" class="btn btn-warning btn-lg">⚙️ Admin Area</a>
+        {% endif %}
+
     </div>
 
     <a href="{% url 'logout' %}" class="btn btn-danger mt-4">Logout</a>

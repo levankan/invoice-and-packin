@@ -1,0 +1,62 @@
+{% extends 'core/base.html' %}
+{% block title %}Upload Vendors{% endblock %}
+
+{% block content %}
+<div class="card mx-auto shadow-lg" style="max-width: 720px; padding: 20px; border-radius: 18px; font-size: 0.9rem;">
+
+  <!-- Header / actions -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
+    <h4 class="mb-2 fw-semibold">⬆️ Upload Vendors (Excel)</h4>
+    <div class="btn-group flex-wrap">
+      <a href="{% url 'vendors_view' %}" class="btn btn-secondary btn-sm px-3">⬅️ Back to Vendors</a>
+    </div>
+  </div>
+
+  <p class="text-muted mb-2 small">
+    Accepted file: <code>.xlsx</code> with a header row. Required columns:
+    <code>No.</code>, <code>Name</code>. Optional: <code>VAT Registration No.</code>
+  </p>
+
+  <!-- Flash messages -->
+  {% if messages %}
+    {% for m in messages %}
+      <div class="alert alert-{{ m.tags }} mt-2 mb-2">{{ m }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Form -->
+  <form method="post" enctype="multipart/form-data" class="mt-2">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label class="form-label small">Excel file (.xlsx)</label>
+      {{ form.file }}
+      <div class="form-text">{{ form.file.help_text }}</div>
+      {% if form.file.errors %}
+        <div class="text-danger small mt-1">{{ form.file.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-success btn-sm px-3">Upload & Import</button>
+      <a href="{% url 'vendors_upload' %}" class="btn btn-outline-secondary btn-sm px-3">Reset</a>
+      <a href="{% url 'vendors_view' %}" class="btn btn-light btn-sm px-3">Cancel</a>
+    </div>
+  </form>
+
+  <hr class="my-3">
+
+  <!-- Help / sample format -->
+  <div class="small">
+    <strong>Sample header row:</strong>
+    <div class="border rounded p-2 mt-1" style="background:#f8f9fa;">
+      No. | Name | VAT Registration No.
+    </div>
+    <ul class="mt-2 mb-0">
+      <li>“No.” is the unique vendor number/code (used to update existing vendors).</li>
+      <li>Whitespace is trimmed; blank VAT numbers are allowed.</li>
+      <li>Rows missing <em>No.</em> or <em>Name</em> are skipped.</li>
+    </ul>
+  </div>
+
+</div>
+{% endblock %}
