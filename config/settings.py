@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     'core',
     'admin_area',
     'imports',
+    'django_countries',
 ]
 
 MIDDLEWARE = [

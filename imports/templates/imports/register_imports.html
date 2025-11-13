@@ -1,0 +1,221 @@
+{% extends 'core/base.html' %}
+{% block title %}Register Import{% endblock %}
+
+{% block content %}
+<style>
+  .section { border: 1px solid rgba(0,0,0,.08); border-radius: .6rem; padding: 1rem; margin-bottom: 1rem; }
+  .section-title { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: #6c757d; margin-bottom: .75rem; }
+  .sticky-actions { position: sticky; bottom: -1px; background: #fff; border-top: 1px solid rgba(0,0,0,.08); padding: .75rem 1rem; z-index: 2; }
+  .card-shadow { box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+  .muted { color: #6c757d; }
+
+  #vendor_name.form-select {
+      font-size: 0.82rem;
+      padding-top: 0.4rem;
+      padding-bottom: 0.4rem;
+  }
+  #vendor_name.form-select option {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+  }
+</style>
+
+<div class="container py-4">
+  <div class="card border-0 card-shadow mx-auto" style="max-width: 900px;">
+    <div class="card-header bg-white border-0 pt-3 pb-0">
+      <h1 class="h4 mb-1">Register Import</h1>
+      <p class="muted small mb-3">Enter shipment and commercial details to create a new import record.</p>
+    </div>
+
+    <div class="card-body pt-3">
+      {% if created_import %}
+        <div class="alert alert-success mb-3" role="alert">
+          Import <strong>{{ created_import.import_code }}</strong> was created successfully.
+        </div>
+      {% endif %}
+
+      <form method="post" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <!-- Basic Details -->
+        <div class="section">
+          <div class="section-title">Basic Details</div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="form-floating">
+                <!-- Show only vendor names -->
+                <select name="vendor_name" id="vendor_name" class="form-select" required>
+                  <option value=""></option>
+                  {% for v in vendors %}
+                    <option value="{{ v.name }}">{{ v.name }}</option>
+                  {% endfor %}
+                </select>
+                <label for="vendor_name">Vendor <span class="text-danger">*</span></label>
+                <div class="invalid-feedback">Please choose a vendor.</div>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                {{ form.exporter_country }}
+                <label for="id_exporter_country">Exporter Country</label>
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-floating">
+                <!-- Incoterms dropdown -->
+                <select name="incoterms" id="incoterms" class="form-select">
+                  <option value=""></option>
+                  <option value="EXW">EXW – Ex Works</option>
+                  <option value="FCA">FCA – Free Carrier</option>
+                  <option value="FAS">FAS – Free Alongside Ship</option>
+                  <option value="FOB">FOB – Free On Board</option>
+                  <option value="CFR">CFR – Cost and Freight</option>
+                  <option value="CIF">CIF – Cost, Insurance & Freight</option>
+                  <option value="CPT">CPT – Carriage Paid To</option>
+                  <option value="CIP">CIP – Carriage & Insurance Paid To</option>
+                  <option value="DAP">DAP – Delivered At Place</option>
+                  <option value="DPU">DPU – Delivered at Place Unloaded</option>
+                  <option value="DDP">DDP – Delivered Duty Paid</option>
+                </select>
+                <label for="incoterms">Incoterms</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Financials -->
+        <div class="section">
+          <div class="section-title">Financials</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <select name="currency_code" id="currency_code" class="form-select">
+                  <option value=""></option>
+                  <option>USD</option><option>EUR</option><option>GEL</option>
+                  <option>GBP</option><option>TRY</option><option>ILS</option><option>CNY</option>
+                </select>
+                <label for="currency_code">Currency</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-floating">
+                <input type="number" step="0.01" name="goods_price" id="goods_price" class="form-control" placeholder="Goods Price">
+                <label for="goods_price">Goods Price</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Logistics -->
+        <div class="section">
+          <div class="section-title">Logistics</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <select name="shipping_method" id="shipping_method" class="form-select">
+                  <option value=""></option>
+                  <option value="AIR">Air</option>
+                  <option value="SEA">Sea</option>
+                  <option value="ROAD">Road</option>
+                </select>
+                <label for="shipping_method">Shipping Method</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-floating">
+                <select name="shipment_status" id="shipment_status" class="form-select">
+                  <option value=""></option>
+                  <option value="PLANNED">Planned</option>
+                  <option value="PICKED_UP">Picked up</option>
+                  <option value="IN_TRANSIT">In transit</option>
+                  <option value="AT_CUSTOMS">At customs</option>
+                  <option value="DELIVERED">Delivered</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
+                <label for="shipment_status">Shipment Status</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-floating">
+                <input type="text" name="tracking_no" id="tracking_no" maxlength="255"
+                       class="form-control" placeholder="Waybill / Tracking Number" style="text-transform: uppercase;" autocomplete="off">
+                <label for="tracking_no">Waybill / Tracking Number</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-floating">
+                <textarea name="pickup_address" id="pickup_address" class="form-control" placeholder="Pick Up Address" style="height: 100px"></textarea>
+                <label for="pickup_address">Pick Up Address</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Customs Declaration -->
+        <div class="section">
+          <div class="section-title">Customs Declaration</div>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <div class="form-floating">
+                <input type="text" name="declaration_c_number" id="declaration_c_number" class="form-control" placeholder="C Number" style="text-transform: uppercase;">
+                <label for="declaration_c_number">Declaration C Number</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-floating">
+                <input type="text" name="declaration_a_number" id="declaration_a_number" class="form-control" placeholder="A Number" style="text-transform: uppercase;">
+                <label for="declaration_a_number">Declaration A Number</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-floating">
+                <input type="date" name="declaration_date" id="declaration_date" class="form-control" placeholder="YYYY-MM-DD">
+                <label for="declaration_date">Declaration Date</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sticky Actions -->
+        <div class="sticky-actions d-flex justify-content-end gap-2 mt-3">
+          <a href="{% url 'imports_home' %}" class="btn btn-outline-dark">← Back</a>
+          <button type="reset" class="btn btn-outline-secondary">Clear</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    'use strict';
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  })();
+
+  document.addEventListener('DOMContentLoaded', function () {
+    function upperize(el) {
+      if (!el) return;
+      el.addEventListener('input', function () {
+        const p = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        try { this.setSelectionRange(p, p); } catch(e) {}
+      });
+    }
+    upperize(document.getElementById('tracking_no'));
+    upperize(document.getElementById('declaration_c_number'));
+    upperize(document.getElementById('declaration_a_number'));
+  });
+</script>
+{% endblock %}

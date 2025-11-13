@@ -1,27 +1,183 @@
-<!-- imports/templates/imports/dashboard.html -->
 {% extends 'core/base.html' %}
 {% block title %}Imports{% endblock %}
 
 {% block content %}
-<div class="card mx-auto shadow-lg" style="max-width: 900px; padding: 24px; border-radius: 20px;">
-  <div class="d-flex justify-content-between align-items-center flex-wrap mb-3">
-    <h2 class="mb-2">📥 Imports</h2>
-    <div class="btn-group flex-wrap">
-      <a href="{% url 'home' %}" class="btn btn-secondary">⬅ Back Home</a>
-      {% if user.is_superuser %}
-        <a href="{% url 'admin_area' %}" class="btn btn-outline-dark">⚙ Admin Area</a>
-      {% endif %}
+<style>
+  body { font-size: 0.88rem; }
+  .card-outer { max-width: 1400px; }
+  .card-body { padding-left: 1.5rem; padding-right: 1.5rem; }
+  .table thead th { white-space: nowrap; font-size: 0.82rem; }
+  .table td { font-size: 0.84rem; vertical-align: middle; }
+  .table-sticky thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--bs-table-bg, #fff);
+    border-bottom: 1px solid var(--bs-border-color);
+  }
+  .badge-pill { border-radius: 10rem; font-size: 0.72rem; }
+  .table-compact .table td, .table-compact .table th {
+    padding-top: .35rem;
+    padding-bottom: .35rem;
+  }
+  .table-hover tbody tr:hover { background: rgba(0,0,0,.02); transition: background 0.2s; }
+  .text-muted.small { font-size: 0.78rem; }
+  form .form-label { font-size: 0.8rem; }
+  .row-highlight { background-color: #eafaf0 !important; }  /* soft green highlight */
+  @media (max-width: 991.98px) { .col-expected { display: none; } }
+  @media (max-width: 767.98px) { .col-created { display: none; } }
+</style>
+
+<div class="card mx-auto shadow-sm border-0 card-outer">
+  <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap">
+    <div>
+      <h1 class="h5 mb-1">Imports</h1>
+      <div class="text-muted small">Browse and manage registered imports</div>
     </div>
-  </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-secondary"
+         href="{% url 'imports_export' %}?q={{ q }}&status={{ status_f }}&method={{ method_f }}">
+        Download imports
+      </a>
+      <a class="btn btn-sm btn-primary" href="{% url 'imports_register' %}">Register Import</a>
+    </div>
+  </div>  
+  <div class="card-body pt-3">
+    <!-- Filters / Search -->
+    <form method="get" class="row gx-3 gy-2 align-items-end mb-3">
+      <div class="col-md-5">
+        <label class="form-label mb-1">Search</label>
+        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Import code, vendor, tracking…">
+      </div>
 
-  <p class="text-muted mb-2">
-    Welcome to the Imports area. (Access: superuser, logistics, procurement)
-  </p>
+      <div class="col-md-3">
+        <label class="form-label mb-1">Status</label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All</option>
+          {% for s in STATUS_CHOICES %}
+            <option value="{{ s }}" {% if status_f == s %}selected{% endif %}>{{ s|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
 
-  <div class="d-grid gap-2">
-    <a class="btn btn-primary disabled">Register Import (coming soon)</a>
-    <a class="btn btn-outline-primary disabled">Upload Imports (Excel) — soon</a>
-    <a class="btn btn-outline-secondary disabled">Search & List Imports — soon</a>
+      <div class="col-md-3">
+        <label class="form-label mb-1">Method</label>
+        <select name="method" class="form-select form-select-sm">
+          <option value="">All</option>
+          <option value="AIR" {% if method_f == "AIR" %}selected{% endif %}>Air</option>
+          <option value="SEA" {% if method_f == "SEA" %}selected{% endif %}>Sea</option>
+          <option value="ROAD" {% if method_f == "ROAD" %}selected{% endif %}>Road</option>
+        </select>
+      </div>
+
+      <div class="col-md-1 d-flex gap-2">
+        <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Apply</button>
+      </div>
+    </form>
+
+    <!-- Table -->
+    <div class="table-responsive table-sticky table-compact" id="tableWrap">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Code</th>
+            <th>Vendor</th>
+            <th>Country</th>
+            <th>Method</th>
+            <th>Status</th>
+            <th>Tracking</th>
+            <th>Incoterms</th>
+            <th>Decl. C No.</th>
+            <th>Decl. Date</th>
+            <th class="col-expected">Expected</th>
+            <th class="col-created">Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if page_obj.object_list %}
+            {% for imp in page_obj %}
+              <tr class="{% if imp.declaration_a_number %}row-highlight{% endif %}">
+                <td class="fw-semibold text-nowrap">{{ imp.import_code }}</td>
+                <td>{{ imp.vendor_name|default:"—" }}</td>
+                <td>{{ imp.exporter_country|default:"—" }}</td>
+
+                <td>
+                  {% if imp.shipping_method %}
+                    {% with m=imp.shipping_method %}
+                      {% if m == "AIR" %}
+                        <span class="badge bg-info-subtle text-info border badge-pill">Air</span>
+                      {% elif m == "SEA" %}
+                        <span class="badge bg-primary-subtle text-primary border badge-pill">Sea</span>
+                      {% elif m == "ROAD" %}
+                        <span class="badge bg-success-subtle text-success border badge-pill">Road</span>
+                      {% else %}
+                        <span class="badge bg-light border text-muted badge-pill">{{ m|title }}</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% else %}—{% endif %}
+                </td>
+
+                <td>
+                  {% if imp.shipment_status %}
+                    {% with s=imp.shipment_status %}
+                      {% if s == "DELIVERED" %}
+                        <span class="badge bg-success-subtle text-success border badge-pill">Delivered</span>
+                      {% elif s == "AT_CUSTOMS" %}
+                        <span class="badge bg-warning-subtle text-warning border badge-pill">At customs</span>
+                      {% elif s == "IN_TRANSIT" %}
+                        <span class="badge bg-info-subtle text-info border badge-pill">In transit</span>
+                      {% elif s == "PICKED_UP" %}
+                        <span class="badge bg-primary-subtle text-primary border badge-pill">Picked up</span>
+                      {% elif s == "CANCELLED" %}
+                        <span class="badge bg-danger-subtle text-danger border badge-pill">Cancelled</span>
+                      {% else %}
+                        <span class="badge bg-light border text-muted badge-pill">{{ s|title }}</span>
+                      {% endif %}
+                    {% endwith %}
+                  {% else %}—{% endif %}
+                </td>
+
+                <td>{{ imp.tracking_no|default:"—" }}</td>
+                <td>{{ imp.incoterms|default:"—" }}</td>
+                <td>{{ imp.declaration_c_number|default:"—" }}</td>
+                <td>
+                  {% if imp.declaration_date %}
+                    {{ imp.declaration_date|date:"Y-m-d" }}
+                  {% else %}—{% endif %}
+                </td>
+                <td class="col-expected">
+                  {% if imp.expected_receipt_date %}
+                    {{ imp.expected_receipt_date|date:"Y-m-d" }}
+                  {% else %}—{% endif %}
+                </td>
+                <td class="col-created text-nowrap">{{ imp.created_at|date:"Y-m-d H:i" }}</td>
+              </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="11" class="text-center text-muted py-4">No imports found.</td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+      <nav aria-label="Imports pagination">
+        <ul class="pagination pagination-sm justify-content-end mt-3 mb-0">
+          {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?q={{ q }}&status={{ status_f }}&method={{ method_f }}&page={{ page_obj.previous_page_number }}">Prev</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Prev</span></li>
+          {% endif %}
+          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+          {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?q={{ q }}&status={{ status_f }}&method={{ method_f }}&page={{ page_obj.next_page_number }}">Next</a></li>
+          {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+          {% endif %}
+        </ul>
+      </nav>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
