@@ -12,4 +12,7 @@ urlpatterns = [
 
     path('items/', views.items_view, name='items_view'),
     path('items/upload/', views.items_upload, name='items_upload'),
+
+    path("forwarders/", views.forwarders_view, name="forwarders_view"),
+
 ]

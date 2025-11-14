@@ -22,8 +22,9 @@
   .text-muted.small { font-size: 0.78rem; }
   form .form-label { font-size: 0.8rem; }
   .row-highlight { background-color: #eafaf0 !important; }  /* soft green highlight */
+  .col-actions { width: 120px; }
   @media (max-width: 991.98px) { .col-expected { display: none; } }
-  @media (max-width: 767.98px) { .col-created { display: none; } }
+  @media (max-width: 767.98px) { .col-incoterms, .col-created { display: none; } }
 </style>
 
 <div class="card mx-auto shadow-sm border-0 card-outer">
@@ -33,13 +34,13 @@
       <div class="text-muted small">Browse and manage registered imports</div>
     </div>
     <div class="d-flex gap-2">
-      <a class="btn btn-sm btn-outline-secondary"
-         href="{% url 'imports_export' %}?q={{ q }}&status={{ status_f }}&method={{ method_f }}">
-        Download imports
+      <a class="btn btn-sm btn-outline-secondary" href="{% url 'imports_export' %}">
+        Download Imports
       </a>
       <a class="btn btn-sm btn-primary" href="{% url 'imports_register' %}">Register Import</a>
     </div>
-  </div>  
+  </div>
+
   <div class="card-body pt-3">
     <!-- Filters / Search -->
     <form method="get" class="row gx-3 gy-2 align-items-end mb-3">
@@ -47,7 +48,6 @@
         <label class="form-label mb-1">Search</label>
         <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Import code, vendor, tracking…">
       </div>
-
       <div class="col-md-3">
         <label class="form-label mb-1">Status</label>
         <select name="status" class="form-select form-select-sm">
@@ -57,17 +57,15 @@
           {% endfor %}
         </select>
       </div>
-
       <div class="col-md-3">
         <label class="form-label mb-1">Method</label>
         <select name="method" class="form-select form-select-sm">
           <option value="">All</option>
-          <option value="AIR" {% if method_f == "AIR" %}selected{% endif %}>Air</option>
-          <option value="SEA" {% if method_f == "SEA" %}selected{% endif %}>Sea</option>
-          <option value="ROAD" {% if method_f == "ROAD" %}selected{% endif %}>Road</option>
+          {% for m in METHOD_CHOICES %}
+            <option value="{{ m }}" {% if method_f == m %}selected{% endif %}>{{ m|title }}</option>
+          {% endfor %}
         </select>
       </div>
-
       <div class="col-md-1 d-flex gap-2">
         <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Apply</button>
       </div>
@@ -81,14 +79,17 @@
             <th>Code</th>
             <th>Vendor</th>
             <th>Country</th>
+            <th>Tracking</th>
+            <th class="col-incoterms">Incoterms</th>
             <th>Method</th>
             <th>Status</th>
-            <th>Tracking</th>
-            <th>Incoterms</th>
             <th>Decl. C No.</th>
             <th>Decl. Date</th>
             <th class="col-expected">Expected</th>
             <th class="col-created">Created</th>
+            {% if user.is_superuser %}
+              <th class="text-end col-actions">Actions</th>
+            {% endif %}
           </tr>
         </thead>
         <tbody>
@@ -98,6 +99,8 @@
                 <td class="fw-semibold text-nowrap">{{ imp.import_code }}</td>
                 <td>{{ imp.vendor_name|default:"—" }}</td>
                 <td>{{ imp.exporter_country|default:"—" }}</td>
+                <td>{{ imp.tracking_no|default:"—" }}</td>
+                <td class="col-incoterms">{{ imp.incoterms|default:"—" }}</td>
 
                 <td>
                   {% if imp.shipping_method %}
@@ -108,6 +111,10 @@
                         <span class="badge bg-primary-subtle text-primary border badge-pill">Sea</span>
                       {% elif m == "ROAD" %}
                         <span class="badge bg-success-subtle text-success border badge-pill">Road</span>
+                      {% elif m == "COURIER" %}
+                        <span class="badge bg-warning-subtle text-warning border badge-pill">Courier</span>
+                      {% elif m == "OTHER" %}
+                        <span class="badge bg-secondary-subtle text-secondary border badge-pill">Other</span>
                       {% else %}
                         <span class="badge bg-light border text-muted badge-pill">{{ m|title }}</span>
                       {% endif %}
@@ -135,8 +142,6 @@
                   {% else %}—{% endif %}
                 </td>
 
-                <td>{{ imp.tracking_no|default:"—" }}</td>
-                <td>{{ imp.incoterms|default:"—" }}</td>
                 <td>{{ imp.declaration_c_number|default:"—" }}</td>
                 <td>
                   {% if imp.declaration_date %}
@@ -149,11 +154,29 @@
                   {% else %}—{% endif %}
                 </td>
                 <td class="col-created text-nowrap">{{ imp.created_at|date:"Y-m-d H:i" }}</td>
+
+                {% if user.is_superuser %}
+                <!-- Actions -->
+                <td class="text-end col-actions">
+                  <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                  <form method="post" action="{% url 'imports_delete' imp.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="btn btn-sm btn-outline-danger"
+                            onclick="return confirm('Delete {{ imp.import_code }}?');">
+                      Delete
+                    </button>
+                  </form>
+                </td>
+                {% endif %}
               </tr>
             {% endfor %}
           {% else %}
             <tr>
-              <td colspan="11" class="text-center text-muted py-4">No imports found.</td>
+              <td colspan="{% if user.is_superuser %}12{% else %}11{% endif %}"
+                  class="text-center text-muted py-4">
+                No imports found.
+              </td>
             </tr>
           {% endif %}
         </tbody>

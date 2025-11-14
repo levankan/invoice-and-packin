@@ -15,6 +15,15 @@ import pandas as pd
 from .forms import ItemsUploadForm, VendorsUploadForm
 from .models import Item, Vendor
 
+import csv
+import os
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import render, redirect
+
+from .models import Forwarder
+
 
 def is_superuser(u):
     return u.is_superuser
@@ -267,3 +276,132 @@ def vendors_upload(request):
         form = VendorsUploadForm()
 
     return render(request, 'admin_area/vendors_upload.html', {'form': form})
+
+
+
+
+
+
+
+
+def superuser_required(user):
+    return user.is_superuser
+
+
+@login_required
+@user_passes_test(superuser_required)
+def forwarders_view(request):
+    """
+    List forwarders and allow bulk import from CSV / Excel.
+
+    Expected columns (header row), case-insensitive:
+      - name
+      - Legal Name
+      - VAT Registration No.
+    """
+    if request.method == "POST" and request.FILES.get("file"):
+        upload = request.FILES["file"]
+        ext = os.path.splitext(upload.name)[1].lower()
+
+        created_count = 0
+        updated_count = 0
+
+        # ---------- CSV ----------
+        if ext == ".csv":
+            decoded = upload.read().decode("utf-8").splitlines()
+            reader = csv.DictReader(decoded)
+
+            for row in reader:
+                # header names are case-insensitive
+                def get(key, *alts):
+                    for k in (key, *alts):
+                        v = row.get(k)
+                        if v is not None:
+                            return str(v).strip()
+                    return ""
+
+                name = get("name", "Name")
+                if not name:
+                    continue
+
+                legal_name = get("Legal Name", "legal name", "legal_name")
+                vat_reg = get("VAT Registration No.", "VAT Registration No", "vat", "vat_registration_no")
+
+                obj, created = Forwarder.objects.update_or_create(
+                    name=name,
+                    defaults={
+                        "legal_name": legal_name,
+                        "vat_registration_no": vat_reg,
+                    },
+                )
+                if created:
+                    created_count += 1
+                else:
+                    updated_count += 1
+
+        # ---------- Excel (.xlsx / .xls) ----------
+        else:
+            try:
+                import openpyxl
+            except ImportError:
+                messages.error(
+                    request,
+                    "To upload Excel files please install openpyxl: pip install openpyxl",
+                )
+                return redirect("forwarders_view")
+
+            wb = openpyxl.load_workbook(upload)
+            ws = wb.active
+
+            rows = list(ws.rows)
+            if not rows:
+                messages.warning(request, "File is empty.")
+                return redirect("forwarders_view")
+
+            # normalize header row to lowercase
+            headers = [str(c.value).strip().lower() if c.value else "" for c in rows[0]]
+            index_map = {h: i for i, h in enumerate(headers)}
+
+            def get_val(row, *names):
+                for name in names:
+                    key = name.lower()
+                    idx = index_map.get(key)
+                    if idx is not None and idx < len(row):
+                        val = row[idx].value
+                        if val is not None:
+                            return str(val).strip()
+                return ""
+
+            for row in rows[1:]:
+                name = get_val(row, "name")
+                if not name:
+                    continue
+
+                legal_name = get_val(row, "legal name", "legal_name")
+                vat_reg = get_val(row, "vat registration no.", "vat registration no", "vat_registration_no")
+
+                obj, created = Forwarder.objects.update_or_create(
+                    name=name,
+                    defaults={
+                        "legal_name": legal_name,
+                        "vat_registration_no": vat_reg,
+                    },
+                )
+                if created:
+                    created_count += 1
+                else:
+                    updated_count += 1
+
+        if created_count or updated_count:
+            messages.success(
+                request,
+                f"Imported {created_count} new and {updated_count} updated forwarders."
+            )
+        else:
+            messages.warning(request, "No forwarders imported. Check your file headers.")
+
+        return redirect("forwarders_view")
+
+    # GET – list all forwarders
+    forwarders = Forwarder.objects.all().order_by("name")
+    return render(request, "admin_area/forwarders.html", {"forwarders": forwarders})

@@ -29,3 +29,24 @@ class Vendor(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return f"{self.number} — {self.name}"
+
+
+
+
+class Forwarder(models.Model):
+    # Short “system” name – e.g. “DSV”, “Schenker Germany”
+    name = models.CharField(max_length=255, unique=True, db_index=True)
+
+    # Full legal company name
+    legal_name = models.CharField(max_length=255, blank=True)
+
+    vat_registration_no = models.CharField(max_length=100, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        # show both if available
+        if self.legal_name:
+            return f"{self.name} — {self.legal_name}"
+        return self.name
