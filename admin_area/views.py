@@ -8,19 +8,17 @@ from django.http import HttpResponse
 from django.core.files.uploadedfile import UploadedFile
 from django.core.paginator import Paginator
 from django.db.models import Q
-
+import openpyxl
 import math
 import pandas as pd
-
 from .forms import ItemsUploadForm, VendorsUploadForm
 from .models import Item, Vendor
-
 import csv
 import os
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 
 from .models import Forwarder
 
@@ -284,124 +282,145 @@ def vendors_upload(request):
 
 
 
-def superuser_required(user):
+# Only superuser can access admin area
+def is_superuser(user):
     return user.is_superuser
 
 
 @login_required
-@user_passes_test(superuser_required)
+@user_passes_test(is_superuser)
 def forwarders_view(request):
     """
-    List forwarders and allow bulk import from CSV / Excel.
-
-    Expected columns (header row), case-insensitive:
-      - name
-      - Legal Name
-      - VAT Registration No.
+    List forwarders. Upload is handled by forwarders_upload().
     """
-    if request.method == "POST" and request.FILES.get("file"):
-        upload = request.FILES["file"]
-        ext = os.path.splitext(upload.name)[1].lower()
+    forwarders = Forwarder.objects.all().order_by("name")
+    return render(
+        request,
+        "admin_area/forwarders.html",
+        {"forwarders": forwarders},
+    )
 
-        created_count = 0
-        updated_count = 0
 
-        # ---------- CSV ----------
-        if ext == ".csv":
-            decoded = upload.read().decode("utf-8").splitlines()
-            reader = csv.DictReader(decoded)
 
-            for row in reader:
-                # header names are case-insensitive
-                def get(key, *alts):
-                    for k in (key, *alts):
-                        v = row.get(k)
-                        if v is not None:
-                            return str(v).strip()
-                    return ""
+@login_required
+@user_passes_test(is_superuser)
+def forwarders_export(request):
+    """
+    Download all forwarders as an Excel file (.xlsx).
+    """
+    from openpyxl import Workbook
 
-                name = get("name", "Name")
-                if not name:
-                    continue
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Forwarders"
 
-                legal_name = get("Legal Name", "legal name", "legal_name")
-                vat_reg = get("VAT Registration No.", "VAT Registration No", "vat", "vat_registration_no")
+    # Header row
+    ws.append(["name", "Legal Name", "VAT Registration No."])
 
-                obj, created = Forwarder.objects.update_or_create(
-                    name=name,
-                    defaults={
-                        "legal_name": legal_name,
-                        "vat_registration_no": vat_reg,
-                    },
-                )
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
+    # Data rows
+    for f in Forwarder.objects.all().order_by("name"):
+        ws.append([
+            f.name,
+            f.legal_name or "",
+            f.vat_registration_no or "",
+        ])
 
-        # ---------- Excel (.xlsx / .xls) ----------
-        else:
-            try:
-                import openpyxl
-            except ImportError:
-                messages.error(
-                    request,
-                    "To upload Excel files please install openpyxl: pip install openpyxl",
-                )
-                return redirect("forwarders_view")
+    # Prepare HTTP response
+    response = HttpResponse(
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    )
+    response["Content-Disposition"] = 'attachment; filename="forwarders.xlsx"'
+    wb.save(response)
+    return response
 
-            wb = openpyxl.load_workbook(upload)
-            ws = wb.active
 
-            rows = list(ws.rows)
-            if not rows:
-                messages.warning(request, "File is empty.")
-                return redirect("forwarders_view")
 
-            # normalize header row to lowercase
-            headers = [str(c.value).strip().lower() if c.value else "" for c in rows[0]]
-            index_map = {h: i for i, h in enumerate(headers)}
+@login_required
+@user_passes_test(is_superuser)
+def forwarder_delete(request, pk):
+    """
+    Delete a forwarder (POST only).
+    """
+    if request.method == "POST":
+        fwd = get_object_or_404(Forwarder, pk=pk)
+        fwd.delete()
+    return redirect("forwarders_view")
 
-            def get_val(row, *names):
-                for name in names:
-                    key = name.lower()
-                    idx = index_map.get(key)
-                    if idx is not None and idx < len(row):
-                        val = row[idx].value
-                        if val is not None:
-                            return str(val).strip()
-                return ""
 
-            for row in rows[1:]:
-                name = get_val(row, "name")
-                if not name:
-                    continue
+@login_required
+@user_passes_test(is_superuser)
+def forwarder_edit(request, pk):
+    """
+    Simple edit page for one forwarder.
+    """
+    fwd = get_object_or_404(Forwarder, pk=pk)
 
-                legal_name = get_val(row, "legal name", "legal_name")
-                vat_reg = get_val(row, "vat registration no.", "vat registration no", "vat_registration_no")
-
-                obj, created = Forwarder.objects.update_or_create(
-                    name=name,
-                    defaults={
-                        "legal_name": legal_name,
-                        "vat_registration_no": vat_reg,
-                    },
-                )
-                if created:
-                    created_count += 1
-                else:
-                    updated_count += 1
-
-        if created_count or updated_count:
-            messages.success(
-                request,
-                f"Imported {created_count} new and {updated_count} updated forwarders."
-            )
-        else:
-            messages.warning(request, "No forwarders imported. Check your file headers.")
-
+    if request.method == "POST":
+        fwd.name = (request.POST.get("name") or "").strip()
+        fwd.legal_name = (request.POST.get("legal_name") or "").strip() or None
+        fwd.vat_registration_no = (request.POST.get("vat_registration_no") or "").strip() or None
+        fwd.save()
         return redirect("forwarders_view")
 
-    # GET – list all forwarders
-    forwarders = Forwarder.objects.all().order_by("name")
-    return render(request, "admin_area/forwarders.html", {"forwarders": forwarders})
+    return render(request, "admin_area/forwarder_edit.html", {"forwarder": fwd})
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def forwarders_upload(request):
+    """
+    Upload Forwarders from an Excel file.
+
+    Expected columns in the first row:
+    name | legal_name | vat_registration_no
+    (header row can be anything, we just use column positions)
+    """
+    if request.method != "POST":
+        messages.error(request, "Invalid request method.")
+        return redirect("forwarders_view")
+
+    upload_file = request.FILES.get("file")
+    if not upload_file:
+        messages.error(request, "Please choose an Excel file to upload.")
+        return redirect("forwarders_view")
+
+    try:
+        wb = openpyxl.load_workbook(upload_file)
+    except Exception:
+        messages.error(request, "Could not read the file. Make sure it is a valid .xlsx Excel file.")
+        return redirect("forwarders_view")
+
+    sheet = wb.active
+    created = 0
+    updated = 0
+
+    # We expect: first column = name, second = legal_name, third = vat_registration_no
+    for idx, row in enumerate(sheet.iter_rows(min_row=2, values_only=True), start=2):
+        name, legal_name, vat_no = row[:3]
+
+        if not name:
+            continue  # skip rows without name
+
+        name = str(name).strip()
+        legal_name = (str(legal_name).strip() if legal_name else "")
+        vat_no = (str(vat_no).strip() if vat_no else "")
+
+        fwd, was_created = Forwarder.objects.update_or_create(
+            name=name,
+            defaults={
+                "legal_name": legal_name or None,
+                "vat_registration_no": vat_no or None,
+            },
+        )
+        if was_created:
+            created += 1
+        else:
+            updated += 1
+
+    messages.success(
+        request,
+        f"Forwarders upload completed. Created: {created}, Updated: {updated}."
+    )
+    return redirect("forwarders_view")

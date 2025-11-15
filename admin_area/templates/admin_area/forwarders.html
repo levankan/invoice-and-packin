@@ -2,74 +2,102 @@
 {% block title %}Forwarders{% endblock %}
 
 {% block content %}
-<div class="card mx-auto shadow-lg" style="max-width: 1000px; padding: 32px; border-radius: 20px;">
-
-  <!-- ===== Header ===== -->
-  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
-    <h2 class="mb-0">🚚 Forwarders</h2>
-    <!-- FIXED: use an existing URL name -->
-    <a href="{% url 'home' %}" class="btn btn-danger">⬅️ Home</a>
-  </div>
-
-  <p class="text-muted">Upload forwarder companies using Excel or CSV.</p>
-
-  {% if messages %}
-    {% for msg in messages %}
-      <div class="alert alert-{{ msg.tags }} py-2">{{ msg }}</div>
-    {% endfor %}
-  {% endif %}
-
-  <hr>
-
-  <form method="post" enctype="multipart/form-data" class="mb-4">
-    {% csrf_token %}
-    <label class="form-label fw-semibold">Upload Excel / CSV File</label>
-    <input type="file" name="file" class="form-control mb-2" required>
-
-    <small class="text-muted">
-      Expected columns (first row):
-      <code>name</code>, <code>Legal Name</code>, <code>VAT Registration No.</code><br>
-      Supports: CSV, XLSX
-    </small>
-
-    <div class="mt-3">
-      <button type="submit" class="btn btn-primary">📤 Upload Forwarders</button>
+<div class="container py-4">
+  <div class="card mx-auto shadow-sm" style="max-width: 1000px; border-radius: 18px;">
+    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h2 class="h5 mb-1">🚚 Forwarders</h2>
+        <p class="text-muted small mb-0">Manage freight forwarder companies (name, legal name, VAT).</p>
+      </div>
+      <div class="btn-group">
+        <a href="{% url 'forwarders_export' %}" class="btn btn-sm btn-outline-secondary">
+          ⬇️ Download Excel
+        </a>
+        <a href="{% url 'admin_area' %}" class="btn btn-sm btn-outline-dark">
+          ⬅️ Back to Admin Area
+        </a>
+      </div>
     </div>
-  </form>
 
-  <hr>
+    <div class="card-body pt-3">
 
-  <h5 class="mb-3">📋 Forwarder List</h5>
-  <div class="table-responsive">
-    <table class="table table-sm table-hover align-middle mb-0">
-      <thead class="table-light">
-        <tr>
-          <th>Name</th>
-          <th>Legal Name</th>
-          <th>VAT Registration No.</th>
-          <th>Created</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% if forwarders %}
-          {% for f in forwarders %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} py-2 small" role="alert">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <!-- Upload section -->
+      <div class="mb-4 p-3 border rounded-3 bg-light">
+        <h6 class="mb-2">Upload Forwarders from Excel</h6>
+        <p class="text-muted small mb-2">
+          Prepare an Excel file (.xlsx) with columns in the first row:
+          <strong>name</strong>, <strong>legal_name</strong>, <strong>vat_registration_no</strong>.
+        </p>
+
+        <form method="post"
+              enctype="multipart/form-data"
+              action="{% url 'forwarders_upload' %}"
+              class="d-flex flex-wrap gap-2 align-items-center">
+          {% csrf_token %}
+          <input type="file" name="file"
+                 accept=".xlsx,.xls"
+                 class="form-control form-control-sm"
+                 style="max-width: 320px;"
+                 required>
+          <button type="submit" class="btn btn-sm btn-primary">Upload Excel</button>
+        </form>
+      </div>
+
+      <!-- Forwarders table -->
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+          <thead class="table-light">
             <tr>
-              <td>{{ f.name }}</td>
-              <td>{{ f.legal_name|default:"—" }}</td>
-              <td>{{ f.vat_registration_no|default:"—" }}</td>
-              <td>{{ f.created_at|date:"Y-m-d" }}</td>
+              <th style="width: 25%;">Name</th>
+              <th style="width: 35%;">Legal Name</th>
+              <th style="width: 20%;">VAT Registration No.</th>
+              <th class="text-end" style="width: 20%;">Actions</th>
             </tr>
-          {% endfor %}
-        {% else %}
-          <tr>
-            <td colspan="4" class="text-center text-muted py-4">
-              No forwarders found. Upload a file to add them.
-            </td>
-          </tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
+          </thead>
+          <tbody>
+            {% if forwarders %}
+              {% for f in forwarders %}
+                <tr>
+                  <td>{{ f.name }}</td>
+                  <td>{{ f.legal_name|default:"—" }}</td>
+                  <td>{{ f.vat_registration_no|default:"—" }}</td>
+                  <td class="text-end">
+                    <a href="{% url 'forwarder_edit' f.pk %}" class="btn btn-sm btn-outline-primary">
+                      Edit
+                    </a>
+                    <form method="post"
+                          action="{% url 'forwarder_delete' f.pk %}"
+                          class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="btn btn-sm btn-outline-danger"
+                              onclick="return confirm('Delete forwarder {{ f.name }}?');">
+                        Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="4" class="text-center text-muted py-3">
+                  No forwarders found. Upload an Excel file to create them.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
 
+    </div>
+  </div>
 </div>
 {% endblock %}
