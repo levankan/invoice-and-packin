@@ -2,7 +2,7 @@
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
 import csv
-
+from admin_area.models import Forwarder
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -76,6 +76,7 @@ def register_import(request):
         return s or None
 
     vendors = Vendor.objects.all().order_by("name")
+    forwarders = Forwarder.objects.all().order_by("name")  # 👈 add this
     form = ExporterCountryForm(request.POST or None)
     created_import = None
 
@@ -83,6 +84,14 @@ def register_import(request):
         data = request.POST
 
         exporter_country = form.cleaned_data.get("exporter_country")
+
+        # 🔹 Forwarder from POST
+        forwarder_id = data.get("forwarder")
+        forwarder = (
+            Forwarder.objects.filter(pk=forwarder_id).first()
+            if forwarder_id
+            else None
+        )
 
         incoterms = _clean(data.get("incoterms"))
         if incoterms:
@@ -129,6 +138,8 @@ def register_import(request):
             declaration_c_number=_clean(data.get("declaration_c_number")),
             declaration_a_number=_clean(data.get("declaration_a_number")),
             declaration_date=declaration_date,
+
+            forwarder=forwarder,  # 👈 save it here
         )
 
     return render(
@@ -137,6 +148,7 @@ def register_import(request):
         {
             "created_import": created_import,
             "vendors": vendors,
+            "forwarders": forwarders,  # 👈 send to template
             "form": form,
         },
     )
@@ -180,6 +192,7 @@ def export_imports_excel(request):
         "Exporter Country",
         "Incoterms",
         "Shipping Method",
+        "Forwarder",
         "Shipment Status",
         "Tracking Number",
         "Declaration C Number",
@@ -196,6 +209,7 @@ def export_imports_excel(request):
             imp.exporter_country or "",
             imp.incoterms or "",
             imp.shipping_method or "",
+            imp.forwarder.name if getattr(imp, "forwarder", None) else "",
             imp.shipment_status or "",
             imp.tracking_no or "",
             imp.declaration_c_number or "",
@@ -213,6 +227,7 @@ def export_imports_excel(request):
 def edit_import(request, pk):
     imp = get_object_or_404(Import, pk=pk)
     vendors = Vendor.objects.all().order_by("name")
+    forwarders = Forwarder.objects.all().order_by("name")  # 👈 add this
 
     def _clean(val):
         if val is None:
@@ -220,13 +235,20 @@ def edit_import(request, pk):
         s = str(val).strip()
         return s or None
 
-    # Use the same country form, prefilled
     if request.method == "POST":
         form = ExporterCountryForm(request.POST)
         if form.is_valid():
             data = request.POST
 
             exporter_country = form.cleaned_data.get("exporter_country")
+
+            # 🔹 Forwarder from POST
+            forwarder_id = data.get("forwarder")
+            forwarder = (
+                Forwarder.objects.filter(pk=forwarder_id).first()
+                if forwarder_id
+                else None
+            )
 
             incoterms = _clean(data.get("incoterms"))
             if incoterms:
@@ -273,10 +295,11 @@ def edit_import(request, pk):
             imp.declaration_a_number = _clean(data.get("declaration_a_number"))
             imp.declaration_date = declaration_date
 
+            imp.forwarder = forwarder  # 👈 update forwarder
+
             imp.save()
             return redirect("imports_home")
     else:
-        # prefill exporter_country
         form = ExporterCountryForm(initial={"exporter_country": imp.exporter_country})
 
     return render(
@@ -285,10 +308,12 @@ def edit_import(request, pk):
         {
             "created_import": None,
             "vendors": vendors,
+            "forwarders": forwarders,   # 👈 send to template
             "form": form,
-            "import_obj": imp,  # if later you want to prefill other fields in template
+            "import_obj": imp,
         },
     )
+
 
 
 @login_required

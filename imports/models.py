@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django_countries.fields import CountryField
+from admin_area.models import Forwarder  
 
 class ImportSequence(models.Model):
     """Keeps a single counter for generating sequential import codes."""
@@ -29,6 +30,15 @@ class Import(models.Model):
     is_stackable = models.BooleanField(default=True)
     expected_receipt_date = models.DateField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
+
+    forwarder = models.ForeignKey(
+    "admin_area.Forwarder",
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name="imports"
+    )
+
 
     # --- New customs declaration fields ---
     declaration_c_number = models.CharField(max_length=100, blank=True, null=True)

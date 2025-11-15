@@ -125,6 +125,17 @@
             </div>
             <div class="col-md-4">
               <div class="form-floating">
+                <select name="forwarder" id="forwarder" class="form-select">
+                  <option value=""></option>
+                  {% for f in forwarders %}
+                    <option value="{{ f.id }}">{{ f.name }}</option>
+                  {% endfor %}
+                </select>
+                <label for="forwarder">Forwarder</label>
+              </div>
+            </div>                       
+            <div class="col-md-4">
+              <div class="form-floating">
                 <select name="shipment_status" id="shipment_status" class="form-select">
                   <option value=""></option>
                   <option value="PLANNED">Planned</option>
