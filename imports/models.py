@@ -39,6 +39,8 @@ class Import(models.Model):
     related_name="imports"
     )
 
+    vendor_reference = models.CharField(max_length=100, blank=True, null=True)
+    forwarder_reference = models.CharField(max_length=100, blank=True, null=True)
 
     # --- New customs declaration fields ---
     declaration_c_number = models.CharField(max_length=100, blank=True, null=True)

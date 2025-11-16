@@ -155,10 +155,34 @@
                 <label for="tracking_no">Waybill / Tracking Number</label>
               </div>
             </div>
+            <div class="col-md-4">
+              <div class="form-floating">
+                <input type="text" name="vendor_reference" id="vendor_reference"
+                       class="form-control" placeholder="Vendor Reference">
+                <label for="vendor_reference">Vendor Reference</label>
+              </div>
+            </div>
+
+            <!-- 🔹 NEW: Forwarder Reference -->
+            <div class="col-md-4">
+              <div class="form-floating">
+                <input type="text" name="forwarder_reference" id="forwarder_reference"
+                       class="form-control" placeholder="Forwarder Reference">
+                <label for="forwarder_reference">Forwarder Reference</label>
+              </div>
+            </div>
             <div class="col-12">
               <div class="form-floating">
                 <textarea name="pickup_address" id="pickup_address" class="form-control" placeholder="Pick Up Address" style="height: 100px"></textarea>
                 <label for="pickup_address">Pick Up Address</label>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="form-floating">
+                <textarea name="notes" id="notes" class="form-control"
+                          style="height: 100px"
+                          placeholder="Internal comments, special handling, etc.">{% if import_obj %}{{ import_obj.notes }}{% endif %}</textarea>
+                <label for="notes">Notes</label>
               </div>
             </div>
           </div>

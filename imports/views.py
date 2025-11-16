@@ -40,7 +40,9 @@ def imports_dashboard(request):
         qs = qs.filter(
             Q(import_code__icontains=q) |
             Q(vendor_name__icontains=q) |
-            Q(tracking_no__icontains=q)
+            Q(tracking_no__icontains=q) |
+            Q(vendor_reference__icontains=q) |
+            Q(forwarder_reference__icontains=q)
         )
 
     if status_f:
@@ -64,6 +66,7 @@ def imports_dashboard(request):
         "METHOD_CHOICES": METHOD_CHOICES,
     }
     return render(request, "imports/dashboard.html", ctx)
+
 
 
 @login_required
@@ -135,6 +138,8 @@ def register_import(request):
             is_stackable=bool(data.get("is_stackable")),
             expected_receipt_date=expected_receipt_date,
             notes=_clean(data.get("notes")),
+            vendor_reference=_clean(data.get("vendor_reference")),
+            forwarder_reference=_clean(data.get("forwarder_reference")),
             declaration_c_number=_clean(data.get("declaration_c_number")),
             declaration_a_number=_clean(data.get("declaration_a_number")),
             declaration_date=declaration_date,
@@ -158,7 +163,8 @@ def register_import(request):
 @user_passes_test(has_imports_access)
 def export_imports_excel(request):
     """
-    Export imports (with same filters as dashboard) to CSV (Excel-friendly).
+    Export imports (with same filters as dashboard) to CSV (Excel-friendly),
+    including ALL important fields from the Import model.
     """
     q = (request.GET.get("q") or "").strip()
     status_f = (request.GET.get("status") or "").strip()
@@ -179,22 +185,33 @@ def export_imports_excel(request):
     if method_f:
         qs = qs.filter(shipping_method=method_f)
 
-    qs = qs.order_by("-created_at")
+    qs = qs.select_related("forwarder").order_by("-created_at")
 
     response = HttpResponse(content_type="text/csv")
     filename = "imports_export.csv"
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
     writer = csv.writer(response)
+
+    # 🔹 Header row – all fields you care about
     writer.writerow([
+        "DB ID",
         "Import Code",
         "Vendor",
         "Exporter Country",
         "Incoterms",
+        "Currency",
+        "Goods Price",
         "Shipping Method",
         "Forwarder",
         "Shipment Status",
+        "Vendor Reference",
+        "Forwarder Reference",
         "Tracking Number",
+        "Pickup Address",
+        "Is Danger",
+        "Is Stackable",
+        "Notes",
         "Declaration C Number",
         "Declaration A Number",
         "Declaration Date",
@@ -202,16 +219,26 @@ def export_imports_excel(request):
         "Created At",
     ])
 
+    # 🔹 Data rows
     for imp in qs:
         writer.writerow([
+            imp.pk,
             imp.import_code,
             imp.vendor_name or "",
-            imp.exporter_country or "",
+            str(imp.exporter_country) if imp.exporter_country else "",
             imp.incoterms or "",
+            imp.currency_code or "",
+            str(imp.goods_price) if imp.goods_price is not None else "",
             imp.shipping_method or "",
             imp.forwarder.name if getattr(imp, "forwarder", None) else "",
             imp.shipment_status or "",
+            imp.vendor_reference or "",
+            imp.forwarder_reference or "",
             imp.tracking_no or "",
+            (imp.pickup_address or "").replace("\r\n", " ").replace("\n", " "),
+            "YES" if imp.is_danger else "NO",
+            "YES" if imp.is_stackable else "NO",
+            (imp.notes or "").replace("\r\n", " ").replace("\n", " "),
             imp.declaration_c_number or "",
             imp.declaration_a_number or "",
             imp.declaration_date.isoformat() if imp.declaration_date else "",
@@ -220,6 +247,7 @@ def export_imports_excel(request):
         ])
 
     return response
+
 
 
 @login_required
@@ -291,12 +319,12 @@ def edit_import(request, pk):
             imp.is_stackable = bool(data.get("is_stackable"))
             imp.expected_receipt_date = expected_receipt_date
             imp.notes = _clean(data.get("notes"))
+            imp.vendor_reference = _clean(data.get("vendor_reference"))
+            imp.forwarder_reference = _clean(data.get("forwarder_reference"))
             imp.declaration_c_number = _clean(data.get("declaration_c_number"))
             imp.declaration_a_number = _clean(data.get("declaration_a_number"))
             imp.declaration_date = declaration_date
-
             imp.forwarder = forwarder  # 👈 update forwarder
-
             imp.save()
             return redirect("imports_home")
     else:
