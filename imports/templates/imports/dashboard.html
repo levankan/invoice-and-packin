@@ -4,7 +4,12 @@
 {% block content %}
 <style>
   body { font-size: 0.88rem; }
-  .card-outer { max-width: 1400px; }
+
+  .page-wrapper {
+    min-height: 100vh;
+  }
+
+  .card-outer { max-width: 1400px; margin-bottom: 60px; }
   .card-body { padding-left: 1.5rem; padding-right: 1.5rem; }
   .table thead th { white-space: nowrap; font-size: 0.82rem; }
   .table td { font-size: 0.84rem; vertical-align: middle; }
@@ -21,199 +26,276 @@
   .table-hover tbody tr:hover { background: rgba(0,0,0,.02); transition: background 0.2s; }
   .text-muted.small { font-size: 0.78rem; }
   form .form-label { font-size: 0.8rem; }
-  .row-highlight { background-color: #eafaf0 !important; }  /* soft green highlight */
+  .row-highlight { background-color: #eafaf0 !important; }
   .col-actions { width: 120px; }
   @media (max-width: 991.98px) { .col-expected { display: none; } }
   @media (max-width: 767.98px) { .col-incoterms, .col-created { display: none; } }
+
+  /* Fixed bar at bottom (wrapper for scroller + pagination) */
+  .pagination-fixed-bottom {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1030;
+    background: #fff;
+    border-top: 1px solid #dee2e6;
+    padding: .25rem 1rem .35rem;
+  }
+
+  /* Horizontal scroller INSIDE the fixed bar */
+  #fixedScroller {
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 16px;
+    margin-bottom: 4px;   /* space between scroller and pagination */
+  }
+
+  #fakeScroll {
+    height: 1px;          /* just to make scrollbar appear */
+  }
 </style>
 
-<div class="card mx-auto shadow-sm border-0 card-outer">
-  <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap">
-    <div>
-      <h1 class="h5 mb-1">Imports</h1>
-      <div class="text-muted small">Browse and manage registered imports</div>
+
+<div class="page-wrapper">  {# 👈 NEW WRAPPER #}
+  <div class="card mx-auto shadow-sm border-0 card-outer">
+    <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h1 class="h5 mb-1">Imports</h1>
+        <div class="text-muted small">Browse and manage registered imports</div>
+      </div>
+      <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-secondary" href="{% url 'imports_export' %}">
+          Download Imports
+        </a>
+        <a class="btn btn-sm btn-primary" href="{% url 'imports_register' %}">Register Import</a>
+        <a class="btn btn-sm btn-outline-dark" href="{% url 'home' %}">
+          ⬅️ Back
+        </a>
+      </div>
     </div>
-    <div class="d-flex gap-2">
-      <a class="btn btn-sm btn-outline-secondary" href="{% url 'imports_export' %}">
-        Download Imports
-      </a>
-      <a class="btn btn-sm btn-primary" href="{% url 'imports_register' %}">Register Import</a>
-      <a class="btn btn-sm btn-outline-dark" href="{% url 'home' %}">
-        ⬅️ Back
-      </a>
-    </div>
-  </div>
 
-  <div class="card-body pt-3">
-    <!-- Filters / Search -->
-    <form method="get" class="row gx-3 gy-2 align-items-end mb-3">
-      <div class="col-md-5">
-        <label class="form-label mb-1">Search</label>
-        <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Import code, vendor, tracking, referances…">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label mb-1">Status</label>
-        <select name="status" class="form-select form-select-sm">
-          <option value="">All</option>
-          {% for s in STATUS_CHOICES %}
-            <option value="{{ s }}" {% if status_f == s %}selected{% endif %}>{{ s|title }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label mb-1">Method</label>
-        <select name="method" class="form-select form-select-sm">
-          <option value="">All</option>
-          {% for m in METHOD_CHOICES %}
-            <option value="{{ m }}" {% if method_f == m %}selected{% endif %}>{{ m|title }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-1 d-flex gap-2">
-        <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Apply</button>
-      </div>
-    </form>
-
-    <!-- Table -->
-    <div class="table-responsive table-sticky table-compact" id="tableWrap">
-      <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>Code</th>
-            <th>Vendor</th>
-            <th>Country</th>
-            <th>Tracking</th>
-            <th class="col-incoterms">Incoterms</th>
-            <th>Method</th>
-            <th>Status</th>
-            <th>Forwarder</th>   {# 👈 NEW COLUMN #}
-            <th>Decl. C No.</th>
-            <th>Decl. Date</th>
-            <th class="col-expected">Expected</th>
-            <th class="col-created">Created</th>
-            {% if user.is_superuser %}
-              <th class="text-end col-actions">Actions</th>
-            {% endif %}
-          </tr>
-        </thead>
-        <tbody>
-          {% if page_obj.object_list %}
-            {% for imp in page_obj %}
-              <tr class="{% if imp.declaration_a_number %}row-highlight{% endif %}">
-                <td class="fw-semibold text-nowrap">{{ imp.import_code }}</td>
-                <td>{{ imp.vendor_name|default:"—" }}</td>
-                <td>{{ imp.exporter_country|default:"—" }}</td>
-                <td>{{ imp.tracking_no|default:"—" }}</td>
-                <td class="col-incoterms">{{ imp.incoterms|default:"—" }}</td>
-
-                <td>
-                  {% if imp.shipping_method %}
-                    {% with m=imp.shipping_method %}
-                      {% if m == "AIR" %}
-                        <span class="badge bg-info-subtle text-info border badge-pill">Air</span>
-                      {% elif m == "SEA" %}
-                        <span class="badge bg-primary-subtle text-primary border badge-pill">Sea</span>
-                      {% elif m == "ROAD" %}
-                        <span class="badge bg-success-subtle text-success border badge-pill">Road</span>
-                      {% elif m == "COURIER" %}
-                        <span class="badge bg-warning-subtle text-warning border badge-pill">Courier</span>
-                      {% elif m == "OTHER" %}
-                        <span class="badge bg-secondary-subtle text-secondary border badge-pill">Other</span>
-                      {% else %}
-                        <span class="badge bg-light border text-muted badge-pill">{{ m|title }}</span>
-                      {% endif %}
-                    {% endwith %}
-                  {% else %}—{% endif %}
-                </td>
-
-                <td>
-                  {% if imp.shipment_status %}
-                    {% with s=imp.shipment_status %}
-                      {% if s == "DELIVERED" %}
-                        <span class="badge bg-success-subtle text-success border badge-pill">Delivered</span>
-                      {% elif s == "AT_CUSTOMS" %}
-                        <span class="badge bg-warning-subtle text-warning border badge-pill">At customs</span>
-                      {% elif s == "IN_TRANSIT" %}
-                        <span class="badge bg-info-subtle text-info border badge-pill">In transit</span>
-                      {% elif s == "PICKED_UP" %}
-                        <span class="badge bg-primary-subtle text-primary border badge-pill">Picked up</span>
-                      {% elif s == "CANCELLED" %}
-                        <span class="badge bg-danger-subtle text-danger border badge-pill">Cancelled</span>
-                      {% else %}
-                        <span class="badge bg-light border text-muted badge-pill">{{ s|title }}</span>
-                      {% endif %}
-                    {% endwith %}
-                  {% else %}—{% endif %}
-                </td>
-
-                {# 👇 NEW CELL: Forwarder #}
-                <td>
-                  {% if imp.forwarder %}
-                    {{ imp.forwarder.name }}
-                  {% else %}
-                    —
-                  {% endif %}
-                </td>
-
-                <td>{{ imp.declaration_c_number|default:"—" }}</td>
-                <td>
-                  {% if imp.declaration_date %}
-                    {{ imp.declaration_date|date:"Y-m-d" }}
-                  {% else %}—{% endif %}
-                </td>
-                <td class="col-expected">
-                  {% if imp.expected_receipt_date %}
-                    {{ imp.expected_receipt_date|date:"Y-m-d" }}
-                  {% else %}—{% endif %}
-                </td>
-                <td class="col-created text-nowrap">{{ imp.created_at|date:"Y-m-d H:i" }}</td>
-
-                {% if user.is_superuser %}
-                <!-- Actions -->
-                <td class="text-end col-actions">
-                  <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
-                  <form method="post" action="{% url 'imports_delete' imp.pk %}" class="d-inline">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="btn btn-sm btn-outline-danger"
-                            onclick="return confirm('Delete {{ imp.import_code }}?');">
-                      Delete
-                    </button>
-                  </form>
-                </td>
-                {% endif %}
-              </tr>
+    <div class="card-body pt-3">
+      <!-- Filters / Search -->
+      <form method="get" class="row gx-3 gy-2 align-items-end mb-3">
+        <div class="col-md-5">
+          <label class="form-label mb-1">Search</label>
+          <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Import code, vendor, tracking, referances…">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label mb-1">Status</label>
+          <select name="status" class="form-select form-select-sm">
+            <option value="">All</option>
+            {% for s in STATUS_CHOICES %}
+              <option value="{{ s }}" {% if status_f == s %}selected{% endif %}>{{ s|title }}</option>
             {% endfor %}
-          {% else %}
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label mb-1">Method</label>
+          <select name="method" class="form-select form-select-sm">
+            <option value="">All</option>
+            {% for m in METHOD_CHOICES %}
+              <option value="{{ m }}" {% if method_f == m %}selected{% endif %}>{{ m|title }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-1 d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Apply</button>
+        </div>
+      </form>
+
+      <!-- Table -->
+      <div class="table-responsive table-sticky table-compact" id="tableWrap">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
             <tr>
-              <td colspan="{% if user.is_superuser %}13{% else %}12{% endif %}"
-                  class="text-center text-muted py-4">
-                No imports found.
-              </td>
+              <th>Code</th>
+              <th>Vendor</th>
+              <th>Country</th>
+              <th>Tracking</th>
+              <th class="col-incoterms">Incoterms</th>
+              <th>Method</th>
+              <th>Status</th>
+              <th>Forwarder</th>
+              <th>Decl. C No.</th>
+              <th>Decl. Date</th>
+              <th class="col-expected">Expected</th>
+              <th class="col-created">Created</th>
+              {% if user.is_superuser %}
+                <th class="text-end col-actions">Actions</th>
+              {% endif %}
             </tr>
-          {% endif %}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {% if page_obj.object_list %}
+              {% for imp in page_obj %}
+                <tr class="{% if imp.declaration_a_number %}row-highlight{% endif %}">
+                  <td class="fw-semibold text-nowrap">{{ imp.import_code }}</td>
+                  <td>{{ imp.vendor_name|default:"—" }}</td>
+                  <td>{{ imp.exporter_country|default:"—" }}</td>
+                  <td>{{ imp.tracking_no|default:"—" }}</td>
+                  <td class="col-incoterms">{{ imp.incoterms|default:"—" }}</td>
+
+                  <td>
+                    {% if imp.shipping_method %}
+                      {% with m=imp.shipping_method %}
+                        {% if m == "AIR" %}
+                          <span class="badge bg-info-subtle text-info border badge-pill">Air</span>
+                        {% elif m == "SEA" %}
+                          <span class="badge bg-primary-subtle text-primary border badge-pill">Sea</span>
+                        {% elif m == "ROAD" %}
+                          <span class="badge bg-success-subtle text-success border badge-pill">Road</span>
+                        {% elif m == "COURIER" %}
+                          <span class="badge bg-warning-subtle text-warning border badge-pill">Courier</span>
+                        {% elif m == "OTHER" %}
+                          <span class="badge bg-secondary-subtle text-secondary border badge-pill">Other</span>
+                        {% else %}
+                          <span class="badge bg-light border text-muted badge-pill">{{ m|title }}</span>
+                        {% endif %}
+                      {% endwith %}
+                    {% else %}—{% endif %}
+                  </td>
+
+                  <td>
+                    {% if imp.shipment_status %}
+                      {% with s=imp.shipment_status %}
+                        {% if s == "DELIVERED" %}
+                          <span class="badge bg-success-subtle text-success border badge-pill">Delivered</span>
+                        {% elif s == "AT_CUSTOMS" %}
+                          <span class="badge bg-warning-subtle text-warning border badge-pill">At customs</span>
+                        {% elif s == "IN_TRANSIT" %}
+                          <span class="badge bg-info-subtle text-info border badge-pill">In transit</span>
+                        {% elif s == "PICKED_UP" %}
+                          <span class="badge bg-primary-subtle text-primary border badge-pill">Picked up</span>
+                        {% elif s == "CANCELLED" %}
+                          <span class="badge bg-danger-subtle text-danger border badge-pill">Cancelled</span>
+                        {% else %}
+                          <span class="badge bg-light border text-muted badge-pill">{{ s|title }}</span>
+                        {% endif %}
+                      {% endwith %}
+                    {% else %}—{% endif %}
+                  </td>
+
+                  <td>
+                    {% if imp.forwarder %}
+                      {{ imp.forwarder.name }}
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+
+                  <td>{{ imp.declaration_c_number|default:"—" }}</td>
+                  <td>
+                    {% if imp.declaration_date %}
+                      {{ imp.declaration_date|date:"Y-m-d" }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="col-expected">
+                    {% if imp.expected_receipt_date %}
+                      {{ imp.expected_receipt_date|date:"Y-m-d" }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td class="col-created text-nowrap">{{ imp.created_at|date:"Y-m-d H:i" }}</td>
+
+                  {% if user.is_superuser %}
+                  <td class="text-end col-actions">
+                    <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <form method="post" action="{% url 'imports_delete' imp.pk %}" class="d-inline">
+                      {% csrf_token %}
+                      <button type="submit"
+                              class="btn btn-sm btn-outline-danger"
+                              onclick="return confirm('Delete {{ imp.import_code }}?');">
+                        Delete
+                      </button>
+                    </form>
+                  </td>
+                  {% endif %}
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="{% if user.is_superuser %}13{% else %}12{% endif %}"
+                    class="text-center text-muted py-4">
+                  No imports found.
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>  {# end .page-wrapper #}
+
+{# FIXED BOTTOM BAR: SCROLLER + PAGINATION #}
+{% if page_obj.paginator.num_pages > 1 %}
+  <div class="pagination-fixed-bottom">
+
+    {# top: horizontal left/right scroller #}
+    <div id="fixedScroller">
+      <div id="fakeScroll"></div>
     </div>
 
-    <!-- Pagination -->
-    {% if page_obj.paginator.num_pages > 1 %}
-      <nav aria-label="Imports pagination">
-        <ul class="pagination pagination-sm justify-content-end mt-3 mb-0">
-          {% if page_obj.has_previous %}
-            <li class="page-item"><a class="page-link" href="?q={{ q }}&status={{ status_f }}&method={{ method_f }}&page={{ page_obj.previous_page_number }}">Prev</a></li>
-          {% else %}
-            <li class="page-item disabled"><span class="page-link">Prev</span></li>
-          {% endif %}
-          <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
-          {% if page_obj.has_next %}
-            <li class="page-item"><a class="page-link" href="?q={{ q }}&status={{ status_f }}&method={{ method_f }}&page={{ page_obj.next_page_number }}">Next</a></li>
-          {% else %}
-            <li class="page-item disabled"><span class="page-link">Next</span></li>
-          {% endif %}
-        </ul>
-      </nav>
-    {% endif %}
+    {# bottom: pagination buttons #}
+    <nav aria-label="Imports pagination">
+      <ul class="pagination pagination-sm justify-content-end mb-0">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?q={{ q }}&status={{ status_f }}&method={{ method_f }}&page={{ page_obj.previous_page_number }}">Prev</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">Prev</span></li>
+        {% endif %}
+
+        <li class="page-item disabled">
+          <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </li>
+
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link" href="?q={{ q }}&status={{ status_f }}&method={{ method_f }}&page={{ page_obj.next_page_number }}">Next</a>
+          </li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">Next</span></li>
+        {% endif %}
+      </ul>
+    </nav>
   </div>
-</div>
+{% endif %}
+
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+      const tableWrap = document.getElementById('tableWrap');
+      const fixedScroller = document.getElementById('fixedScroller');
+      const fakeScroll = document.getElementById('fakeScroll');
+  
+      if (!tableWrap || !fixedScroller || !fakeScroll) return;
+
+      // match the width of fakeScroll to the table width
+      function updateWidth() {
+          fakeScroll.style.width = tableWrap.scrollWidth + 'px';
+      }
+  
+      updateWidth();
+      window.addEventListener('resize', updateWidth);
+  
+      // link scrolling: fixed bar → table
+      fixedScroller.addEventListener('scroll', function () {
+          tableWrap.scrollLeft = fixedScroller.scrollLeft;
+      });
+  
+      // link scrolling: table → fixed bar
+      tableWrap.addEventListener('scroll', function () {
+          fixedScroller.scrollLeft = tableWrap.scrollLeft;
+      });
+  });
+</script>
+
+  
+
 {% endblock %}
+
+

@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% block title %}Register Import{% endblock %}
+{% block title %}{% if import_obj %}Edit Import {{ import_obj.import_code }}{% else %}Register Import{% endif %}{% endblock %}
 
 {% block content %}
 <style>
@@ -23,8 +23,14 @@
 <div class="container py-4">
   <div class="card border-0 card-shadow mx-auto" style="max-width: 900px;">
     <div class="card-header bg-white border-0 pt-3 pb-0">
-      <h1 class="h4 mb-1">Register Import</h1>
-      <p class="muted small mb-3">Enter shipment and commercial details to create a new import record.</p>
+      <h1 class="h4 mb-1">
+        {% if import_obj %}
+          Edit Import {{ import_obj.import_code }}
+        {% else %}
+          Register Import
+        {% endif %}
+      </h1>
+      <p class="muted small mb-3">Enter shipment and commercial details to {% if import_obj %}update{% else %}create{% endif %} an import record.</p>
     </div>
 
     <div class="card-body pt-3">
@@ -43,11 +49,14 @@
           <div class="row g-3">
             <div class="col-md-6">
               <div class="form-floating">
-                <!-- Show only vendor names -->
+                <!-- Vendor dropdown -->
                 <select name="vendor_name" id="vendor_name" class="form-select" required>
                   <option value=""></option>
                   {% for v in vendors %}
-                    <option value="{{ v.name }}">{{ v.name }}</option>
+                    <option value="{{ v.name }}"
+                            {% if import_obj and import_obj.vendor_name == v.name %}selected{% endif %}>
+                      {{ v.name }}
+                    </option>
                   {% endfor %}
                 </select>
                 <label for="vendor_name">Vendor <span class="text-danger">*</span></label>
@@ -64,20 +73,19 @@
 
             <div class="col-md-3">
               <div class="form-floating">
-                <!-- Incoterms dropdown -->
                 <select name="incoterms" id="incoterms" class="form-select">
                   <option value=""></option>
-                  <option value="EXW">EXW – Ex Works</option>
-                  <option value="FCA">FCA – Free Carrier</option>
-                  <option value="FAS">FAS – Free Alongside Ship</option>
-                  <option value="FOB">FOB – Free On Board</option>
-                  <option value="CFR">CFR – Cost and Freight</option>
-                  <option value="CIF">CIF – Cost, Insurance & Freight</option>
-                  <option value="CPT">CPT – Carriage Paid To</option>
-                  <option value="CIP">CIP – Carriage & Insurance Paid To</option>
-                  <option value="DAP">DAP – Delivered At Place</option>
-                  <option value="DPU">DPU – Delivered at Place Unloaded</option>
-                  <option value="DDP">DDP – Delivered Duty Paid</option>
+                  <option value="EXW" {% if import_obj and import_obj.incoterms == "EXW" %}selected{% endif %}>EXW – Ex Works</option>
+                  <option value="FCA" {% if import_obj and import_obj.incoterms == "FCA" %}selected{% endif %}>FCA – Free Carrier</option>
+                  <option value="FAS" {% if import_obj and import_obj.incoterms == "FAS" %}selected{% endif %}>FAS – Free Alongside Ship</option>
+                  <option value="FOB" {% if import_obj and import_obj.incoterms == "FOB" %}selected{% endif %}>FOB – Free On Board</option>
+                  <option value="CFR" {% if import_obj and import_obj.incoterms == "CFR" %}selected{% endif %}>CFR – Cost and Freight</option>
+                  <option value="CIF" {% if import_obj and import_obj.incoterms == "CIF" %}selected{% endif %}>CIF – Cost, Insurance & Freight</option>
+                  <option value="CPT" {% if import_obj and import_obj.incoterms == "CPT" %}selected{% endif %}>CPT – Carriage Paid To</option>
+                  <option value="CIP" {% if import_obj and import_obj.incoterms == "CIP" %}selected{% endif %}>CIP – Carriage & Insurance Paid To</option>
+                  <option value="DAP" {% if import_obj and import_obj.incoterms == "DAP" %}selected{% endif %}>DAP – Delivered At Place</option>
+                  <option value="DPU" {% if import_obj and import_obj.incoterms == "DPU" %}selected{% endif %}>DPU – Delivered at Place Unloaded</option>
+                  <option value="DDP" {% if import_obj and import_obj.incoterms == "DDP" %}selected{% endif %}>DDP – Delivered Duty Paid</option>
                 </select>
                 <label for="incoterms">Incoterms</label>
               </div>
@@ -93,15 +101,24 @@
               <div class="form-floating">
                 <select name="currency_code" id="currency_code" class="form-select">
                   <option value=""></option>
-                  <option>USD</option><option>EUR</option><option>GEL</option>
-                  <option>GBP</option><option>TRY</option><option>ILS</option><option>CNY</option>
+                  <option value="USD" {% if import_obj and import_obj.currency_code == "USD" %}selected{% endif %}>USD</option>
+                  <option value="EUR" {% if import_obj and import_obj.currency_code == "EUR" %}selected{% endif %}>EUR</option>
+                  <option value="GEL" {% if import_obj and import_obj.currency_code == "GEL" %}selected{% endif %}>GEL</option>
+                  <option value="GBP" {% if import_obj and import_obj.currency_code == "GBP" %}selected{% endif %}>GBP</option>
+                  <option value="TRY" {% if import_obj and import_obj.currency_code == "TRY" %}selected{% endif %}>TRY</option>
+                  <option value="ILS" {% if import_obj and import_obj.currency_code == "ILS" %}selected{% endif %}>ILS</option>
+                  <option value="CNY" {% if import_obj and import_obj.currency_code == "CNY" %}selected{% endif %}>CNY</option>
                 </select>
                 <label for="currency_code">Currency</label>
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-floating">
-                <input type="number" step="0.01" name="goods_price" id="goods_price" class="form-control" placeholder="Goods Price">
+                <input type="number" step="0.01"
+                       name="goods_price" id="goods_price"
+                       class="form-control"
+                       placeholder="Goods Price"
+                       value="{% if import_obj and import_obj.goods_price %}{{ import_obj.goods_price }}{% endif %}">
                 <label for="goods_price">Goods Price</label>
               </div>
             </div>
@@ -116,73 +133,108 @@
               <div class="form-floating">
                 <select name="shipping_method" id="shipping_method" class="form-select">
                   <option value=""></option>
-                  <option value="AIR">Air</option>
-                  <option value="SEA">Sea</option>
-                  <option value="ROAD">Road</option>
+                  <option value="AIR" {% if import_obj and import_obj.shipping_method == "AIR" %}selected{% endif %}>Air</option>
+                  <option value="SEA" {% if import_obj and import_obj.shipping_method == "SEA" %}selected{% endif %}>Sea</option>
+                  <option value="ROAD" {% if import_obj and import_obj.shipping_method == "ROAD" %}selected{% endif %}>Road</option>
+                  <option value="COURIER" {% if import_obj and import_obj.shipping_method == "COURIER" %}selected{% endif %}>Courier</option>
                 </select>
                 <label for="shipping_method">Shipping Method</label>
               </div>
             </div>
+
             <div class="col-md-4">
               <div class="form-floating">
                 <select name="forwarder" id="forwarder" class="form-select">
                   <option value=""></option>
                   {% for f in forwarders %}
-                    <option value="{{ f.id }}">{{ f.name }}</option>
+                    <option value="{{ f.id }}"
+                      {% if import_obj and import_obj.forwarder and import_obj.forwarder.id == f.id %}selected{% endif %}>
+                      {{ f.name }}
+                    </option>
                   {% endfor %}
                 </select>
                 <label for="forwarder">Forwarder</label>
               </div>
-            </div>                       
+            </div>
+
             <div class="col-md-4">
               <div class="form-floating">
                 <select name="shipment_status" id="shipment_status" class="form-select">
                   <option value=""></option>
-                  <option value="PLANNED">Planned</option>
-                  <option value="PICKED_UP">Picked up</option>
-                  <option value="IN_TRANSIT">In transit</option>
-                  <option value="AT_CUSTOMS">At customs</option>
-                  <option value="DELIVERED">Delivered</option>
-                  <option value="CANCELLED">Cancelled</option>
+                  <option value="PLANNED"   {% if import_obj and import_obj.shipment_status == "PLANNED" %}selected{% endif %}>Planned</option>
+                  <option value="PICKED_UP" {% if import_obj and import_obj.shipment_status == "PICKED_UP" %}selected{% endif %}>Picked up</option>
+                  <option value="IN_TRANSIT"{% if import_obj and import_obj.shipment_status == "IN_TRANSIT" %}selected{% endif %}>In transit</option>
+                  <option value="AT_CUSTOMS"{% if import_obj and import_obj.shipment_status == "AT_CUSTOMS" %}selected{% endif %}>At customs</option>
+                  <option value="DELIVERED" {% if import_obj and import_obj.shipment_status == "DELIVERED" %}selected{% endif %}>Delivered</option>
+                  <option value="CANCELLED" {% if import_obj and import_obj.shipment_status == "CANCELLED" %}selected{% endif %}>Cancelled</option>
                 </select>
                 <label for="shipment_status">Shipment Status</label>
               </div>
             </div>
+
             <div class="col-md-4">
               <div class="form-floating">
                 <input type="text" name="tracking_no" id="tracking_no" maxlength="255"
-                       class="form-control" placeholder="Waybill / Tracking Number" style="text-transform: uppercase;" autocomplete="off">
+                       class="form-control"
+                       placeholder="Waybill / Tracking Number"
+                       style="text-transform: uppercase;" autocomplete="off"
+                       value="{% if import_obj and import_obj.tracking_no %}{{ import_obj.tracking_no }}{% endif %}">
                 <label for="tracking_no">Waybill / Tracking Number</label>
               </div>
             </div>
+
+            <!-- Vendor Reference -->
             <div class="col-md-4">
               <div class="form-floating">
                 <input type="text" name="vendor_reference" id="vendor_reference"
-                       class="form-control" placeholder="Vendor Reference">
+                       class="form-control"
+                       placeholder="Vendor Reference"
+                       value="{% if import_obj and import_obj.vendor_reference %}{{ import_obj.vendor_reference }}{% endif %}">
                 <label for="vendor_reference">Vendor Reference</label>
               </div>
             </div>
 
-            <!-- 🔹 NEW: Forwarder Reference -->
+            <!-- Forwarder Reference -->
             <div class="col-md-4">
               <div class="form-floating">
                 <input type="text" name="forwarder_reference" id="forwarder_reference"
-                       class="form-control" placeholder="Forwarder Reference">
+                       class="form-control"
+                       placeholder="Forwarder Reference"
+                       value="{% if import_obj and import_obj.forwarder_reference %}{{ import_obj.forwarder_reference }}{% endif %}">
                 <label for="forwarder_reference">Forwarder Reference</label>
               </div>
             </div>
-            <div class="col-12">
-              <div class="form-floating">
-                <textarea name="pickup_address" id="pickup_address" class="form-control" placeholder="Pick Up Address" style="height: 100px"></textarea>
-                <label for="pickup_address">Pick Up Address</label>
+
+            <!-- Switches: Danger / Stackable -->
+            <div class="col-md-6 d-flex align-items-center">
+              <div class="form-check form-switch me-4">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       id="is_danger" name="is_danger"
+                       {% if import_obj %}
+                         {% if import_obj.is_danger %}checked{% endif %}
+                       {% endif %}>
+                <label class="form-check-label" for="is_danger">Dangerous goods</label>
+              </div>
+
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       id="is_stackable" name="is_stackable"
+                       {% if import_obj %}
+                         {% if import_obj.is_stackable %}checked{% endif %}
+                       {% else %}
+                         checked
+                       {% endif %}>
+                <label class="form-check-label" for="is_stackable">Stackable</label>
               </div>
             </div>
+
             <div class="col-12">
               <div class="form-floating">
-                <textarea name="notes" id="notes" class="form-control"
-                          style="height: 100px"
-                          placeholder="Internal comments, special handling, etc.">{% if import_obj %}{{ import_obj.notes }}{% endif %}</textarea>
-                <label for="notes">Notes</label>
+                <textarea name="pickup_address" id="pickup_address"
+                          class="form-control"
+                          placeholder="Pick Up Address"
+                          style="height: 100px">{% if import_obj and import_obj.pickup_address %}{{ import_obj.pickup_address }}{% endif %}</textarea>
+                <label for="pickup_address">Pick Up Address</label>
               </div>
             </div>
           </div>
@@ -194,20 +246,45 @@
           <div class="row g-3">
             <div class="col-md-4">
               <div class="form-floating">
-                <input type="text" name="declaration_c_number" id="declaration_c_number" class="form-control" placeholder="C Number" style="text-transform: uppercase;">
+                <input type="text" name="declaration_c_number" id="declaration_c_number"
+                       class="form-control"
+                       placeholder="C Number"
+                       style="text-transform: uppercase;"
+                       value="{% if import_obj and import_obj.declaration_c_number %}{{ import_obj.declaration_c_number }}{% endif %}">
                 <label for="declaration_c_number">Declaration C Number</label>
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-floating">
-                <input type="text" name="declaration_a_number" id="declaration_a_number" class="form-control" placeholder="A Number" style="text-transform: uppercase;">
+                <input type="text" name="declaration_a_number" id="declaration_a_number"
+                       class="form-control"
+                       placeholder="A Number"
+                       style="text-transform: uppercase;"
+                       value="{% if import_obj and import_obj.declaration_a_number %}{{ import_obj.declaration_a_number }}{% endif %}">
                 <label for="declaration_a_number">Declaration A Number</label>
               </div>
             </div>
             <div class="col-md-4">
               <div class="form-floating">
-                <input type="date" name="declaration_date" id="declaration_date" class="form-control" placeholder="YYYY-MM-DD">
+                <input type="date" name="declaration_date" id="declaration_date"
+                       class="form-control"
+                       placeholder="YYYY-MM-DD"
+                       value="{% if import_obj and import_obj.declaration_date %}{{ import_obj.declaration_date|date:'Y-m-d' }}{% endif %}">
                 <label for="declaration_date">Declaration Date</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="section">
+          <div class="section-title">Notes</div>
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="form-floating">
+                <textarea name="notes" id="notes" class="form-control"
+                          placeholder="Additional notes" style="height: 80px">{% if import_obj and import_obj.notes %}{{ import_obj.notes }}{% endif %}</textarea>
+                <label for="notes">Notes</label>
               </div>
             </div>
           </div>
@@ -217,7 +294,9 @@
         <div class="sticky-actions d-flex justify-content-end gap-2 mt-3">
           <a href="{% url 'imports_home' %}" class="btn btn-outline-dark">← Back</a>
           <button type="reset" class="btn btn-outline-secondary">Clear</button>
-          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="submit" class="btn btn-primary">
+            {% if import_obj %}Save Changes{% else %}Save{% endif %}
+          </button>
         </div>
       </form>
     </div>
