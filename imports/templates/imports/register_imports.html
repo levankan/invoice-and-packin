@@ -18,7 +18,29 @@
       padding: 4px 8px;
       font-size: 0.8rem;
   }
+
+  /* Generic tweak so Select2 fits nicely inside .form-floating */
+  .form-floating .select2-container--default .select2-selection--single {
+      height: calc(3.5rem + 2px);
+      padding-top: 1.25rem;
+      padding-left: .75rem;
+      border-radius: .375rem;
+      border: 1px solid #ced4da;
+  }
+  .form-floating .select2-selection__rendered {
+      padding-left: 0;
+      padding-top: .2rem;
+  }
+  .form-floating .select2-selection__arrow {
+      height: 100%;
+      right: .75rem;
+  }
 </style>
+
+{# Select2 assets #}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <div class="container py-4">
   <div class="card border-0 card-shadow mx-auto" style="max-width: 900px;">
@@ -49,7 +71,7 @@
           <div class="row g-3">
             <div class="col-md-6">
               <div class="form-floating">
-                <!-- Vendor dropdown -->
+                <!-- Vendor dropdown (searchable with Select2) -->
                 <select name="vendor_name" id="vendor_name" class="form-select" required>
                   <option value=""></option>
                   {% for v in vendors %}
@@ -330,6 +352,32 @@
     upperize(document.getElementById('tracking_no'));
     upperize(document.getElementById('declaration_c_number'));
     upperize(document.getElementById('declaration_a_number'));
+  });
+
+  // Initialize Select2 for vendor + exporter country
+  $(document).ready(function () {
+    const $vendor = $('#vendor_name');
+    if ($vendor.length) {
+      $vendor.select2({
+        width: '100%',
+        placeholder: 'Select vendor',
+        allowClear: true
+      });
+
+      // keep HTML5 "required" validation happy
+      $vendor.on('change', function () {
+        this.setCustomValidity(this.value ? '' : ' ');
+      });
+    }
+
+    const $country = $('#id_exporter_country');
+    if ($country.length) {
+      $country.select2({
+        width: '100%',
+        placeholder: 'Exporter Country',
+        allowClear: true
+      });
+    }
   });
 </script>
 {% endblock %}
