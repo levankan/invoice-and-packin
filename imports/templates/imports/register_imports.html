@@ -19,7 +19,7 @@
       font-size: 0.8rem;
   }
 
-  /* Generic tweak so Select2 fits nicely inside .form-floating */
+  /* Select2 inside floating labels */
   .form-floating .select2-container--default .select2-selection--single {
       height: calc(3.5rem + 2px);
       padding-top: 1.25rem;
@@ -34,6 +34,18 @@
   .form-floating .select2-selection__arrow {
       height: 100%;
       right: .75rem;
+  }
+
+  /* Packages table */
+  #packagesBody input.form-control {
+      padding-top: .15rem;
+      padding-bottom: .15rem;
+      font-size: 0.8rem;
+  }
+  #packagesBody select.form-select {
+      padding-top: .15rem;
+      padding-bottom: .15rem;
+      font-size: 0.8rem;
   }
 </style>
 
@@ -262,6 +274,45 @@
           </div>
         </div>
 
+        <!-- Weight & Dimensions -->
+        <div class="section">
+          <div class="section-title d-flex justify-content-between align-items-center">
+            <span>Weight &amp; Dimensions</span>
+            <div class="d-flex align-items-center gap-2">
+              <small class="text-muted me-1" id="unitLabel">cm / kg</small>
+              <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="unitToggle">
+                <label class="form-check-label small" for="unitToggle">in / lbs</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hidden field to store packages JSON -->
+          <input type="hidden" name="packages_json" id="packages_json">
+
+          <div class="table-responsive small">
+            <table class="table align-middle mb-2">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 18%;">Package Type</th>
+                  <th style="width: 15%;"><span class="len-label">Length (cm)</span></th>
+                  <th style="width: 15%;"><span class="wid-label">Width (cm)</span></th>
+                  <th style="width: 15%;"><span class="hei-label">Height (cm)</span></th>
+                  <th style="width: 15%;"><span class="gw-label">Gross Weight (kg)</span></th>
+                  <th style="width: 10%;"></th>
+                </tr>
+              </thead>
+              <tbody id="packagesBody">
+                {# We start with an empty body and add rows by JS #}
+              </tbody>
+            </table>
+          </div>
+
+          <button type="button" class="btn btn-sm btn-outline-primary" id="addPackageBtn">
+            + Add package
+          </button>
+        </div>
+
         <!-- Customs Declaration -->
         <div class="section">
           <div class="section-title">Customs Declaration</div>
@@ -331,6 +382,10 @@
     const forms = document.querySelectorAll('.needs-validation');
     Array.prototype.slice.call(forms).forEach(function (form) {
       form.addEventListener('submit', function (event) {
+
+        // Before validation, serialize packages into hidden field
+        serializePackages();
+
         if (!form.checkValidity()) {
           event.preventDefault();
           event.stopPropagation();
@@ -352,10 +407,8 @@
     upperize(document.getElementById('tracking_no'));
     upperize(document.getElementById('declaration_c_number'));
     upperize(document.getElementById('declaration_a_number'));
-  });
 
-  // Initialize Select2 for vendor + exporter country
-  $(document).ready(function () {
+    // Initialize Select2 for vendor + exporter country
     const $vendor = $('#vendor_name');
     if ($vendor.length) {
       $vendor.select2({
@@ -363,8 +416,6 @@
         placeholder: 'Select vendor',
         allowClear: true
       });
-
-      // keep HTML5 "required" validation happy
       $vendor.on('change', function () {
         this.setCustomValidity(this.value ? '' : ' ');
       });
@@ -378,6 +429,111 @@
         allowClear: true
       });
     }
+
+    // ---- Weight & Dimensions logic ----
+    initPackagesSection();
   });
+
+  // --- Packages JS ---
+  let currentUnitSystem = 'metric'; // 'metric' = cm/kg, 'imperial' = in/lbs
+
+  function initPackagesSection() {
+    const addBtn = document.getElementById('addPackageBtn');
+    const unitToggle = document.getElementById('unitToggle');
+
+    if (addBtn) {
+      addBtn.addEventListener('click', function () {
+        addPackageRow();
+      });
+      // Start with one row
+      addPackageRow();
+    }
+
+    if (unitToggle) {
+      unitToggle.addEventListener('change', function () {
+        currentUnitSystem = this.checked ? 'imperial' : 'metric';
+        updateUnitLabels();
+      });
+    }
+    updateUnitLabels();
+  }
+
+  function updateUnitLabels() {
+    const unitLabel = document.getElementById('unitLabel');
+    const lenLabels = document.querySelectorAll('.len-label');
+    const widLabels = document.querySelectorAll('.wid-label');
+    const heiLabels = document.querySelectorAll('.hei-label');
+    const gwLabels  = document.querySelectorAll('.gw-label');
+
+    if (currentUnitSystem === 'imperial') {
+      if (unitLabel) unitLabel.textContent = 'in / lbs';
+      lenLabels.forEach(l => l.textContent = 'Length (in)');
+      widLabels.forEach(l => l.textContent = 'Width (in)');
+      heiLabels.forEach(l => l.textContent = 'Height (in)');
+      gwLabels.forEach(l  => l.textContent = 'Gross Weight (lbs)');
+    } else {
+      if (unitLabel) unitLabel.textContent = 'cm / kg';
+      lenLabels.forEach(l => l.textContent = 'Length (cm)');
+      widLabels.forEach(l => l.textContent = 'Width (cm)');
+      heiLabels.forEach(l => l.textContent = 'Height (cm)');
+      gwLabels.forEach(l  => l.textContent = 'Gross Weight (kg)');
+    }
+  }
+
+  function addPackageRow() {
+    const tbody = document.getElementById('packagesBody');
+    if (!tbody) return;
+
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td>
+        <select class="form-select form-select-sm pkg-type">
+          <option value=""></option>
+          <option value="BOX">Box</option>
+          <option value="PALLET">Pallet</option>
+          <option value="SKID">Skid</option>
+          <option value="ROLL">Roll</option>
+          <option value="ENVELOPE">Envelope</option>
+        </select>
+      </td>
+      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-length" placeholder=""></td>
+      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-width" placeholder=""></td>
+      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-height" placeholder=""></td>
+      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-gw" placeholder=""></td>
+      <td class="text-end">
+        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+
+    const removeBtn = tr.querySelector('.btn-remove-pkg');
+    removeBtn.addEventListener('click', function () {
+      tr.remove();
+    });
+  }
+
+  function serializePackages() {
+    const tbody = document.getElementById('packagesBody');
+    const hidden = document.getElementById('packages_json');
+    if (!tbody || !hidden) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const data = rows.map(row => {
+      return {
+        type:        row.querySelector('.pkg-type')?.value || '',
+        length:      row.querySelector('.pkg-length')?.value || '',
+        width:       row.querySelector('.pkg-width')?.value || '',
+        height:      row.querySelector('.pkg-height')?.value || '',
+        gross_weight:row.querySelector('.pkg-gw')?.value || '',
+        unit_system: currentUnitSystem
+      };
+    }).filter(p =>
+      p.type || p.length || p.width || p.height || p.gross_weight
+    );
+
+    hidden.value = data.length ? JSON.stringify(data) : '';
+  }
 </script>
 {% endblock %}

@@ -66,6 +66,11 @@ def generate_doc_view(request):
             "id": "520033374",
             "incoterms": "Incoterms 2010: EXW Tbilisi",
         },
+        {
+            "name": "Elmec INC.",
+            "address": "9004 Sightline Drive SUITE N, Ladson ,SC, 29456, USA ",
+            "incoterms": "Incoterms 2010: EXW Tbilisi",
+        },
     ]
 
     project_list = ["D638", "D640", "D735", "D632", "D640-634", "OPF", "NWD"]
