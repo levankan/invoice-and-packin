@@ -1,0 +1,10 @@
+{# imports/templates/imports/partials/sticky_actions.html #}
+<div class="sticky-actions d-flex justify-content-end gap-2 mt-3">
+  <a href="{% url 'imports_home' %}" class="btn btn-outline-dark">← Back</a>
+  <button type="reset" class="btn btn-outline-secondary">Clear</button>
+  <button type="submit"
+          class="btn btn-primary"
+          onclick="document.getElementById('form_action').value='save_import';">
+    {% if import_obj %}Save Changes{% else %}Save{% endif %}
+  </button>
+</div>

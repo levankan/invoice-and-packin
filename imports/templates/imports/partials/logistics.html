@@ -1,0 +1,209 @@
+{# imports/templates/imports/partials/logistics.html #}
+<div class="section">
+  <div class="section-title">Logistics</div>
+  <div class="row g-3">
+
+    <!-- Shipping Method -->
+    <div class="col-md-4">
+      <div class="form-floating">
+        <select name="shipping_method" id="shipping_method" class="form-select">
+          <option value=""></option>
+
+          <option value="AIR"
+            {% if fd.shipping_method %}
+              {% if fd.shipping_method == "AIR" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipping_method == "AIR" %}
+              selected
+            {% endif %}
+          >Air</option>
+
+          <option value="SEA"
+            {% if fd.shipping_method %}
+              {% if fd.shipping_method == "SEA" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipping_method == "SEA" %}
+              selected
+            {% endif %}
+          >Sea</option>
+
+          <option value="ROAD"
+            {% if fd.shipping_method %}
+              {% if fd.shipping_method == "ROAD" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipping_method == "ROAD" %}
+              selected
+            {% endif %}
+          >Road</option>
+
+          <option value="COURIER"
+            {% if fd.shipping_method %}
+              {% if fd.shipping_method == "COURIER" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipping_method == "COURIER" %}
+              selected
+            {% endif %}
+          >Courier</option>
+        </select>
+        <label for="shipping_method">Shipping Method</label>
+      </div>
+    </div>
+
+    <!-- Forwarder -->
+    <div class="col-md-4">
+      <div class="form-floating">
+        <select name="forwarder" id="forwarder" class="form-select">
+          <option value=""></option>
+          {% for f in forwarders %}
+            <option value="{{ f.id }}"
+              {% if fd.forwarder %}
+                {% if fd.forwarder|stringformat:"s" == f.id|stringformat:"s" %}selected{% endif %}
+              {% elif import_obj and import_obj.forwarder and import_obj.forwarder.id == f.id %}
+                selected
+              {% endif %}
+            >
+              {{ f.name }}
+            </option>
+          {% endfor %}
+        </select>
+        <label for="forwarder">Forwarder</label>
+      </div>
+    </div>
+
+    <!-- Shipment Status -->
+    <div class="col-md-4">
+      <div class="form-floating">
+        <select name="shipment_status" id="shipment_status" class="form-select">
+          <option value=""></option>
+
+          <option value="PLANNED"
+            {% if fd.shipment_status %}
+              {% if fd.shipment_status == "PLANNED" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipment_status == "PLANNED" %}
+              selected
+            {% endif %}
+          >Planned</option>
+
+          <option value="PICKED_UP"
+            {% if fd.shipment_status %}
+              {% if fd.shipment_status == "PICKED_UP" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipment_status == "PICKED_UP" %}
+              selected
+            {% endif %}
+          >Picked up</option>
+
+          <option value="IN_TRANSIT"
+            {% if fd.shipment_status %}
+              {% if fd.shipment_status == "IN_TRANSIT" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipment_status == "IN_TRANSIT" %}
+              selected
+            {% endif %}
+          >In transit</option>
+
+          <option value="AT_CUSTOMS"
+            {% if fd.shipment_status %}
+              {% if fd.shipment_status == "AT_CUSTOMS" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipment_status == "AT_CUSTOMS" %}
+              selected
+            {% endif %}
+          >At customs</option>
+
+          <option value="DELIVERED"
+            {% if fd.shipment_status %}
+              {% if fd.shipment_status == "DELIVERED" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipment_status == "DELIVERED" %}
+              selected
+            {% endif %}
+          >Delivered</option>
+
+          <option value="CANCELLED"
+            {% if fd.shipment_status %}
+              {% if fd.shipment_status == "CANCELLED" %}selected{% endif %}
+            {% elif import_obj and import_obj.shipment_status == "CANCELLED" %}
+              selected
+            {% endif %}
+          >Cancelled</option>
+        </select>
+        <label for="shipment_status">Shipment Status</label>
+      </div>
+    </div>
+
+    <!-- Tracking Number -->
+    <div class="col-md-4">
+      <div class="form-floating">
+        <input type="text"
+               name="tracking_no" id="tracking_no"
+               class="form-control"
+               maxlength="255"
+               style="text-transform: uppercase;"
+               placeholder="Waybill / Tracking Number"
+               value="{% if fd.tracking_no %}{{ fd.tracking_no }}{% elif import_obj and import_obj.tracking_no %}{{ import_obj.tracking_no }}{% endif %}">
+        <label for="tracking_no">Waybill / Tracking Number</label>
+      </div>
+    </div>
+
+    <!-- Vendor Reference -->
+    <div class="col-md-4">
+      <div class="form-floating">
+        <input type="text"
+               name="vendor_reference"
+               id="vendor_reference"
+               class="form-control"
+               placeholder="Vendor Reference"
+               value="{% if fd.vendor_reference %}{{ fd.vendor_reference }}{% elif import_obj and import_obj.vendor_reference %}{{ import_obj.vendor_reference }}{% endif %}">
+        <label for="vendor_reference">Vendor Reference</label>
+      </div>
+    </div>
+
+    <!-- Forwarder Reference -->
+    <div class="col-md-4">
+      <div class="form-floating">
+        <input type="text"
+               name="forwarder_reference"
+               id="forwarder_reference"
+               class="form-control"
+               placeholder="Forwarder Reference"
+               value="{% if fd.forwarder_reference %}{{ fd.forwarder_reference }}{% elif import_obj and import_obj.forwarder_reference %}{{ import_obj.forwarder_reference }}{% endif %}">
+        <label for="forwarder_reference">Forwarder Reference</label>
+      </div>
+    </div>
+
+    <!-- Switches: Danger / Stackable -->
+    <div class="col-md-6 d-flex align-items-center">
+      <div class="form-check form-switch me-4">
+        <input class="form-check-input"
+               type="checkbox"
+               id="is_danger" name="is_danger"
+          {% if fd.is_danger %}
+            checked
+          {% elif not fd and import_obj and import_obj.is_danger %}
+            checked
+          {% endif %}>
+        <label class="form-check-label" for="is_danger">Dangerous goods</label>
+      </div>
+
+      <div class="form-check form-switch">
+        <input class="form-check-input"
+               type="checkbox"
+               id="is_stackable" name="is_stackable"
+          {% if fd.is_stackable %}
+            checked
+          {% elif not fd and not import_obj %}
+            checked
+          {% elif not fd and import_obj and import_obj.is_stackable %}
+            checked
+          {% endif %}>
+        <label class="form-check-label" for="is_stackable">Stackable</label>
+      </div>
+    </div>
+
+    <!-- Pickup Address -->
+    <div class="col-12">
+      <div class="form-floating">
+        <textarea name="pickup_address"
+                  id="pickup_address"
+                  class="form-control"
+                  style="height: 100px"
+                  placeholder="Pick Up Address">{% if fd.pickup_address %}{{ fd.pickup_address }}{% elif import_obj and import_obj.pickup_address %}{{ import_obj.pickup_address }}{% endif %}</textarea>
+        <label for="pickup_address">Pick Up Address</label>
+      </div>
+    </div>
+
+  </div>
+</div>

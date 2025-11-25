@@ -1,0 +1,136 @@
+{# imports/templates/imports/partials/basic_details.html #}
+<div class="section">
+  <div class="section-title">Basic Details</div>
+  <div class="row g-3">
+
+    <!-- Vendor -->
+    <div class="col-md-6">
+      <div class="form-floating">
+        <select name="vendor_name" id="vendor_name" class="form-select" required>
+          <option value=""></option>
+          {% for v in vendors %}
+            <option value="{{ v.name }}"
+              {% if fd.vendor_name %}
+                {% if fd.vendor_name == v.name %}selected{% endif %}
+              {% elif import_obj and import_obj.vendor_name == v.name %}
+                selected
+              {% endif %}
+            >
+              {{ v.name }}
+            </option>
+          {% endfor %}
+        </select>
+        <label for="vendor_name">Vendor <span class="text-danger">*</span></label>
+        <div class="invalid-feedback">Please choose a vendor.</div>
+      </div>
+    </div>
+
+    <!-- Exporter Country -->
+    <div class="col-md-3">
+      <div class="form-floating">
+        {{ form.exporter_country }}
+        <label for="id_exporter_country">Exporter Country</label>
+      </div>
+    </div>
+
+    <!-- Incoterms -->
+    <div class="col-md-3">
+      <div class="form-floating">
+        <select name="incoterms" id="incoterms" class="form-select">
+          <option value=""></option>
+
+          <option value="EXW"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "EXW" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "EXW" %}
+              selected
+            {% endif %}
+          >EXW – Ex Works</option>
+
+          <option value="FCA"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "FCA" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "FCA" %}
+              selected
+            {% endif %}
+          >FCA – Free Carrier</option>
+
+          <option value="FAS"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "FAS" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "FAS" %}
+              selected
+            {% endif %}
+          >FAS – Free Alongside Ship</option>
+
+          <option value="FOB"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "FOB" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "FOB" %}
+              selected
+            {% endif %}
+          >FOB – Free On Board</option>
+
+          <option value="CFR"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "CFR" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "CFR" %}
+              selected
+            {% endif %}
+          >CFR – Cost and Freight</option>
+
+          <option value="CIF"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "CIF" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "CIF" %}
+              selected
+            {% endif %}
+          >CIF – Cost, Insurance &amp; Freight</option>
+
+          <option value="CPT"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "CPT" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "CPT" %}
+              selected
+            {% endif %}
+          >CPT – Carriage Paid To</option>
+
+          <option value="CIP"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "CIP" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "CIP" %}
+              selected
+            {% endif %}
+          >CIP – Carriage &amp; Insurance Paid To</option>
+
+          <option value="DAP"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "DAP" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "DAP" %}
+              selected
+            {% endif %}
+          >DAP – Delivered At Place</option>
+
+          <option value="DPU"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "DPU" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "DPU" %}
+              selected
+            {% endif %}
+          >DPU – Delivered at Place Unloaded</option>
+
+          <option value="DDP"
+            {% if fd.incoterms %}
+              {% if fd.incoterms == "DDP" %}selected{% endif %}
+            {% elif import_obj and import_obj.incoterms == "DDP" %}
+              selected
+            {% endif %}
+          >DDP – Delivered Duty Paid</option>
+
+        </select>
+        <label for="incoterms">Incoterms</label>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,41 @@
+{# imports/templates/imports/partials/customs_declaration.html #}
+<div class="section">
+  <div class="section-title">Customs Declaration</div>
+
+  <div class="row g-3">
+    <div class="col-md-4">
+      <div class="form-floating">
+        <input type="text"
+               name="declaration_c_number"
+               id="declaration_c_number"
+               class="form-control"
+               placeholder="C Number"
+               value="{% if fd.declaration_c_number %}{{ fd.declaration_c_number }}{% elif import_obj and import_obj.declaration_c_number %}{{ import_obj.declaration_c_number }}{% endif %}">
+        <label for="declaration_c_number">Declaration C Number</label>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="form-floating">
+        <input type="text"
+               name="declaration_a_number"
+               id="declaration_a_number"
+               class="form-control"
+               placeholder="A Number"
+               value="{% if fd.declaration_a_number %}{{ fd.declaration_a_number }}{% elif import_obj and import_obj.declaration_a_number %}{{ import_obj.declaration_a_number }}{% endif %}">
+        <label for="declaration_a_number">Declaration A Number</label>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="form-floating">
+        <input type="date"
+               name="declaration_date"
+               id="declaration_date"
+               class="form-control"
+               value="{% if fd.declaration_date %}{{ fd.declaration_date }}{% elif import_obj and import_obj.declaration_date %}{{ import_obj.declaration_date|date:'Y-m-d' }}{% endif %}">
+        <label for="declaration_date">Declaration Date</label>
+      </div>
+    </div>
+  </div>
+</div>

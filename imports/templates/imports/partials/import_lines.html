@@ -1,0 +1,63 @@
+{# imports/templates/imports/partials/import_lines.html #}
+<div class="section">
+  <div class="section-title d-flex justify-content-between align-items-center">
+    <span>Import Lines</span>
+    <span class="text-muted small">
+      Upload Excel file with line data (Document No., Line No., No., Description, Quantity…)
+    </span>
+  </div>
+
+  <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+    <input type="file"
+           name="lines_file"
+           accept=".xlsx,.xls"
+           class="form-control form-control-sm"
+           style="max-width: 320px;">
+    <button type="submit"
+            class="btn btn-sm btn-outline-primary"
+            onclick="document.getElementById('form_action').value='upload_lines';">
+      Upload Lines
+    </button>
+  </div>
+
+  {% if lines_data %}
+    <div class="table-responsive mt-3">
+      <table class="table table-sm table-bordered">
+        <thead class="table-light">
+          <tr>
+            <th>Document No.</th>
+            <th>Line No.</th>
+            <th>Item No.</th>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>UOM</th>
+            <th>Unit Cost</th>
+            <th>Line Amount</th>
+            <th>Exp. Receipt</th>
+            <th>Delivery</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in lines_data %}
+            <tr>
+              <td>{{ l.document_no }}</td>
+              <td>{{ l.line_no }}</td>
+              <td>{{ l.item_no }}</td>
+              <td>{{ l.description }}</td>
+              <td>{{ l.quantity }}</td>
+              <td>{{ l.unit_of_measure }}</td>
+              <td>{{ l.unit_cost }}</td>
+              <td>{{ l.line_amount }}</td>
+              <td>{{ l.expected_receipt_date }}</td>
+              <td>{{ l.delivery_date }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="text-muted small mt-2 mb-0">
+      No lines uploaded yet.
+    </p>
+  {% endif %}
+</div>

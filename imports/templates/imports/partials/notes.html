@@ -1,0 +1,13 @@
+{# imports/templates/imports/partials/notes.html #}
+<div class="section">
+  <div class="section-title">Notes</div>
+  <div class="row g-3">
+    <div class="col-12">
+      <div class="form-floating">
+        <textarea name="notes" id="notes" class="form-control"
+                  placeholder="Additional notes" style="height: 80px">{% if fd.notes %}{{ fd.notes }}{% elif import_obj and import_obj.notes %}{{ import_obj.notes }}{% endif %}</textarea>
+        <label for="notes">Notes</label>
+      </div>
+    </div>
+  </div>
+</div>

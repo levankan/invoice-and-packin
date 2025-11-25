@@ -1,0 +1,86 @@
+{# imports/templates/imports/partials/financials.html #}
+<div class="section">
+  <div class="section-title">Financials</div>
+  <div class="row g-3">
+
+    <!-- Currency -->
+    <div class="col-md-4">
+      <div class="form-floating">
+        <select name="currency_code" id="currency_code" class="form-select">
+          <option value=""></option>
+
+          <option value="USD"
+            {% if fd.currency_code %}
+              {% if fd.currency_code == "USD" %}selected{% endif %}
+            {% elif import_obj and import_obj.currency_code == "USD" %}
+              selected
+            {% endif %}
+          >USD</option>
+
+          <option value="EUR"
+            {% if fd.currency_code %}
+              {% if fd.currency_code == "EUR" %}selected{% endif %}
+            {% elif import_obj and import_obj.currency_code == "EUR" %}
+              selected
+            {% endif %}
+          >EUR</option>
+
+          <option value="GEL"
+            {% if fd.currency_code %}
+              {% if fd.currency_code == "GEL" %}selected{% endif %}
+            {% elif import_obj and import_obj.currency_code == "GEL" %}
+              selected
+            {% endif %}
+          >GEL</option>
+
+          <option value="GBP"
+            {% if fd.currency_code %}
+              {% if fd.currency_code == "GBP" %}selected{% endif %}
+            {% elif import_obj and import_obj.currency_code == "GBP" %}
+              selected
+            {% endif %}
+          >GBP</option>
+
+          <option value="TRY"
+            {% if fd.currency_code %}
+              {% if fd.currency_code == "TRY" %}selected{% endif %}
+            {% elif import_obj and import_obj.currency_code == "TRY" %}
+              selected
+            {% endif %}
+          >TRY</option>
+
+          <option value="ILS"
+            {% if fd.currency_code %}
+              {% if fd.currency_code == "ILS" %}selected{% endif %}
+            {% elif import_obj and import_obj.currency_code == "ILS" %}
+              selected
+            {% endif %}
+          >ILS</option>
+
+          <option value="CNY"
+            {% if fd.currency_code %}
+              {% if fd.currency_code == "CNY" %}selected{% endif %}
+            {% elif import_obj and import_obj.currency_code == "CNY" %}
+              selected
+            {% endif %}
+          >CNY</option>
+
+        </select>
+        <label for="currency_code">Currency</label>
+      </div>
+    </div>
+
+    <!-- Goods Price -->
+    <div class="col-md-4">
+      <div class="form-floating">
+        <input type="number" step="0.01"
+               name="goods_price" id="goods_price"
+               class="form-control"
+               placeholder="Goods Price"
+               value="{% if fd.goods_price %}{{ fd.goods_price }}{% elif import_obj and import_obj.goods_price %}{{ import_obj.goods_price }}{% endif %}">
+        <label for="goods_price">Goods Price</label>
+      </div>
+    </div>
+
+  </div>
+</div>

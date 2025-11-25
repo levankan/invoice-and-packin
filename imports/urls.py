@@ -10,4 +10,10 @@ urlpatterns = [
     # Edit / Delete per row
     path("<int:pk>/edit/", views.edit_import, name="imports_edit"),
     path("<int:pk>/delete/", views.delete_import, name="imports_delete"),
+    path("<int:pk>/upload-lines/", views.upload_import_lines, name="imports_upload_lines"),
+    path(
+        "exports/import-lines/",
+        views.export_import_lines_excel,
+        name="imports_export_lines_excel",
+    ),
 ]

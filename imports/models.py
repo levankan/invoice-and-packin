@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django_countries.fields import CountryField
 from admin_area.models import Forwarder  
+from decimal import Decimal
 
 class ImportSequence(models.Model):
     """Keeps a single counter for generating sequential import codes."""
@@ -47,6 +48,11 @@ class Import(models.Model):
     declaration_a_number = models.CharField(max_length=100, blank=True, null=True)
     declaration_date = models.DateField(blank=True, null=True)
 
+    total_gross_weight_kg = models.DecimalField(max_digits=14, decimal_places=3, blank=True, null=True)
+    total_volumetric_weight_kg = models.DecimalField(max_digits=14, decimal_places=3, blank=True, null=True)
+
+
+
     created_at = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):
@@ -56,3 +62,92 @@ class Import(models.Model):
 
     def __str__(self):
         return self.import_code
+
+
+
+
+
+
+
+class ImportLine(models.Model):
+    """
+    Lines uploaded from Excel for an Import.
+    Columns:
+    Document No., Line No., No., Description, Quantity, Unit of Measure,
+    Direct Unit Cost Excl. VAT, Line Amount Excl. VAT, Expected Receipt Date, Delivery Date
+    """
+    import_header = models.ForeignKey(
+        Import,
+        on_delete=models.CASCADE,
+        related_name="lines",
+    )
+
+    document_no = models.CharField(max_length=100, blank=True, null=True)
+    line_no = models.CharField(max_length=50, blank=True, null=True)
+    item_no = models.CharField(max_length=100, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+
+    quantity = models.DecimalField(max_digits=14, decimal_places=3, blank=True, null=True)
+    unit_of_measure = models.CharField(max_length=50, blank=True, null=True)
+
+    unit_cost = models.DecimalField(max_digits=14, decimal_places=4, blank=True, null=True)
+    line_amount = models.DecimalField(max_digits=14, decimal_places=2, blank=True, null=True)
+
+    expected_receipt_date = models.DateField(blank=True, null=True)
+    delivery_date = models.DateField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.import_header.import_code} / {self.document_no or ''} / {self.line_no or ''}"
+
+
+
+
+
+
+from decimal import Decimal
+
+# ... your existing imports/models above ...
+
+class ImportPackage(models.Model):
+    UNIT_SYSTEM_CHOICES = [
+        ("metric", "Metric (cm/kg)"),
+        ("imperial", "Imperial (in/lbs)"),
+    ]
+
+    PACKAGE_TYPE_CHOICES = [
+        ("BOX", "Box"),
+        ("PALLET", "Pallet"),
+        ("SKID", "Skid"),
+        ("ROLL", "Roll"),
+        ("ENVELOPE", "Envelope"),
+    ]
+
+    import_header = models.ForeignKey(
+        Import,
+        on_delete=models.CASCADE,
+        related_name="packages",
+    )
+
+    package_type = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        choices=PACKAGE_TYPE_CHOICES,
+    )
+
+    # We will store everything in METRIC units in DB (cm / kg)
+    length_cm = models.DecimalField(max_digits=14, decimal_places=3, blank=True, null=True)
+    width_cm  = models.DecimalField(max_digits=14, decimal_places=3, blank=True, null=True)
+    height_cm = models.DecimalField(max_digits=14, decimal_places=3, blank=True, null=True)
+    gross_weight_kg = models.DecimalField(max_digits=14, decimal_places=3, blank=True, null=True)
+
+    unit_system = models.CharField(
+        max_length=10,
+        choices=UNIT_SYSTEM_CHOICES,
+        default="metric",
+    )
+
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.import_header.import_code} – {self.package_type or 'Package'}"
