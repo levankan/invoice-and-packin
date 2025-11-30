@@ -15,7 +15,12 @@ def imports_dashboard(request):
     status_f = (request.GET.get("status") or "").strip()
     method_f = (request.GET.get("method") or "").strip()
 
-    qs = Import.objects.all()
+    qs = (
+        Import.objects
+        .select_related("forwarder")   # ✅ get forwarder in same query
+        .prefetch_related("lines")     # ✅ prefetch ImportLine objects
+        .order_by("-created_at")
+    )
 
     if q:
         qs = qs.filter(
@@ -31,8 +36,6 @@ def imports_dashboard(request):
 
     if method_f:
         qs = qs.filter(shipping_method=method_f)
-
-    qs = qs.order_by("-created_at")
 
     paginator = Paginator(qs, 20)
     page_number = request.GET.get("page")

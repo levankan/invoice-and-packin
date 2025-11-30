@@ -54,10 +54,33 @@
   #fakeScroll {
     height: 1px;          /* just to make scrollbar appear */
   }
+
+  /* 🔽 Lines detail rows */
+  .lines-row {
+    background-color: #fcfcfc;
+  }
+
+  .lines-row table td,
+  .lines-row table th {
+    font-size: 0.78rem;
+  }
+
+  .btn-link.toggle-lines {
+    text-decoration: none;
+  }
+
+  .btn-link.toggle-lines::after {
+    content: " ▾";
+    font-size: 0.75rem;
+  }
+
+  .btn-link.toggle-lines.open::after {
+    content: " ▴";
+  }
 </style>
 
 
-<div class="page-wrapper">  {# 👈 NEW WRAPPER #}
+<div class="page-wrapper">
   <div class="card mx-auto shadow-sm border-0 card-outer">
     <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap">
       <div>
@@ -69,7 +92,7 @@
           Download Imports
         </a>
         <a href="{% url 'imports_export_lines_excel' %}"
-          class="btn btn-sm btn-outline-secondary ms-2">
+           class="btn btn-sm btn-outline-secondary ms-2">
           Download lines
         </a>
         <a class="btn btn-sm btn-primary" href="{% url 'imports_register' %}">Register Import</a>
@@ -134,8 +157,15 @@
           <tbody>
             {% if page_obj.object_list %}
               {% for imp in page_obj %}
+                {# MAIN ROW #}
                 <tr class="{% if imp.declaration_a_number %}row-highlight{% endif %}">
-                  <td class="fw-semibold text-nowrap">{{ imp.import_code }}</td>
+                  <td class="fw-semibold text-nowrap">
+                    <button type="button"
+                            class="btn btn-link p-0 toggle-lines"
+                            data-import-id="{{ imp.id }}">
+                      {{ imp.import_code }}
+                    </button>
+                  </td>
                   <td>{{ imp.vendor_name|default:"—" }}</td>
                   <td>{{ imp.exporter_country|default:"—" }}</td>
                   <td>{{ imp.tracking_no|default:"—" }}</td>
@@ -216,6 +246,74 @@
                   </td>
                   {% endif %}
                 </tr>
+
+                {# DETAIL ROW WITH LINES TABLE #}
+                <tr class="lines-row d-none" data-import-id="{{ imp.id }}">
+                  <td colspan="{% if user.is_superuser %}13{% else %}12{% endif %}">
+                    {% if imp.lines.all %}
+                      <div class="table-responsive mt-2 mb-2">
+                        <table class="table table-sm table-bordered mb-0">
+                          <thead class="table-light">
+                            <tr>
+                              <th>Document No.</th>
+                              <th>Line No.</th>
+                              <th>Item No.</th>
+                              <th>Description</th>
+                              <th>Quantity</th>
+                              <th>Unit of Measure</th>
+                              <th>Unit Cost</th>
+                              <th>Line Amount</th>
+                              <th>Goods Currency</th>
+                              <th>Expected Receipt Date</th>
+                              <th>Delivery Date</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for line in imp.lines.all %}
+                              <tr>
+                                <td>{{ line.document_no|default:"" }}</td>
+                                <td>{{ line.line_no|default:"" }}</td>
+                                <td>{{ line.item_no|default:"" }}</td>
+                                <td>{{ line.description|default:"" }}</td>
+                                <td>
+                                  {% if line.quantity is not None %}
+                                    {{ line.quantity }}
+                                  {% endif %}
+                                </td>
+                                <td>{{ line.unit_of_measure|default:"" }}</td>
+                                <td>
+                                  {% if line.unit_cost is not None %}
+                                    {{ line.unit_cost }}
+                                  {% endif %}
+                                </td>
+                                <td>
+                                  {% if line.line_amount is not None %}
+                                    {{ line.line_amount }}
+                                  {% endif %}
+                                </td>
+                                <td>{{ imp.currency_code|default:"" }}</td>
+                                <td>
+                                  {% if line.expected_receipt_date %}
+                                    {{ line.expected_receipt_date|date:"Y-m-d" }}
+                                  {% endif %}
+                                </td>
+                                <td>
+                                  {% if line.delivery_date %}
+                                    {{ line.delivery_date|date:"Y-m-d" }}
+                                  {% endif %}
+                                </td>
+                              </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    {% else %}
+                      <div class="text-muted small mt-1 mb-1">
+                        No lines for this import.
+                      </div>
+                    {% endif %}
+                  </td>
+                </tr>
               {% endfor %}
             {% else %}
               <tr>
@@ -275,31 +373,41 @@
       const tableWrap = document.getElementById('tableWrap');
       const fixedScroller = document.getElementById('fixedScroller');
       const fakeScroll = document.getElementById('fakeScroll');
-  
-      if (!tableWrap || !fixedScroller || !fakeScroll) return;
 
-      // match the width of fakeScroll to the table width
-      function updateWidth() {
-          fakeScroll.style.width = tableWrap.scrollWidth + 'px';
+      if (tableWrap && fixedScroller && fakeScroll) {
+          // match the width of fakeScroll to the table width
+          function updateWidth() {
+              fakeScroll.style.width = tableWrap.scrollWidth + 'px';
+          }
+
+          updateWidth();
+          window.addEventListener('resize', updateWidth);
+
+          // link scrolling: fixed bar → table
+          fixedScroller.addEventListener('scroll', function () {
+              tableWrap.scrollLeft = fixedScroller.scrollLeft;
+          });
+
+          // link scrolling: table → fixed bar
+          tableWrap.addEventListener('scroll', function () {
+              fixedScroller.scrollLeft = tableWrap.scrollLeft;
+          });
       }
-  
-      updateWidth();
-      window.addEventListener('resize', updateWidth);
-  
-      // link scrolling: fixed bar → table
-      fixedScroller.addEventListener('scroll', function () {
-          tableWrap.scrollLeft = fixedScroller.scrollLeft;
-      });
-  
-      // link scrolling: table → fixed bar
-      tableWrap.addEventListener('scroll', function () {
-          fixedScroller.scrollLeft = tableWrap.scrollLeft;
+
+      // 🔽 TOGGLE IMPORT LINES
+      document.querySelectorAll('.toggle-lines').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+              const importId = this.getAttribute('data-import-id');
+              const detailRow = document.querySelector(
+                  '.lines-row[data-import-id="' + importId + '"]'
+              );
+              if (!detailRow) return;
+
+              detailRow.classList.toggle('d-none');
+              this.classList.toggle('open');
+          });
       });
   });
 </script>
 
-  
-
 {% endblock %}
-
-
