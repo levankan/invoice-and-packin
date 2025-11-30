@@ -230,7 +230,7 @@
                       {{ imp.expected_receipt_date|date:"Y-m-d" }}
                     {% else %}—{% endif %}
                   </td>
-                  <td class="col-created text-nowrap">{{ imp.created_at|date:"Y-m-d H:i" }}</td>
+                  <td class="col-created text-nowrap">{{ imp.created_at|date:"Y-m-d" }}</td>
 
                   {% if user.is_superuser %}
                   <td class="text-end col-actions">

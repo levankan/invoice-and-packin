@@ -14,6 +14,7 @@ def imports_dashboard(request):
     q = (request.GET.get("q") or "").strip()
     status_f = (request.GET.get("status") or "").strip()
     method_f = (request.GET.get("method") or "").strip()
+    
 
     qs = (
         Import.objects
@@ -30,6 +31,7 @@ def imports_dashboard(request):
             | Q(vendor_reference__icontains=q)
             | Q(forwarder_reference__icontains=q)
             | Q(lines__item_no__icontains=q)   # 🔍 NEW: search by Item No. in lines
+            | Q(lines__document_no__icontains=q)  #  search by Document No.
         ).distinct()  # avoid duplicates when multiple lines match
 
     if status_f:
