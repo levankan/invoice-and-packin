@@ -17,8 +17,8 @@ def imports_dashboard(request):
 
     qs = (
         Import.objects
-        .select_related("forwarder")   # ✅ get forwarder in same query
-        .prefetch_related("lines")     # ✅ prefetch ImportLine objects
+        .select_related("forwarder")
+        .prefetch_related("lines")
         .order_by("-created_at")
     )
 
@@ -29,7 +29,8 @@ def imports_dashboard(request):
             | Q(tracking_no__icontains=q)
             | Q(vendor_reference__icontains=q)
             | Q(forwarder_reference__icontains=q)
-        )
+            | Q(lines__item_no__icontains=q)   # 🔍 NEW: search by Item No. in lines
+        ).distinct()  # avoid duplicates when multiple lines match
 
     if status_f:
         qs = qs.filter(shipment_status=status_f)
