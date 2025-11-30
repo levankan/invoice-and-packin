@@ -79,12 +79,77 @@
 </div>
 
 <script>
-  // --- Packages JS, used by register_imports.html ---
+  // ---------- Bootstrap validation + serialize packages before submit ----------
+  (function () {
+    'use strict';
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function (form) {
+      form.addEventListener('submit', function (event) {
+
+        // Before validation, serialize packages into hidden field
+        serializePackages();
+
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  })();
+
+  document.addEventListener('DOMContentLoaded', function () {
+    // Uppercase fields
+    function upperize(el) {
+      if (!el) return;
+      el.addEventListener('input', function () {
+        const p = this.selectionStart;
+        this.value = this.value.toUpperCase();
+        try { this.setSelectionRange(p, p); } catch(e) {}
+      });
+    }
+    upperize(document.getElementById('tracking_no'));
+    upperize(document.getElementById('declaration_c_number'));
+    upperize(document.getElementById('declaration_a_number'));
+
+    // Select2 init...
+    const $vendor = $('#vendor_name');
+    if ($vendor.length) {
+      $vendor.select2({
+        width: '100%',
+        placeholder: 'Select vendor',
+        allowClear: true
+      });
+      $vendor.on('change', function () {
+        this.setCustomValidity(this.value ? '' : ' ');
+      });
+    }
+
+    const $country = $('#id_exporter_country');
+    if ($country.length) {
+      $country.select2({
+        width: '100%',
+        placeholder: 'Exporter Country',
+        allowClear: true
+      });
+    }
+
+    // 🔹 Initialize packages section
+    initPackagesSection();
+  });
+
+  // --- Packages JS ---
   let currentUnitSystem = 'metric'; // 'metric' = cm/kg, 'imperial' = in/lbs
 
   function initPackagesSection() {
-    const addBtn = document.getElementById('addPackageBtn');
+    const addBtn    = document.getElementById('addPackageBtn');
     const unitToggle = document.getElementById('unitToggle');
+    const tbody      = document.getElementById('packagesBody');
+
+    if (!tbody) {
+      console.warn('packagesBody not found in DOM');
+      return;
+    }
 
     if (addBtn) {
       addBtn.addEventListener('click', function () {
@@ -132,6 +197,7 @@
     if (!tbody) return;
 
     const tr = document.createElement('tr');
+
     tr.innerHTML = `
       <td>
         <select class="form-select form-select-sm pkg-type">
@@ -151,6 +217,7 @@
         <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
       </td>
     `;
+
     tbody.appendChild(tr);
     attachRemoveHandler(tr);
   }
