@@ -1,4 +1,3 @@
-# imports/views/dashboard.py
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -12,9 +11,10 @@ from ..permissions import has_imports_access, STATUS_CHOICES, METHOD_CHOICES
 @user_passes_test(has_imports_access)
 def imports_dashboard(request):
     q = (request.GET.get("q") or "").strip()
-    status_f = (request.GET.get("status") or "").strip()
+
+    # multiple statuses
+    status_f = request.GET.getlist("status")  # list
     method_f = (request.GET.get("method") or "").strip()
-    
 
     qs = (
         Import.objects
@@ -30,12 +30,12 @@ def imports_dashboard(request):
             | Q(tracking_no__icontains=q)
             | Q(vendor_reference__icontains=q)
             | Q(forwarder_reference__icontains=q)
-            | Q(lines__item_no__icontains=q)   # 🔍 NEW: search by Item No. in lines
-            | Q(lines__document_no__icontains=q)  #  search by Document No.
-        ).distinct()  # avoid duplicates when multiple lines match
+            | Q(lines__item_no__icontains=q)
+            | Q(lines__document_no__icontains=q)
+        ).distinct()
 
     if status_f:
-        qs = qs.filter(shipment_status=status_f)
+        qs = qs.filter(shipment_status__in=status_f)
 
     if method_f:
         qs = qs.filter(shipping_method=method_f)
@@ -44,11 +44,15 @@ def imports_dashboard(request):
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
+    # keep selected statuses in pagination links
+    status_qs = "&".join(f"status={s}" for s in status_f)
+
     ctx = {
         "page_obj": page_obj,
         "q": q,
         "status_f": status_f,
         "method_f": method_f,
+        "status_qs": status_qs,
         "STATUS_CHOICES": STATUS_CHOICES,
         "METHOD_CHOICES": METHOD_CHOICES,
     }

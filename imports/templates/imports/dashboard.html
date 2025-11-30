@@ -31,7 +31,6 @@
   @media (max-width: 991.98px) { .col-expected { display: none; } }
   @media (max-width: 767.98px) { .col-incoterms, .col-created { display: none; } }
 
-  /* Fixed bar at bottom (wrapper for scroller + pagination) */
   .pagination-fixed-bottom {
     position: fixed;
     left: 0;
@@ -43,19 +42,17 @@
     padding: .25rem 1rem .35rem;
   }
 
-  /* Horizontal scroller INSIDE the fixed bar */
   #fixedScroller {
     overflow-x: auto;
     overflow-y: hidden;
     height: 16px;
-    margin-bottom: 4px;   /* space between scroller and pagination */
+    margin-bottom: 4px;
   }
 
   #fakeScroll {
-    height: 1px;          /* just to make scrollbar appear */
+    height: 1px;
   }
 
-  /* 🔽 Lines detail rows */
   .lines-row {
     background-color: #fcfcfc;
   }
@@ -76,6 +73,13 @@
 
   .btn-link.toggle-lines.open::after {
     content: " ▴";
+  }
+
+  /* little nicer dropdown width */
+  .status-dropdown-menu {
+    min-width: 220px;
+    max-height: 260px;
+    overflow-y: auto;
   }
 </style>
 
@@ -104,20 +108,58 @@
 
     <div class="card-body pt-3">
       <!-- Filters / Search -->
-      <form method="get" class="row gx-3 gy-2 align-items-end mb-3">
+      <form id="importsFilterForm" method="get" class="row gx-3 gy-2 align-items-end mb-3">
         <div class="col-md-5">
           <label class="form-label mb-1">Search</label>
-          <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Import code, vendor, tracking, referances…">
+          <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Import code, vendor, tracking, references…">
         </div>
+
+        {# 🔹 STATUS FILTER: dropdown with checkboxes + ALL #}
         <div class="col-md-3">
           <label class="form-label mb-1">Status</label>
-          <select name="status" class="form-select form-select-sm">
-            <option value="">All</option>
-            {% for s in STATUS_CHOICES %}
-              <option value="{{ s }}" {% if status_f == s %}selected{% endif %}>{{ s|title }}</option>
-            {% endfor %}
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-sm btn-outline-secondary w-100 text-start"
+                    type="button"
+                    id="statusDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+              <span id="statusDropdownLabel">
+                {% if status_f %}
+                  {{ status_f|join:", " }}
+                {% else %}
+                  All statuses
+                {% endif %}
+              </span>
+            </button>
+            <div class="dropdown-menu p-2 status-dropdown-menu"
+                 aria-labelledby="statusDropdown">
+              <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox"
+                       id="status_all"
+                       {% if not status_f %}checked{% endif %}>
+                <label class="form-check-label small" for="status_all">
+                  All
+                </label>
+              </div>
+              <hr class="my-1">
+              {% for s in STATUS_CHOICES %}
+                <div class="form-check mb-1">
+                  <input class="form-check-input status-checkbox"
+                         type="checkbox"
+                         value="{{ s }}"
+                         id="status_{{ forloop.counter }}"
+                         {% if s in status_f %}checked{% endif %}>
+                  <label class="form-check-label small" for="status_{{ forloop.counter }}">
+                    {{ s|title }}
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          {# hidden inputs for ?status=VALUE params #}
+          <div id="statusHiddenInputs"></div>
         </div>
+
         <div class="col-md-3">
           <label class="form-label mb-1">Method</label>
           <select name="method" class="form-select form-select-sm">
@@ -127,6 +169,7 @@
             {% endfor %}
           </select>
         </div>
+
         <div class="col-md-1 d-flex gap-2">
           <button class="btn btn-outline-secondary btn-sm w-100" type="submit">Apply</button>
         </div>
@@ -328,23 +371,22 @@
       </div>
     </div>
   </div>
-</div>  {# end .page-wrapper #}
+</div>
 
-{# FIXED BOTTOM BAR: SCROLLER + PAGINATION #}
 {% if page_obj.paginator.num_pages > 1 %}
   <div class="pagination-fixed-bottom">
-
-    {# top: horizontal left/right scroller #}
     <div id="fixedScroller">
       <div id="fakeScroll"></div>
     </div>
 
-    {# bottom: pagination buttons #}
     <nav aria-label="Imports pagination">
       <ul class="pagination pagination-sm justify-content-end mb-0">
         {% if page_obj.has_previous %}
           <li class="page-item">
-            <a class="page-link" href="?q={{ q }}&status={{ status_f }}&method={{ method_f }}&page={{ page_obj.previous_page_number }}">Prev</a>
+            <a class="page-link"
+               href="?q={{ q }}{% if status_qs %}&{{ status_qs }}{% endif %}&method={{ method_f }}&page={{ page_obj.previous_page_number }}">
+              Prev
+            </a>
           </li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">Prev</span></li>
@@ -356,7 +398,10 @@
 
         {% if page_obj.has_next %}
           <li class="page-item">
-            <a class="page-link" href="?q={{ q }}&status={{ status_f }}&method={{ method_f }}&page={{ page_obj.next_page_number }}">Next</a>
+            <a class="page-link"
+               href="?q={{ q }}{% if status_qs %}&{{ status_qs }}{% endif %}&method={{ method_f }}&page={{ page_obj.next_page_number }}">
+              Next
+            </a>
           </li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">Next</span></li>
@@ -367,7 +412,6 @@
 {% endif %}
 
 
-
 <script>
   document.addEventListener('DOMContentLoaded', function () {
       const tableWrap = document.getElementById('tableWrap');
@@ -375,7 +419,6 @@
       const fakeScroll = document.getElementById('fakeScroll');
 
       if (tableWrap && fixedScroller && fakeScroll) {
-          // match the width of fakeScroll to the table width
           function updateWidth() {
               fakeScroll.style.width = tableWrap.scrollWidth + 'px';
           }
@@ -383,12 +426,10 @@
           updateWidth();
           window.addEventListener('resize', updateWidth);
 
-          // link scrolling: fixed bar → table
           fixedScroller.addEventListener('scroll', function () {
               tableWrap.scrollLeft = fixedScroller.scrollLeft;
           });
 
-          // link scrolling: table → fixed bar
           tableWrap.addEventListener('scroll', function () {
               fixedScroller.scrollLeft = tableWrap.scrollLeft;
           });
@@ -407,6 +448,67 @@
               this.classList.toggle('open');
           });
       });
+
+      // 🔹 STATUS CHECKBOX LOGIC + HIDDEN INPUTS
+      const allCheckbox = document.getElementById('status_all');
+      const statusCheckboxes = document.querySelectorAll('.status-checkbox');
+      const hiddenContainer = document.getElementById('statusHiddenInputs');
+      const statusLabel = document.getElementById('statusDropdownLabel');
+      const filterForm = document.getElementById('importsFilterForm');
+
+      function updateHiddenInputs() {
+          if (!hiddenContainer) return;
+          hiddenContainer.innerHTML = '';
+          const checked = Array.from(statusCheckboxes).filter(cb => cb.checked);
+
+          checked.forEach(cb => {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = 'status';
+              input.value = cb.value;
+              hiddenContainer.appendChild(input);
+          });
+
+          // update label
+          if (checked.length === 0) {
+              statusLabel.textContent = 'All statuses';
+              if (allCheckbox) allCheckbox.checked = true;
+          } else {
+              const values = checked.map(cb => cb.value);
+              statusLabel.textContent = values.join(', ');
+              if (allCheckbox) allCheckbox.checked = false;
+          }
+      }
+
+      if (allCheckbox) {
+          allCheckbox.addEventListener('change', function () {
+              if (this.checked) {
+                  // uncheck all statuses
+                  statusCheckboxes.forEach(cb => cb.checked = false);
+                  updateHiddenInputs();
+              }
+          });
+      }
+
+      statusCheckboxes.forEach(cb => {
+          cb.addEventListener('change', function () {
+              // when any specific status is checked, "All" should be off
+              if (allCheckbox && this.checked) {
+                  allCheckbox.checked = false;
+              }
+              updateHiddenInputs();
+          });
+      });
+
+      if (filterForm) {
+          filterForm.addEventListener('submit', function () {
+              // ensure hidden inputs reflect current checkboxes before submit
+              updateHiddenInputs();
+          });
+      }
+
+      // initial sync on page load (for pre-selected statuses)
+      updateHiddenInputs();
   });
 </script>
 
