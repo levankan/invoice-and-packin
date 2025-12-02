@@ -31,15 +31,12 @@
         </div>
 
         <!-- Sold To (Fixed) -->
-        <div class="mb-3">
-            <label class="form-label"><strong>Sold To</strong></label>
-            <p>
-                <strong>Elbit Systems Cyclone</strong><br>
-                ID: 520033374<br>
-                Industrial Park Bar-Lev, P.O.B 114,<br>
-                Karmiel, Israel
-            </p>
-        </div>        
+        <div class="mb-3 text-start">
+            <select id="sold_to_select" name="sold_to" class="form-select" required>
+                <option value="elbit">Elbit Systems Cyclone (Israel)</option>
+                <option value="elmec">Elmec INC. (USA)</option>
+            </select>
+        </div>
 
         <!-- Shipped To -->
         <div class="mb-3 text-start">

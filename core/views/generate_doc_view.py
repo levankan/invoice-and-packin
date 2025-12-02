@@ -28,11 +28,27 @@ def generate_doc_view(request):
         "origin": "Georgia",
     }
 
-    sold_to_default = {
-        "name": "Elbit Systems Cyclone",
-        "address": "Industrial Park Bar-Lev, P.O.B 114, Karmiel, Israel",
-        "id": "520033374",
+    sold_to_options = {
+        "elbit": {
+            "name": "Elbit Systems Cyclone",
+            "id": "520033374",
+            "address_lines": [
+                "Industrial Park Bar-Lev, P.O.B 114,",
+                "Karmiel, Israel",
+            ],
+            "terms": "Terms of Payment: 30D",
+        },
+        "elmec": {
+            "name": "Elmec INC.",
+            "id": "043548482",
+            "address_lines": [
+                "9004 Sightline Drive, Ladson ,SC,",
+                "29456 USA SUITE N",
+            ],
+            "terms": "Terms of Payment: 30D",
+        },
     }
+
 
     shipped_to_list = [
         {
@@ -73,12 +89,32 @@ def generate_doc_view(request):
         },
     ]
 
-    project_list = ["D638", "D640", "D735", "D632", "D640-634", "OPF", "NWD"]
+    project_list = ["D638", "D640", "D735", "D632", "D640-634", "D664", "NWD"]
 
     if request.method == "POST":
         shipped_to_name = request.POST.get("shipped_to")
         project = request.POST.get("project")
         file = request.FILES.get("excel_file")
+
+        sold_to_key = request.POST.get("sold_to")  # comes from <select name="sold_to">
+        soldto = sold_to_options.get(sold_to_key)
+
+        if not soldto:
+            messages.error(request, "⚠ Invalid 'Sold To' selection.")
+            return redirect("generate_doc")
+
+        # Build Sold To block
+        sold_to_lines = [
+            soldto["name"],
+            f"ID: {soldto['id']}",
+        ]
+        for line in soldto["address_lines"]:
+            sold_to_lines.append(line)
+        if soldto["terms"]:
+            sold_to_lines.append(soldto["terms"])
+
+        sold_to_block = "\n".join(sold_to_lines)
+
 
         if not file:
             messages.error(request, "⚠ Please upload an Excel file.")
@@ -143,7 +179,7 @@ def generate_doc_view(request):
         # 🔹 Create Export
         export = Export.objects.create(
             seller=seller_info["name"],
-            sold_to=sold_to_default["name"],  # always Elbit
+            sold_to=sold_to_block,
             shipped_to=shipped_to_block,      # full block now
             project_no=project,
         )
