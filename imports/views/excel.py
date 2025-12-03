@@ -3,8 +3,8 @@ import csv
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import HttpResponse
-
-from ..models import Import, ImportLine
+from django.shortcuts import get_object_or_404
+from ..models import Import, ImportLine, ImportPackage
 from ..permissions import has_imports_access
 from decimal import Decimal
 
@@ -241,6 +241,7 @@ def export_import_lines_excel(request):
         "Goods Currency",              # after Line Amount
         "Expected Receipt Date",
         "Delivery Date",
+        "ATC Receipt Date", 
         "Created At",
         "Tracking Number",
         "Vendor Reference",            # all after Tracking Number
@@ -320,6 +321,7 @@ def export_import_lines_excel(request):
             imp.currency_code or "" if imp else "",                        # Goods Currency
             line.expected_receipt_date.isoformat() if line.expected_receipt_date else "",
             line.delivery_date.isoformat() if line.delivery_date else "",
+            imp.expected_receipt_date.isoformat() if (imp and imp.expected_receipt_date) else "",
             imp.created_at.strftime("%Y-%m-%d") if (imp and imp.created_at) else "",
             imp.tracking_no if (imp and imp.tracking_no) else "",
             imp.vendor_reference or "" if imp else "",
@@ -367,5 +369,301 @@ def export_import_lines_excel(request):
     )
     response["Content-Disposition"] = 'attachment; filename="import_lines.xlsx"'
 
+    wb.save(response)
+    return response
+
+
+
+
+@login_required
+@user_passes_test(has_imports_access)
+def export_single_import_excel(request, import_id):
+    """
+    Export a single import into an Excel file:
+
+    Sheet1: header info + all lines for that import (same structure as
+            export_imports_excel + export_import_lines_excel combined).
+    Sheet2: all packages (dimensions) for this import.
+    """
+    # --------------------------
+    # Fetch import + its lines
+    # --------------------------
+    imp = get_object_or_404(
+        Import.objects.select_related("forwarder").prefetch_related("lines"),
+        pk=import_id,
+    )
+    lines = imp.lines.all().order_by("document_no", "line_no")
+
+    # --------------------------
+    # Create workbook / sheet 1
+    # --------------------------
+    wb = Workbook()
+    ws = wb.active
+    ws.title = f"Import {imp.import_code}"
+
+    thin_border = Border(
+        left=Side(border_style="thin", color="000000"),
+        right=Side(border_style="thin", color="000000"),
+        top=Side(border_style="thin", color="000000"),
+        bottom=Side(border_style="thin", color="000000"),
+    )
+
+    header_font = Font(bold=True)
+    header_fill = PatternFill(fill_type="solid", fgColor="D9E1F2")
+
+    # --------------------------
+    # PART 1: header from export_imports_excel
+    # --------------------------
+    header_row_1 = [
+        "Import ID",
+        "Import Code",
+        "Vendor",
+        "Exporter Country",
+        "Incoterms",
+        "Currency",
+        "Goods Price",
+        "Shipping Method",
+        "Shipment Status",
+        "Tracking Number",
+        "Vendor Reference",
+        "Forwarder Reference",
+        "Declaration C Number",
+        "Declaration A Number",
+        "Declaration Date",
+        "Expected Receipt Date",
+        "Pickup Address",
+        "Is Dangerous",
+        "Is Stackable",
+        "Total Gross Weight (kg)",
+        "Total Volumetric Weight (kg)",
+        "Forwarder",
+        "Created At",
+    ]
+    ws.append(header_row_1)
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+
+    row2 = [
+        imp.pk,
+        imp.import_code,
+        imp.vendor_name,
+        str(imp.exporter_country) if imp.exporter_country else "",
+        imp.incoterms or "",
+        imp.currency_code or "",
+        float(imp.goods_price) if imp.goods_price is not None else "",
+        imp.shipping_method or "",
+        imp.shipment_status or "",
+        imp.tracking_no or "",
+        imp.vendor_reference or "",
+        imp.forwarder_reference or "",
+        imp.declaration_c_number or "",
+        imp.declaration_a_number or "",
+        imp.declaration_date.isoformat() if imp.declaration_date else "",
+        imp.expected_receipt_date.isoformat() if imp.expected_receipt_date else "",
+        imp.pickup_address or "",
+        "Yes" if imp.is_danger else "No",
+        "Yes" if imp.is_stackable else "No",
+        float(imp.total_gross_weight_kg) if imp.total_gross_weight_kg is not None else "",
+        float(imp.total_volumetric_weight_kg) if imp.total_volumetric_weight_kg is not None else "",
+        imp.forwarder.name if imp.forwarder else "",
+        imp.created_at.strftime("%Y-%m-%d") if imp.created_at else "",
+    ]
+    ws.append(row2)
+    for cell in ws[2]:
+        cell.border = thin_border
+
+    # blank row
+    ws.append([])
+
+    # --------------------------
+    # PART 2: lines from export_import_lines_excel (for this import)
+    # --------------------------
+    # same headers as that function (plus ATC receipt date)
+    line_headers = [
+        "Line ID",
+        "Import ID",
+        "Import Code",
+        "Vendor",
+        "Document No.",
+        "Line No.",
+        "Item No.",
+        "Description",
+        "Quantity",
+        "Unit of Measure",
+        "Unit Cost",
+        "Line Amount",
+        "Goods Currency",
+        "Expected Receipt Date",
+        "Delivery Date",
+        "ATC Receipt Date",
+        "Created At",
+        "Tracking Number",
+        "Vendor Reference",
+        "Forwarder Reference",
+        "Declaration C Number",
+        "Declaration A Number",
+        "Declaration Date",
+        "Incoterms",
+        "Total Import GW (kg)",
+        "Total Import VW (kg)",
+        "Line Gross Weight (kg)",
+        "Line Volumetric Weight (kg)",
+    ]
+    start_row_lines = ws.max_row + 1
+    ws.append(line_headers)
+    for cell in ws[start_row_lines]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+
+    # For weights: we can reuse the logic from export_import_lines_excel,
+    # but here only for this single import.
+    from admin_area.models import Item  # if not already imported globally
+    item_numbers = {l.item_no for l in lines if l.item_no}
+    items = Item.objects.filter(number__in=item_numbers)
+    item_map = {i.number: i for i in items}
+
+    total_qty = Decimal("0")
+    for l in lines:
+        if l.quantity is not None:
+            total_qty += l.quantity
+
+    total_gw_import = imp.total_gross_weight_kg or Decimal("0")
+    total_vw_import = imp.total_volumetric_weight_kg or Decimal("0")
+
+    for l in lines:
+        qty = l.quantity or Decimal("0")
+        line_gw = None
+        line_vw = None
+        item = item_map.get(l.item_no) if l.item_no else None
+
+        if qty:
+            # gross weight
+            if item and item.weight is not None:
+                line_gw = item.weight * qty
+            elif total_gw_import and total_qty:
+                line_gw = (total_gw_import * qty) / total_qty
+
+            # volumetric weight
+            if item and item.volumetric_weight is not None:
+                line_vw = item.volumetric_weight * qty
+            elif total_vw_import and total_qty:
+                line_vw = (total_vw_import * qty) / total_qty
+
+        ws.append([
+            l.pk,
+            imp.pk,
+            imp.import_code,
+            imp.vendor_name,
+            l.document_no or "",
+            l.line_no or "",
+            l.item_no or "",
+            l.description or "",
+            float(l.quantity) if l.quantity is not None else "",
+            l.unit_of_measure or "",
+            float(l.unit_cost) if l.unit_cost is not None else "",
+            float(l.line_amount) if l.line_amount is not None else "",
+            imp.currency_code or "",
+            l.expected_receipt_date.isoformat() if l.expected_receipt_date else "",
+            l.delivery_date.isoformat() if l.delivery_date else "",
+            imp.expected_receipt_date.isoformat() if imp.expected_receipt_date else "",
+            imp.created_at.strftime("%Y-%m-%d") if imp.created_at else "",
+            imp.tracking_no or "",
+            imp.vendor_reference or "",
+            imp.forwarder_reference or "",
+            imp.declaration_c_number or "",
+            imp.declaration_a_number or "",
+            imp.declaration_date.isoformat() if imp.declaration_date else "",
+            imp.incoterms or "",
+            float(total_gw_import) if total_gw_import else "",
+            float(total_vw_import) if total_vw_import else "",
+            float(line_gw) if line_gw is not None else "",
+            float(line_vw) if line_vw is not None else "",
+        ])
+
+        # style row
+        row_idx = ws.max_row
+        fill_color = "FFFFFF" if row_idx % 2 == 0 else "F7F7F7"
+        for cell in ws[row_idx]:
+            cell.fill = PatternFill(
+                start_color=fill_color,
+                end_color=fill_color,
+                fill_type="solid",
+            )
+            cell.border = thin_border
+
+    # autofit columns in sheet 1
+    for column_cells in ws.columns:
+        length = max(len(str(c.value)) if c.value else 0 for c in column_cells)
+        col_letter = get_column_letter(column_cells[0].column)
+        ws.column_dimensions[col_letter].width = length + 2
+
+    ws.freeze_panes = "A2"
+
+    # ==========================================================
+    # SHEET 2: PACKAGES (dimensions for this import)
+    # ==========================================================
+    ws2 = wb.create_sheet(title="Packages", index=1)
+
+    pkg_headers = [
+        "Package ID",
+        "Import ID",
+        "Import Code",
+        "Package Type",
+        "Length (cm)",
+        "Width (cm)",
+        "Height (cm)",
+        "Gross Weight (kg)",
+        "Unit System",
+    ]
+    ws2.append(pkg_headers)
+    for cell in ws2[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+
+    packages = ImportPackage.objects.filter(import_header=imp).order_by("pk")
+
+    for pkg in packages:
+        ws2.append([
+            pkg.pk,
+            imp.pk,
+            imp.import_code,
+            pkg.package_type or "",
+            float(pkg.length_cm) if pkg.length_cm is not None else "",
+            float(pkg.width_cm) if pkg.width_cm is not None else "",
+            float(pkg.height_cm) if pkg.height_cm is not None else "",
+            float(pkg.gross_weight_kg) if pkg.gross_weight_kg is not None else "",
+            pkg.unit_system or "",
+        ])
+
+        row_idx = ws2.max_row
+        fill_color = "FFFFFF" if row_idx % 2 == 0 else "F7F7F7"
+        for cell in ws2[row_idx]:
+            cell.fill = PatternFill(
+                start_color=fill_color,
+                end_color=fill_color,
+                fill_type="solid",
+            )
+            cell.border = thin_border
+
+    # autofit columns in sheet 2
+    for column_cells in ws2.columns:
+        length = max(len(str(c.value)) if c.value else 0 for c in column_cells)
+        col_letter = get_column_letter(column_cells[0].column)
+        ws2.column_dimensions[col_letter].width = length + 2
+
+    ws2.freeze_panes = "A2"
+
+    # --------------------------
+    # Return response
+    # --------------------------
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    filename = f"import_{imp.import_code}.xlsx"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
     wb.save(response)
     return response

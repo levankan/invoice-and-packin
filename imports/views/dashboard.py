@@ -12,9 +12,9 @@ from ..permissions import has_imports_access, STATUS_CHOICES, METHOD_CHOICES
 def imports_dashboard(request):
     q = (request.GET.get("q") or "").strip()
 
-    # multiple statuses
+    # multiple statuses + multiple methods
     status_f = request.GET.getlist("status")  # list
-    method_f = (request.GET.get("method") or "").strip()
+    method_f = request.GET.getlist("method")  # list
 
     qs = (
         Import.objects
@@ -38,21 +38,23 @@ def imports_dashboard(request):
         qs = qs.filter(shipment_status__in=status_f)
 
     if method_f:
-        qs = qs.filter(shipping_method=method_f)
+        qs = qs.filter(shipping_method__in=method_f)
 
     paginator = Paginator(qs, 20)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
-    # keep selected statuses in pagination links
+    # keep selected statuses and methods in pagination links
     status_qs = "&".join(f"status={s}" for s in status_f)
+    method_qs = "&".join(f"method={m}" for m in method_f)
 
     ctx = {
         "page_obj": page_obj,
         "q": q,
-        "status_f": status_f,
-        "method_f": method_f,
+        "status_f": status_f,     # list
+        "method_f": method_f,     # list
         "status_qs": status_qs,
+        "method_qs": method_qs,
         "STATUS_CHOICES": STATUS_CHOICES,
         "METHOD_CHOICES": METHOD_CHOICES,
     }

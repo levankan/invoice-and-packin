@@ -75,7 +75,7 @@
     content: " ▴";
   }
 
-  /* little nicer dropdown width */
+  /* little nicer dropdown width (used for both Status & Method) */
   .status-dropdown-menu {
     min-width: 220px;
     max-height: 260px;
@@ -160,14 +160,50 @@
           <div id="statusHiddenInputs"></div>
         </div>
 
+        {# 🔹 METHOD FILTER: dropdown with checkboxes + ALL #}
         <div class="col-md-3">
           <label class="form-label mb-1">Method</label>
-          <select name="method" class="form-select form-select-sm">
-            <option value="">All</option>
-            {% for m in METHOD_CHOICES %}
-              <option value="{{ m }}" {% if method_f == m %}selected{% endif %}>{{ m|title }}</option>
-            {% endfor %}
-          </select>
+          <div class="dropdown w-100">
+            <button class="btn btn-sm btn-outline-secondary w-100 text-start"
+                    type="button"
+                    id="methodDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false">
+              <span id="methodDropdownLabel">
+                {% if method_f %}
+                  {{ method_f|join:", " }}
+                {% else %}
+                  All methods
+                {% endif %}
+              </span>
+            </button>
+            <div class="dropdown-menu p-2 status-dropdown-menu"
+                 aria-labelledby="methodDropdown">
+              <div class="form-check mb-1">
+                <input class="form-check-input" type="checkbox"
+                       id="method_all"
+                       {% if not method_f %}checked{% endif %}>
+                <label class="form-check-label small" for="method_all">
+                  All
+                </label>
+              </div>
+              <hr class="my-1">
+              {% for m in METHOD_CHOICES %}
+                <div class="form-check mb-1">
+                  <input class="form-check-input method-checkbox"
+                         type="checkbox"
+                         value="{{ m }}"
+                         id="method_{{ forloop.counter }}"
+                         {% if m in method_f %}checked{% endif %}>
+                  <label class="form-check-label small" for="method_{{ forloop.counter }}">
+                    {{ m|title }}
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+          {# hidden inputs for ?method=VALUE params #}
+          <div id="methodHiddenInputs"></div>
         </div>
 
         <div class="col-md-1 d-flex gap-2">
@@ -277,7 +313,11 @@
 
                   {% if user.is_superuser %}
                   <td class="text-end col-actions">
-                    <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                    <a href="{% url 'import_single_excel' imp.pk %}"
+                      class="btn btn-sm btn-outline-success mb-1">
+                      📥 Excel
+                    </a>
+                    <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary mb-1">Edit</a>
                     <form method="post" action="{% url 'imports_delete' imp.pk %}" class="d-inline">
                       {% csrf_token %}
                       <button type="submit"
@@ -288,6 +328,7 @@
                     </form>
                   </td>
                   {% endif %}
+
                 </tr>
 
                 {# DETAIL ROW WITH LINES TABLE #}
@@ -384,7 +425,7 @@
         {% if page_obj.has_previous %}
           <li class="page-item">
             <a class="page-link"
-               href="?q={{ q }}{% if status_qs %}&{{ status_qs }}{% endif %}&method={{ method_f }}&page={{ page_obj.previous_page_number }}">
+               href="?q={{ q }}{% if status_qs %}&{{ status_qs }}{% endif %}{% if method_qs %}&{{ method_qs }}{% endif %}&page={{ page_obj.previous_page_number }}">
               Prev
             </a>
           </li>
@@ -399,7 +440,7 @@
         {% if page_obj.has_next %}
           <li class="page-item">
             <a class="page-link"
-               href="?q={{ q }}{% if status_qs %}&{{ status_qs }}{% endif %}&method={{ method_f }}&page={{ page_obj.next_page_number }}">
+               href="?q={{ q }}{% if status_qs %}&{{ status_qs }}{% endif %}{% if method_qs %}&{{ method_qs }}{% endif %}&page={{ page_obj.next_page_number }}">
               Next
             </a>
           </li>
@@ -449,16 +490,17 @@
           });
       });
 
-      // 🔹 STATUS CHECKBOX LOGIC + HIDDEN INPUTS
-      const allCheckbox = document.getElementById('status_all');
-      const statusCheckboxes = document.querySelectorAll('.status-checkbox');
-      const hiddenContainer = document.getElementById('statusHiddenInputs');
-      const statusLabel = document.getElementById('statusDropdownLabel');
       const filterForm = document.getElementById('importsFilterForm');
 
-      function updateHiddenInputs() {
-          if (!hiddenContainer) return;
-          hiddenContainer.innerHTML = '';
+      // 🔹 STATUS CHECKBOX LOGIC + HIDDEN INPUTS
+      const statusAllCheckbox = document.getElementById('status_all');
+      const statusCheckboxes = document.querySelectorAll('.status-checkbox');
+      const statusHiddenContainer = document.getElementById('statusHiddenInputs');
+      const statusLabel = document.getElementById('statusDropdownLabel');
+
+      function updateStatusHiddenInputs() {
+          if (!statusHiddenContainer) return;
+          statusHiddenContainer.innerHTML = '';
           const checked = Array.from(statusCheckboxes).filter(cb => cb.checked);
 
           checked.forEach(cb => {
@@ -466,49 +508,97 @@
               input.type = 'hidden';
               input.name = 'status';
               input.value = cb.value;
-              hiddenContainer.appendChild(input);
+              statusHiddenContainer.appendChild(input);
           });
 
           // update label
           if (checked.length === 0) {
               statusLabel.textContent = 'All statuses';
-              if (allCheckbox) allCheckbox.checked = true;
+              if (statusAllCheckbox) statusAllCheckbox.checked = true;
           } else {
               const values = checked.map(cb => cb.value);
               statusLabel.textContent = values.join(', ');
-              if (allCheckbox) allCheckbox.checked = false;
+              if (statusAllCheckbox) statusAllCheckbox.checked = false;
           }
       }
 
-      if (allCheckbox) {
-          allCheckbox.addEventListener('change', function () {
+      if (statusAllCheckbox) {
+          statusAllCheckbox.addEventListener('change', function () {
               if (this.checked) {
-                  // uncheck all statuses
                   statusCheckboxes.forEach(cb => cb.checked = false);
-                  updateHiddenInputs();
+                  updateStatusHiddenInputs();
               }
           });
       }
 
       statusCheckboxes.forEach(cb => {
           cb.addEventListener('change', function () {
-              // when any specific status is checked, "All" should be off
-              if (allCheckbox && this.checked) {
-                  allCheckbox.checked = false;
+              if (statusAllCheckbox && this.checked) {
+                  statusAllCheckbox.checked = false;
               }
-              updateHiddenInputs();
+              updateStatusHiddenInputs();
+          });
+      });
+
+      // 🔹 METHOD CHECKBOX LOGIC + HIDDEN INPUTS
+      const methodAllCheckbox = document.getElementById('method_all');
+      const methodCheckboxes = document.querySelectorAll('.method-checkbox');
+      const methodHiddenContainer = document.getElementById('methodHiddenInputs');
+      const methodLabel = document.getElementById('methodDropdownLabel');
+
+      function updateMethodHiddenInputs() {
+          if (!methodHiddenContainer) return;
+          methodHiddenContainer.innerHTML = '';
+          const checked = Array.from(methodCheckboxes).filter(cb => cb.checked);
+
+          checked.forEach(cb => {
+              const input = document.createElement('input');
+              input.type = 'hidden';
+              input.name = 'method';
+              input.value = cb.value;
+              methodHiddenContainer.appendChild(input);
+          });
+
+          // update label
+          if (checked.length === 0) {
+              methodLabel.textContent = 'All methods';
+              if (methodAllCheckbox) methodAllCheckbox.checked = true;
+          } else {
+              const values = checked.map(cb => cb.value);
+              methodLabel.textContent = values.join(', ');
+              if (methodAllCheckbox) methodAllCheckbox.checked = false;
+          }
+      }
+
+      if (methodAllCheckbox) {
+          methodAllCheckbox.addEventListener('change', function () {
+              if (this.checked) {
+                  methodCheckboxes.forEach(cb => cb.checked = false);
+                  updateMethodHiddenInputs();
+              }
+          });
+      }
+
+      methodCheckboxes.forEach(cb => {
+          cb.addEventListener('change', function () {
+              if (methodAllCheckbox && this.checked) {
+                  methodAllCheckbox.checked = false;
+              }
+              updateMethodHiddenInputs();
           });
       });
 
       if (filterForm) {
           filterForm.addEventListener('submit', function () {
               // ensure hidden inputs reflect current checkboxes before submit
-              updateHiddenInputs();
+              updateStatusHiddenInputs();
+              updateMethodHiddenInputs();
           });
       }
 
-      // initial sync on page load (for pre-selected statuses)
-      updateHiddenInputs();
+      // initial sync on page load (for pre-selected filters)
+      updateStatusHiddenInputs();
+      updateMethodHiddenInputs();
   });
 </script>
 

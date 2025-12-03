@@ -35,11 +35,12 @@
                                class="form-control" placeholder="Enter Declaration A Number">
                     </div>
 
-                    <div class="col-md-4 mb-3">
-                        <label for="declaration_register_date" class="form-label"><strong>Declaration Register Date</strong></label>
-                        <input type="date" name="declaration_register_date" id="declaration_register_date"
-                               value="{{ export.declaration_register_date|date:'Y-m-d' }}"
-                               class="form-control">
+                    <div class="col-md-4">
+                        <label class="form-label small mb-1">Expected Receipt Date</label>
+                        <input type="date"
+                               name="expected_receipt_date"
+                               class="form-control form-control-sm"
+                               value="{{ fd.expected_receipt_date|default:'' }}">
                     </div>
                 </div>
 

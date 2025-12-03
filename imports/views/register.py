@@ -39,6 +39,8 @@ def register_import(request):
     lines_data = []
     lines_json = ""
     form_data = {}
+    packages_json = ""
+    packages_list = []
 
     if request.method == "POST":
         action = request.POST.get("action", "save_import")
@@ -59,6 +61,7 @@ def register_import(request):
             "is_danger": bool(request.POST.get("is_danger")),
             "is_stackable": bool(request.POST.get("is_stackable")),
             "pickup_address": request.POST.get("pickup_address", ""),
+            "expected_receipt_date": request.POST.get("expected_receipt_date", ""),
             "declaration_c_number": request.POST.get("declaration_c_number", ""),
             "declaration_a_number": request.POST.get("declaration_a_number", ""),
             "declaration_date": request.POST.get("declaration_date", ""),
@@ -72,8 +75,17 @@ def register_import(request):
                 lines_data = json.loads(existing_lines_json)
             except json.JSONDecodeError:
                 lines_data = []
-        # keep the JSON string so we can put it back into the hidden field
         lines_json = existing_lines_json
+
+        # --- restore existing packages from hidden JSON (if any) ---
+        packages_json = request.POST.get("packages_json") or ""
+        if packages_json:
+            try:
+                packages_list = json.loads(packages_json)
+            except json.JSONDecodeError:
+                packages_list = []
+        else:
+            packages_list = []
 
         # ---------------------------------------------------------------------
         #  UPLOAD LINES (preview only; DB save happens when we press Save)
@@ -174,6 +186,9 @@ def register_import(request):
                     "lines_data": lines_data,
                     "lines_json": lines_json,
                     "form_data": form_data,
+                    # 🔹 keep packages visible after upload_lines
+                    "packages_json": packages_json,
+                    "packages_list": packages_list,
                 },
             )
 
@@ -218,6 +233,7 @@ def register_import(request):
                 pickup_address=_clean(data.get("pickup_address")),
                 is_danger=bool(data.get("is_danger")),
                 is_stackable=bool(data.get("is_stackable")),
+                expected_receipt_date=_parse_date_str(data.get("expected_receipt_date")),
                 notes=_clean(data.get("notes")),
                 vendor_reference=_clean(data.get("vendor_reference")),
                 forwarder_reference=_clean(data.get("forwarder_reference")),
@@ -336,7 +352,7 @@ def register_import(request):
             return redirect("imports_home")
 
         # ---------------------------------------------------------------------
-        #  FORM INVALID → re-render with errors and keep lines preview
+        #  FORM INVALID → re-render with errors and keep lines & packages
         # ---------------------------------------------------------------------
         lines_json = json.dumps(lines_data, default=str)
         return render(
@@ -351,6 +367,8 @@ def register_import(request):
                 "lines_data": lines_data,
                 "lines_json": lines_json,
                 "form_data": form_data,
+                "packages_json": packages_json,
+                "packages_list": packages_list,
             },
         )
 
@@ -370,5 +388,7 @@ def register_import(request):
             "lines_data": [],
             "lines_json": "",
             "form_data": {},
+            "packages_json": "",
+            "packages_list": [],
         },
     )

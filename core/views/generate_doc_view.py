@@ -85,7 +85,7 @@ def generate_doc_view(request):
         {
             "name": "Elmec INC.",
             "address": "9004 Sightline Drive SUITE N, Ladson ,SC, 29456, USA ",
-            "incoterms": "Incoterms 2010: EXW Tbilisi",
+            "incoterms": "Incoterms 2010: DDP",
         },
     ]
 

@@ -16,4 +16,10 @@ urlpatterns = [
         views.export_import_lines_excel,
         name="imports_export_lines_excel",
     ),
+
+    path(
+        "<int:import_id>/excel/",
+        views.export_single_import_excel,
+        name="import_single_excel",
+    ),
 ]
