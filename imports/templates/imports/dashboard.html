@@ -4,12 +4,18 @@
 {% block content %}
 <style>
   body { font-size: 0.88rem; }
-
+  table tbody tr
   .page-wrapper {
     min-height: 100vh;
   }
 
-  .card-outer { max-width: 1400px; margin-bottom: 60px; }
+  .table tbody tr {
+      border-bottom: 2px solid #bcbcbc !important;
+  }
+
+  
+
+  .card-outer { width: 100vw; max-width: 100vw; margin-left: calc(50% - 50vw); margin-right: 0; margin-bottom: 60px; }
   .card-body { padding-left: 1.5rem; padding-right: 1.5rem; }
   .table thead th { white-space: nowrap; font-size: 0.82rem; }
   .table td { font-size: 0.84rem; vertical-align: middle; }
