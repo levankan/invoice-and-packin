@@ -42,42 +42,61 @@ from admin_area.models import Item
 
 
 
+from django.db.models import Q
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, PatternFill, Border, Side
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required, user_passes_test
+
+from ..models import Import
+from ..permissions import has_imports_access
+from decimal import Decimal
+
+
 @login_required
 @user_passes_test(has_imports_access)
 def export_imports_excel(request):
     """
-    Export imports (with same filters as dashboard) to CSV (Excel-friendly),
-    including ALL important fields from the Import model.
+    Export imports (with same filters as dashboard) to a styled Excel (.xlsx),
+    including all important fields from the Import model.
     """
     q = (request.GET.get("q") or "").strip()
-    status_f = (request.GET.get("status") or "").strip()
-    method_f = (request.GET.get("method") or "").strip()
+    # support multi-select filters, same as dashboard
+    status_f = request.GET.getlist("status")    # list
+    method_f = request.GET.getlist("method")    # list
 
-    qs = Import.objects.all()
+    qs = (
+        Import.objects
+        .select_related("forwarder")
+        .order_by("-created_at")
+    )
 
     if q:
         qs = qs.filter(
-            Q(import_code__icontains=q) |
-            Q(vendor_name__icontains=q) |
-            Q(tracking_no__icontains=q)
-        )
+            Q(import_code__icontains=q)
+            | Q(vendor_name__icontains=q)
+            | Q(tracking_no__icontains=q)
+            | Q(vendor_reference__icontains=q)
+            | Q(forwarder_reference__icontains=q)
+            | Q(lines__item_no__icontains=q)
+            | Q(lines__document_no__icontains=q)
+        ).distinct()
 
     if status_f:
-        qs = qs.filter(shipment_status=status_f)
+        qs = qs.filter(shipment_status__in=status_f)
 
     if method_f:
-        qs = qs.filter(shipping_method=method_f)
+        qs = qs.filter(shipping_method__in=method_f)
 
-    qs = qs.select_related("forwarder").order_by("-created_at")
+    # ------------------------------
+    # 1) Create workbook / sheet
+    # ------------------------------
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Imports"
 
-    response = HttpResponse(content_type="text/csv")
-    filename = "imports_export.csv"
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-    writer = csv.writer(response)
-
-    # 🔹 Header row – all fields you care about
-    writer.writerow([
+    headers = [
         "DB ID",
         "Import Code",
         "Vendor",
@@ -86,8 +105,8 @@ def export_imports_excel(request):
         "Currency",
         "Goods Price",
         "Shipping Method",
-        "Forwarder",
         "Shipment Status",
+        "Forwarder",
         "Vendor Reference",
         "Forwarder Reference",
         "Tracking Number",
@@ -102,21 +121,40 @@ def export_imports_excel(request):
         "Total Gross Weight (kg)",
         "Total Volumetric Weight (kg)",
         "Created At",
-    ])
+    ]
+    ws.append(headers)
 
-    # 🔹 Data rows
+    # styles
+    header_font = Font(bold=True)
+    header_fill = PatternFill(fill_type="solid", fgColor="D9E1F2")
+    thin_border = Border(
+        left=Side(border_style="thin", color="000000"),
+        right=Side(border_style="thin", color="000000"),
+        top=Side(border_style="thin", color="000000"),
+        bottom=Side(border_style="thin", color="000000"),
+    )
+
+    # style header row
+    for cell in ws[1]:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+
+    # ------------------------------
+    # 2) Data rows
+    # ------------------------------
     for imp in qs:
-        writer.writerow([
+        row = [
             imp.pk,
             imp.import_code,
             imp.vendor_name or "",
             str(imp.exporter_country) if imp.exporter_country else "",
             imp.incoterms or "",
             imp.currency_code or "",
-            str(imp.goods_price) if imp.goods_price is not None else "",
+            float(imp.goods_price) if imp.goods_price is not None else "",
             imp.shipping_method or "",
-            imp.forwarder.name if getattr(imp, "forwarder", None) else "",
             imp.shipment_status or "",
+            imp.forwarder.name if getattr(imp, "forwarder", None) else "",
             imp.vendor_reference or "",
             imp.forwarder_reference or "",
             imp.tracking_no or "",
@@ -128,11 +166,43 @@ def export_imports_excel(request):
             imp.declaration_a_number or "",
             imp.declaration_date.isoformat() if imp.declaration_date else "",
             imp.expected_receipt_date.isoformat() if imp.expected_receipt_date else "",
-            str(imp.total_gross_weight_kg) if imp.total_gross_weight_kg is not None else "",
-            str(imp.total_volumetric_weight_kg) if imp.total_volumetric_weight_kg is not None else "",
-            imp.created_at.strftime("%Y-%m-%d %H:%M"),
-        ])
+            float(imp.total_gross_weight_kg) if imp.total_gross_weight_kg is not None else "",
+            float(imp.total_volumetric_weight_kg) if imp.total_volumetric_weight_kg is not None else "",
+            imp.created_at.strftime("%Y-%m-%d %H:%M") if imp.created_at else "",
+        ]
+        ws.append(row)
 
+        row_idx = ws.max_row
+        # zebra striping
+        fill_color = "FFFFFF" if row_idx % 2 == 0 else "F7F7F7"
+        for cell in ws[row_idx]:
+            cell.fill = PatternFill(
+                start_color=fill_color,
+                end_color=fill_color,
+                fill_type="solid",
+            )
+            cell.border = thin_border
+
+    # ------------------------------
+    # 3) Auto-fit, freeze, filter
+    # ------------------------------
+    for column_cells in ws.columns:
+        length = max(len(str(c.value)) if c.value else 0 for c in column_cells)
+        col_letter = get_column_letter(column_cells[0].column)
+        ws.column_dimensions[col_letter].width = length + 2
+
+    ws.freeze_panes = "A2"
+    last_col = get_column_letter(ws.max_column)
+    ws.auto_filter.ref = f"A1:{last_col}{ws.max_row}"
+
+    # ------------------------------
+    # 4) Response
+    # ------------------------------
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="imports_export.xlsx"'
+    wb.save(response)
     return response
 
 
