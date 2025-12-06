@@ -16,12 +16,13 @@
 
   /* Full-width dashboard card */
   .card-outer {
-      width: 100vw;
-      max-width: 100vw;
-      margin-left: calc(50% - 50vw);
-      margin-right: 0;
-      margin-bottom: 60px;
-  }
+    width: 100%;
+    max-width: 1500px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 60px;
+}
+
 
   .card-body {
       padding-left: 1.5rem;
@@ -372,13 +373,13 @@
                       class="btn btn-sm btn-outline-success mb-1">
                       📥
                     </a>
-                    <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary mb-1">Edit</a>
+                    <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary mb-1"> ✎</a>
                     <form method="post" action="{% url 'imports_delete' imp.pk %}" class="d-inline">
                       {% csrf_token %}
                       <button type="submit"
                               class="btn btn-sm btn-outline-danger"
                               onclick="return confirm('Delete {{ imp.import_code }}?');">
-                        Delete
+                              🗑
                       </button>
                     </form>
                   </td>
