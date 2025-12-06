@@ -165,12 +165,13 @@
     </div>
 
     <div class="col-md-4">
-      <label class="form-label small mb-1">Expected Receipt Date</label>
+      <label class="form-label small mb-1">ATC Expected Receipt Date</label>
       <input type="date"
              name="expected_receipt_date"
              class="form-control form-control-sm"
-             value="{{ fd.expected_receipt_date|default:'' }}">
+             value="{% if fd.expected_receipt_date %}{{ fd.expected_receipt_date }}{% elif import_obj and import_obj.expected_receipt_date %}{{ import_obj.expected_receipt_date|date:'Y-m-d' }}{% endif %}">
     </div>
+    
 
     <!-- Switches: Danger / Stackable -->
     <div class="col-md-6 d-flex align-items-center">
