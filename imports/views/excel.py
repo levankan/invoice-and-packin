@@ -117,7 +117,7 @@ def export_imports_excel(request):
         "Declaration C Number",
         "Declaration A Number",
         "Declaration Date",
-        "Expected Receipt Date",
+        "ATC Receipt Date",
         "Total Gross Weight (kg)",
         "Total Volumetric Weight (kg)",
         "Created At",
