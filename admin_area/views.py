@@ -516,6 +516,72 @@ def vendor_delete(request, pk):
 
 
 
+@login_required
+@user_passes_test(is_superuser)
+def item_add(request):
+    if request.method == "POST":
+        data = request.POST
+
+        Item.objects.create(
+            number=data.get("number"),
+            description=data.get("description"),
+            parent_item_category=data.get("parent_item_category", ""),
+            base_unit_of_measure=data.get("base_unit_of_measure", ""),
+            item_category_code=data.get("item_category_code", ""),
+            type=data.get("type", ""),
+            length=data.get("length") or None,
+            width=data.get("width") or None,
+            height=data.get("height") or None,
+            weight=data.get("weight") or None,
+            volumetric_weight=data.get("volumetric_weight") or None,
+            material=data.get("material", ""),
+            hs_code=data.get("hs_code", ""),
+            additional_measurement=data.get("additional_measurement", ""),
+        )
+
+        messages.success(request, "Item added successfully.")
+        return redirect("items_view")
+
+    return render(request, "admin_area/item_form.html", {"item": None})
+
+
+@login_required
+@user_passes_test(is_superuser)
+def item_edit(request, pk):
+    item = get_object_or_404(Item, pk=pk)
+
+    if request.method == "POST":
+        data = request.POST
+
+        item.number = data.get("number")
+        item.description = data.get("description")
+        item.parent_item_category = data.get("parent_item_category", "")
+        item.base_unit_of_measure = data.get("base_unit_of_measure", "")
+        item.item_category_code = data.get("item_category_code", "")
+        item.type = data.get("type", "")
+        item.length = data.get("length") or None
+        item.width = data.get("width") or None
+        item.height = data.get("height") or None
+        item.weight = data.get("weight") or None
+        item.volumetric_weight = data.get("volumetric_weight") or None
+        item.material = data.get("material", "")
+        item.hs_code = data.get("hs_code", "")
+        item.additional_measurement = data.get("additional_measurement", "")
+        item.save()
+
+        messages.success(request, "Item updated successfully.")
+        return redirect("items_view")
+
+    return render(request, "admin_area/item_form.html", {"item": item})
 
 
 
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def item_delete(request, pk):
+    if request.method == "POST":
+        item = get_object_or_404(Item, pk=pk)
+        item.delete()
+    return redirect("items_view")

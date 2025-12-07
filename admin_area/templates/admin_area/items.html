@@ -9,9 +9,11 @@
     <h4 class="mb-2 fw-semibold">📦 Items</h4>
     <div class="btn-group flex-wrap">
       <a href="{% url 'items_upload' %}" class="btn btn-success btn-sm px-3">⬆️ Upload</a>
+      <a href="{% url 'item_add' %}" class="btn btn-primary btn-sm px-3">➕ Add Item</a>
       <a href="{% url 'admin_area' %}" class="btn btn-secondary btn-sm px-3">⬅️ Back</a>
     </div>
   </div>
+
 
   <!-- Search -->
   <form method="get" class="d-flex gap-2 mb-3">
@@ -47,8 +49,10 @@
           <th>HS Code</th>
           <th>Additional Meas.</th>
           <th>Updated</th>
+          <th class="text-center">Actions</th>  {# ✅ NEW #}
         </tr>
       </thead>
+      
       <tbody>
         {% for it in page_obj.object_list %}
           <tr>
@@ -67,13 +71,33 @@
             <td class="text-center">{{ it.hs_code|default:"—" }}</td>
             <td>{{ it.additional_measurement|default:"—" }}</td>
             <td class="text-nowrap text-muted">{{ it.updated_at|date:"Y-m-d H:i" }}</td>
+      
+            <!-- ✅ ACTION BUTTONS -->
+            <td class="text-center">
+              <a href="{% url 'item_edit' it.pk %}" class="btn btn-sm btn-outline-primary">
+                ✎
+              </a>
+      
+              <form method="post"
+                    action="{% url 'item_delete' it.pk %}"
+                    class="d-inline">
+                {% csrf_token %}
+                <button type="submit"
+                        class="btn btn-sm btn-outline-danger"
+                        onclick="return confirm('Delete item {{ it.number }}?');">
+                  🗑
+                </button>
+              </form>
+            </td>
           </tr>
         {% empty %}
           <tr>
-            <td colspan="15" class="text-center text-muted py-3">No items found.</td>
+            <td colspan="16" class="text-center text-muted py-3">
+              No items found.
+            </td>
           </tr>
         {% endfor %}
-      </tbody>
+      </tbody>      
     </table>
   </div>
 

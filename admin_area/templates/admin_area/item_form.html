@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+{% block title %}Item{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card mx-auto shadow-sm" style="max-width: 900px;">
+    <div class="card-header bg-white">
+      <h5 class="mb-0">
+        {% if item %}✎ Edit Item{% else %}➕ Add Item{% endif %}
+      </h5>
+    </div>
+
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="row g-3">
+
+          <div class="col-md-4">
+            <label class="form-label">Item No.</label>
+            <input type="text" name="number" class="form-control" required value="{{ item.number|default:'' }}">
+          </div>
+
+          <div class="col-md-8">
+            <label class="form-label">Description</label>
+            <input type="text" name="description" class="form-control" value="{{ item.description|default:'' }}">
+          </div>
+
+          <div class="col-md-4"><label class="form-label">Parent Category</label><input name="parent_item_category" class="form-control" value="{{ item.parent_item_category|default:'' }}"></div>
+          <div class="col-md-4"><label class="form-label">UoM</label><input name="base_unit_of_measure" class="form-control" value="{{ item.base_unit_of_measure|default:'' }}"></div>
+          <div class="col-md-4"><label class="form-label">Item Code</label><input name="item_category_code" class="form-control" value="{{ item.item_category_code|default:'' }}"></div>
+
+          <div class="col-md-3"><label class="form-label">Type</label><input name="type" class="form-control" value="{{ item.type|default:'' }}"></div>
+          <div class="col-md-3"><label class="form-label">Length</label><input type="number" step="0.01" name="length" class="form-control" value="{{ item.length|default:'' }}"></div>
+          <div class="col-md-3"><label class="form-label">Width</label><input type="number" step="0.01" name="width" class="form-control" value="{{ item.width|default:'' }}"></div>
+          <div class="col-md-3"><label class="form-label">Height</label><input type="number" step="0.01" name="height" class="form-control" value="{{ item.height|default:'' }}"></div>
+
+          <div class="col-md-3"><label class="form-label">Weight</label><input type="number" step="0.01" name="weight" class="form-control" value="{{ item.weight|default:'' }}"></div>
+          <div class="col-md-3"><label class="form-label">Vol. Weight</label><input type="number" step="0.01" name="volumetric_weight" class="form-control" value="{{ item.volumetric_weight|default:'' }}"></div>
+          <div class="col-md-3"><label class="form-label">Material</label><input name="material" class="form-control" value="{{ item.material|default:'' }}"></div>
+          <div class="col-md-3"><label class="form-label">HS Code</label><input name="hs_code" class="form-control" value="{{ item.hs_code|default:'' }}"></div>
+
+          <div class="col-md-12">
+            <label class="form-label">Additional Measurement</label>
+            <input name="additional_measurement" class="form-control" value="{{ item.additional_measurement|default:'' }}">
+          </div>
+
+        </div>
+
+        <div class="mt-4 d-flex justify-content-between">
+          <a href="{% url 'items_view' %}" class="btn btn-outline-secondary">⬅️ Back</a>
+          <button type="submit" class="btn btn-primary">💾 Save</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
