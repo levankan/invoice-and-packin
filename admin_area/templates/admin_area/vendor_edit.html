@@ -1,0 +1,38 @@
+{% extends 'core/base.html' %}
+{% block title %}Edit Vendor{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 520px;">
+  <div class="card shadow-sm">
+    <div class="card-header bg-white">
+      <h5 class="mb-0">✎ Edit Vendor</h5>
+    </div>
+
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-floating mb-3">
+          <input type="text" name="number" class="form-control" value="{{ vendor.number }}" required>
+          <label>Vendor No.</label>
+        </div>
+
+        <div class="form-floating mb-3">
+          <input type="text" name="name" class="form-control" value="{{ vendor.name }}" required>
+          <label>Vendor Name</label>
+        </div>
+
+        <div class="form-floating mb-3">
+          <input type="text" name="vat_registration_no" class="form-control" value="{{ vendor.vat_registration_no }}">
+          <label>VAT Registration No.</label>
+        </div>
+
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'vendors_view' %}" class="btn btn-outline-secondary">⬅️ Back</a>
+          <button type="submit" class="btn btn-success">Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -20,5 +20,10 @@ urlpatterns = [
     path("forwarders/<int:pk>/delete/", views.forwarder_delete, name="forwarder_delete"),
     path("forwarders/create/", views.forwarder_create, name="forwarder_create"),
 
+    path("vendors/add/", views.vendor_add, name="vendor_add"),
+    path("vendors/edit/<int:pk>/", views.vendor_edit, name="vendor_edit"),
+    path("vendors/delete/<int:pk>/", views.vendor_delete, name="vendor_delete"),
+
+
 
 ]

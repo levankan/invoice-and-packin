@@ -5,16 +5,17 @@
 {% block content %}
 <div class="card mx-auto shadow-lg" style="max-width: 1100px; padding: 20px; border-radius: 18px; font-size: 0.9rem;">
 
-  <!-- Top bar -->
+  <!-- ✅ Top bar -->
   <div class="d-flex justify-content-between align-items-center flex-wrap mb-2">
     <h4 class="mb-2 fw-semibold">🏢 Vendors</h4>
     <div class="btn-group flex-wrap">
       <a href="{% url 'vendors_upload' %}" class="btn btn-success btn-sm px-3">⬆️ Upload</a>
+      <a href="{% url 'vendor_add' %}" class="btn btn-primary btn-sm px-3">➕ Add Vendor</a>
       <a href="{% url 'admin_area' %}" class="btn btn-secondary btn-sm px-3">⬅️ Back</a>
     </div>
   </div>
 
-  <!-- Search -->
+  <!-- ✅ Search -->
   <form method="get" class="d-flex gap-2 mb-3">
     <input name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Search No., Name, VAT...">
     <button class="btn btn-primary btn-sm px-3">Search</button>
@@ -23,12 +24,12 @@
     {% endif %}
   </form>
 
-  <!-- Stats -->
+  <!-- ✅ Stats -->
   <div class="mb-2 text-muted small">
     {% if q %}Showing results for <strong>{{ q }}</strong> — {% endif %}Total: <strong>{{ total }}</strong>
   </div>
 
-  <!-- Table -->
+  <!-- ✅ Table -->
   <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
     <table class="table table-hover table-bordered table-sm align-middle mb-0" style="font-size: 0.85rem;">
       <thead class="table-light text-center" style="position: sticky; top: 0; z-index: 1;">
@@ -37,6 +38,7 @@
           <th>Name</th>
           <th style="white-space: nowrap;">VAT Registration No.</th>
           <th style="white-space: nowrap;">Updated</th>
+          <th style="white-space: nowrap;">Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -46,19 +48,40 @@
             <td>{{ v.name }}</td>
             <td class="text-nowrap">{{ v.vat_registration_no|default:"—" }}</td>
             <td class="text-muted text-nowrap">{{ v.updated_at|date:"Y-m-d H:i" }}</td>
+
+            <!-- ✅ Actions -->
+            <td class="text-nowrap text-center">
+              <a href="{% url 'vendor_edit' v.pk %}" class="btn btn-sm btn-outline-primary">✎</a>
+
+              <form method="post"
+                    action="{% url 'vendor_delete' v.pk %}"
+                    class="d-inline">
+                {% csrf_token %}
+                <button type="submit"
+                        class="btn btn-sm btn-outline-danger"
+                        onclick="return confirm('Delete vendor {{ v.name }}?');">
+                  🗑
+                </button>
+              </form>
+            </td>
+
           </tr>
         {% empty %}
-          <tr><td colspan="4" class="text-center text-muted py-3">No vendors found.</td></tr>
+          <tr>
+            <td colspan="5" class="text-center text-muted py-3">
+              No vendors found.
+            </td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 
-  <!-- Pagination -->
+  <!-- ✅ Pagination -->
   {% if page_obj.has_other_pages %}
   <nav class="mt-3">
     <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
-      {# Prev #}
+
       {% if page_obj.has_previous %}
         <li class="page-item">
           <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}">«</a>
@@ -67,7 +90,6 @@
         <li class="page-item disabled"><span class="page-link">«</span></li>
       {% endif %}
 
-      {# Page numbers around current #}
       {% for i in page_obj.paginator.page_range %}
         {% if i >= page_obj.number|add:-3 and i <= page_obj.number|add:3 %}
           {% if i == page_obj.number %}
@@ -80,7 +102,6 @@
         {% endif %}
       {% endfor %}
 
-      {# Next #}
       {% if page_obj.has_next %}
         <li class="page-item">
           <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}">»</a>
@@ -88,8 +109,10 @@
       {% else %}
         <li class="page-item disabled"><span class="page-link">»</span></li>
       {% endif %}
+
     </ul>
   </nav>
   {% endif %}
+
 </div>
 {% endblock %}

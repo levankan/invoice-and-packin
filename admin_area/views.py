@@ -452,3 +452,70 @@ def forwarder_create(request):
             return redirect("forwarders_view")
 
     return render(request, "admin_area/forwarder_create.html")
+
+
+
+
+
+
+@login_required
+@user_passes_test(is_superuser)
+def vendor_add(request):
+    if request.method == "POST":
+        number = request.POST.get("number", "").strip()
+        name = request.POST.get("name", "").strip()
+        vat = request.POST.get("vat_registration_no", "").strip()
+
+        if not number or not name:
+            messages.error(request, "Vendor No. and Name are required.")
+            return redirect("vendor_add")
+
+        Vendor.objects.create(
+            number=number,
+            name=name,
+            vat_registration_no=vat or None,
+        )
+
+        messages.success(request, "Vendor created successfully.")
+        return redirect("vendors_view")
+
+    return render(request, "admin_area/vendor_add.html")
+
+
+
+
+
+@login_required
+@user_passes_test(is_superuser)
+def vendor_edit(request, pk):
+    vendor = get_object_or_404(Vendor, pk=pk)
+
+    if request.method == "POST":
+        vendor.number = request.POST.get("number", "").strip()
+        vendor.name = request.POST.get("name", "").strip()
+        vendor.vat_registration_no = request.POST.get("vat_registration_no", "").strip() or None
+        vendor.save()
+        messages.success(request, "Vendor updated successfully.")
+        return redirect("vendors_view")
+
+    return render(request, "admin_area/vendor_edit.html", {"vendor": vendor})
+
+
+
+
+@login_required
+@user_passes_test(is_superuser)
+def vendor_delete(request, pk):
+    vendor = get_object_or_404(Vendor, pk=pk)
+    vendor.delete()
+    messages.success(request, "Vendor deleted.")
+    return redirect("vendors_view")
+
+
+
+
+
+
+
+
+
