@@ -23,27 +23,79 @@
           <th style="width: 10%;"></th>
         </tr>
       </thead>
+
       <tbody id="packagesBody">
-        {# 🔹 One default row so inputs are always visible #}
-        <tr>
-          <td>
-            <select class="form-select form-select-sm pkg-type">
-              <option value=""></option>
-              <option value="BOX">Box</option>
-              <option value="PALLET">Pallet</option>
-              <option value="SKID">Skid</option>
-              <option value="ROLL">Roll</option>
-              <option value="ENVELOPE">Envelope</option>
-            </select>
-          </td>
-          <td><input type="number" step="0.01" class="form-control form-control-sm pkg-length" placeholder=""></td>
-          <td><input type="number" step="0.01" class="form-control form-control-sm pkg-width" placeholder=""></td>
-          <td><input type="number" step="0.01" class="form-control form-control-sm pkg-height" placeholder=""></td>
-          <td><input type="number" step="0.01" class="form-control form-control-sm pkg-gw" placeholder=""></td>
-          <td class="text-end">
-            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
-          </td>
-        </tr>
+        {# If we have packages_list (edit mode or POST error), show those rows #}
+        {% if packages_list %}
+          {% for p in packages_list %}
+            <tr data-unit-system="{{ p.unit_system|default:'metric' }}">
+              <td>
+                <select class="form-select form-select-sm pkg-type">
+                  <option value=""></option>
+                  <option value="BOX"      {% if p.type == "BOX" %}selected{% endif %}>Box</option>
+                  <option value="PALLET"   {% if p.type == "PALLET" %}selected{% endif %}>Pallet</option>
+                  <option value="SKID"     {% if p.type == "SKID" %}selected{% endif %}>Skid</option>
+                  <option value="ROLL"     {% if p.type == "ROLL" %}selected{% endif %}>Roll</option>
+                  <option value="ENVELOPE" {% if p.type == "ENVELOPE" %}selected{% endif %}>Envelope</option>
+                </select>
+              </td>
+              <td>
+                <input type="number"
+                       step="0.01"
+                       class="form-control form-control-sm pkg-length"
+                       placeholder=""
+                       value="{{ p.length }}">
+              </td>
+              <td>
+                <input type="number"
+                       step="0.01"
+                       class="form-control form-control-sm pkg-width"
+                       placeholder=""
+                       value="{{ p.width }}">
+              </td>
+              <td>
+                <input type="number"
+                       step="0.01"
+                       class="form-control form-control-sm pkg-height"
+                       placeholder=""
+                       value="{{ p.height }}">
+              </td>
+              <td>
+                <input type="number"
+                       step="0.01"
+                       class="form-control form-control-sm pkg-gw"
+                       placeholder=""
+                       value="{{ p.gross_weight }}">
+              </td>
+              <td class="text-end">
+                <button type="button"
+                        class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          {# Default empty row (new import with no packages yet) #}
+          <tr>
+            <td>
+              <select class="form-select form-select-sm pkg-type">
+                <option value=""></option>
+                <option value="BOX">Box</option>
+                <option value="PALLET">Pallet</option>
+                <option value="SKID">Skid</option>
+                <option value="ROLL">Roll</option>
+                <option value="ENVELOPE">Envelope</option>
+              </select>
+            </td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm pkg-length" placeholder=""></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm pkg-width" placeholder=""></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm pkg-height" placeholder=""></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm pkg-gw" placeholder=""></td>
+            <td class="text-end">
+              <button type="button"
+                      class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
+            </td>
+          </tr>
+        {% endif %}
       </tbody>
     </table>
   </div>
@@ -77,6 +129,8 @@
     </div>
   {% endif %}
 </div>
+
+
 
 <script>
   // ---------- Bootstrap validation + serialize packages before submit ----------
