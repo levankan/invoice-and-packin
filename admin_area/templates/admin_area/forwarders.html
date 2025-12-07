@@ -5,18 +5,17 @@
 <div class="container py-4">
   <div class="card mx-auto shadow-sm" style="max-width: 1000px; border-radius: 18px;">
     <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap">
-      <div>
-        <h2 class="h5 mb-1">🚚 Forwarders</h2>
-        <p class="text-muted small mb-0">Manage freight forwarder companies (name, legal name, VAT).</p>
-      </div>
       <div class="btn-group">
+        <a href="{% url 'forwarder_create' %}" class="btn btn-sm btn-success">
+          ➕ Add Forwarder
+        </a>
         <a href="{% url 'forwarders_export' %}" class="btn btn-sm btn-outline-secondary">
           ⬇️ Download Excel
         </a>
         <a href="{% url 'admin_area' %}" class="btn btn-sm btn-outline-dark">
           ⬅️ Back to Admin Area
         </a>
-      </div>
+      </div>      
     </div>
 
     <div class="card-body pt-3">

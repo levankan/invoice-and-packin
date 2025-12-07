@@ -424,3 +424,31 @@ def forwarders_upload(request):
         f"Forwarders upload completed. Created: {created}, Updated: {updated}."
     )
     return redirect("forwarders_view")
+
+
+
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def forwarder_create(request):
+    """
+    Create forwarder manually.
+    """
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        legal_name = (request.POST.get("legal_name") or "").strip()
+        vat_no = (request.POST.get("vat_registration_no") or "").strip()
+
+        if not name:
+            messages.error(request, "Forwarder name is required.")
+        else:
+            Forwarder.objects.create(
+                name=name,
+                legal_name=legal_name or None,
+                vat_registration_no=vat_no or None,
+            )
+            messages.success(request, "Forwarder created successfully.")
+            return redirect("forwarders_view")
+
+    return render(request, "admin_area/forwarder_create.html")

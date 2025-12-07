@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+{% block title %}Add Forwarder{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card mx-auto shadow-sm" style="max-width: 600px;">
+    <div class="card-header bg-white border-0">
+      <h4 class="mb-1">➕ Add New Forwarder</h4>
+      <p class="text-muted small mb-0">Manually create a freight forwarder.</p>
+    </div>
+
+    <div class="card-body">
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert alert-{{ message.tags }} py-2 small">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-floating mb-3">
+          <input type="text" name="name" class="form-control" placeholder="Name" required>
+          <label>Forwarder Name *</label>
+        </div>
+
+        <div class="form-floating mb-3">
+          <input type="text" name="legal_name" class="form-control" placeholder="Legal Name">
+          <label>Legal Name</label>
+        </div>
+
+        <div class="form-floating mb-3">
+          <input type="text" name="vat_registration_no" class="form-control" placeholder="VAT">
+          <label>VAT Registration No.</label>
+        </div>
+
+        <div class="d-flex justify-content-between">
+          <a href="{% url 'forwarders_view' %}" class="btn btn-outline-secondary">
+            ⬅️ Back
+          </a>
+          <button type="submit" class="btn btn-primary">
+            ✅ Save Forwarder
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

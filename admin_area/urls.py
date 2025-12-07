@@ -18,5 +18,7 @@ urlpatterns = [
     path("forwarders/<int:pk>/edit/", views.forwarder_edit, name="forwarder_edit"),
     path("forwarders/upload/", views.forwarders_upload, name="forwarders_upload"),
     path("forwarders/<int:pk>/delete/", views.forwarder_delete, name="forwarder_delete"),
+    path("forwarders/create/", views.forwarder_create, name="forwarder_create"),
+
 
 ]
