@@ -123,6 +123,33 @@ def edit_import(request, pk):
             imp.declaration_date = declaration_date
             imp.forwarder = forwarder
 
+            imp.transport_invoice_no = _clean(data.get("transport_invoice_no"))
+            imp.transport_price = _clean(data.get("transport_price"))
+            imp.transport_currency = _clean(data.get("transport_currency"))
+            imp.transport_payment_date = _parse_date("transport_payment_date")
+
+            imp.brokerage_invoice_no = _clean(data.get("brokerage_invoice_no"))
+            imp.brokerage_price = _clean(data.get("brokerage_price"))
+            imp.brokerage_currency = _clean(data.get("brokerage_currency"))
+            imp.brokerage_payment_date = _parse_date("brokerage_payment_date")
+
+            imp.internal_delivery_invoice_no = _clean(data.get("internal_delivery_invoice_no"))
+            imp.internal_delivery_price = _clean(data.get("internal_delivery_price"))
+            imp.internal_delivery_currency = _clean(data.get("internal_delivery_currency"))
+            imp.internal_delivery_payment_date = _parse_date("internal_delivery_payment_date")
+
+            imp.other1_invoice_no = _clean(data.get("other1_invoice_no"))
+            imp.other1_price = _clean(data.get("other1_price"))
+            imp.other1_currency = _clean(data.get("other1_currency"))
+            imp.other1_payment_date = _parse_date("other1_payment_date")
+
+            imp.other2_invoice_no = _clean(data.get("other2_invoice_no"))
+            imp.other2_price = _clean(data.get("other2_price"))
+            imp.other2_currency = _clean(data.get("other2_currency"))
+            imp.other2_payment_date = _parse_date("other2_payment_date")
+
+
+
             # --------- update packages from packages_json ----------
             packages_raw = data.get("packages_json")
             total_gw_kg = Decimal("0")

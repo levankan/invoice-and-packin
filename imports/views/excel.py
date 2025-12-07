@@ -118,9 +118,36 @@ def export_imports_excel(request):
         "Declaration A Number",
         "Declaration Date",
         "ATC Receipt Date",
+        "Created At",
+
+                "Transportation Invoice No",
+        "Transportation Price",
+        "Transportation Currency",
+        "Transportation Payment Date",
+
+        "Brokerage Invoice No",
+        "Brokerage Price",
+        "Brokerage Currency",
+        "Brokerage Payment Date",
+
+        "Internal Delivery Invoice No",
+        "Internal Delivery Price",
+        "Internal Delivery Currency",
+        "Internal Delivery Payment Date",
+
+        "Other Charge #1 Invoice No",
+        "Other Charge #1 Price",
+        "Other Charge #1 Currency",
+        "Other Charge #1 Payment Date",
+
+        "Other Charge #2 Invoice No",
+        "Other Charge #2 Price",
+        "Other Charge #2 Currency",
+        "Other Charge #2 Payment Date",
+
         "Total Gross Weight (kg)",
         "Total Volumetric Weight (kg)",
-        "Created At",
+        
     ]
     ws.append(headers)
 
@@ -166,9 +193,37 @@ def export_imports_excel(request):
             imp.declaration_a_number or "",
             imp.declaration_date.isoformat() if imp.declaration_date else "",
             imp.expected_receipt_date.isoformat() if imp.expected_receipt_date else "",
+            imp.created_at.strftime("%Y-%m-%d %H:%M") if imp.created_at else "",
+
+            imp.transport_invoice_no or "",
+            float(imp.transport_price) if imp.transport_price is not None else "",
+            imp.transport_currency or "",
+            imp.transport_payment_date.isoformat() if imp.transport_payment_date else "",
+
+            imp.brokerage_invoice_no or "",
+            float(imp.brokerage_price) if imp.brokerage_price is not None else "",
+            imp.brokerage_currency or "",
+            imp.brokerage_payment_date.isoformat() if imp.brokerage_payment_date else "",
+
+            imp.internal_delivery_invoice_no or "",
+            float(imp.internal_delivery_price) if imp.internal_delivery_price is not None else "",
+            imp.internal_delivery_currency or "",
+            imp.internal_delivery_payment_date.isoformat() if imp.internal_delivery_payment_date else "",
+
+            imp.other1_invoice_no or "",
+            float(imp.other1_price) if imp.other1_price is not None else "",
+            imp.other1_currency or "",
+            imp.other1_payment_date.isoformat() if imp.other1_payment_date else "",
+
+            imp.other2_invoice_no or "",
+            float(imp.other2_price) if imp.other2_price is not None else "",
+            imp.other2_currency or "",
+            imp.other2_payment_date.isoformat() if imp.other2_payment_date else "",
+
+
             float(imp.total_gross_weight_kg) if imp.total_gross_weight_kg is not None else "",
             float(imp.total_volumetric_weight_kg) if imp.total_volumetric_weight_kg is not None else "",
-            imp.created_at.strftime("%Y-%m-%d %H:%M") if imp.created_at else "",
+            
         ]
         ws.append(row)
 

@@ -31,6 +31,36 @@ class Import(models.Model):
     is_stackable = models.BooleanField(default=True)
     expected_receipt_date = models.DateField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
+    # --- TRANSPORTATION ---
+    transport_invoice_no = models.CharField(max_length=100, blank=True, null=True)
+    transport_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    transport_currency = models.CharField(max_length=10, blank=True, null=True)
+    transport_payment_date = models.DateField(blank=True, null=True)
+
+    # --- BROKERAGE ---
+    brokerage_invoice_no = models.CharField(max_length=100, blank=True, null=True)
+    brokerage_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    brokerage_currency = models.CharField(max_length=10, blank=True, null=True)
+    brokerage_payment_date = models.DateField(blank=True, null=True)
+
+    # --- INTERNAL DELIVERY ---
+    internal_delivery_invoice_no = models.CharField(max_length=100, blank=True, null=True)
+    internal_delivery_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    internal_delivery_currency = models.CharField(max_length=10, blank=True, null=True)
+    internal_delivery_payment_date = models.DateField(blank=True, null=True)
+
+    # --- OTHER CHARGES #1 ---
+    other1_invoice_no = models.CharField(max_length=100, blank=True, null=True)
+    other1_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    other1_currency = models.CharField(max_length=10, blank=True, null=True)
+    other1_payment_date = models.DateField(blank=True, null=True)
+
+    # --- OTHER CHARGES #2 ---
+    other2_invoice_no = models.CharField(max_length=100, blank=True, null=True)
+    other2_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    other2_currency = models.CharField(max_length=10, blank=True, null=True)
+    other2_payment_date = models.DateField(blank=True, null=True)
+
 
     forwarder = models.ForeignKey(
     "admin_area.Forwarder",

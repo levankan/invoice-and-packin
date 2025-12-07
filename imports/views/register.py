@@ -241,6 +241,32 @@ def register_import(request):
                 declaration_a_number=_clean(data.get("declaration_a_number")),
                 declaration_date=_parse_date_str(data.get("declaration_date")),
                 forwarder=forwarder,
+                transport_invoice_no=_clean(data.get("transport_invoice_no")),
+                transport_price=_dec_or_none("transport_price"),
+                transport_currency=_clean(data.get("transport_currency")),
+                transport_payment_date=_parse_date_str(data.get("transport_payment_date")),
+
+                brokerage_invoice_no=_clean(data.get("brokerage_invoice_no")),
+                brokerage_price=_dec_or_none("brokerage_price"),
+                brokerage_currency=_clean(data.get("brokerage_currency")),
+                brokerage_payment_date=_parse_date_str(data.get("brokerage_payment_date")),
+
+                internal_delivery_invoice_no=_clean(data.get("internal_delivery_invoice_no")),
+                internal_delivery_price=_dec_or_none("internal_delivery_price"),
+                internal_delivery_currency=_clean(data.get("internal_delivery_currency")),
+                internal_delivery_payment_date=_parse_date_str(data.get("internal_delivery_payment_date")),
+
+                other1_invoice_no=_clean(data.get("other1_invoice_no")),
+                other1_price=_dec_or_none("other1_price"),
+                other1_currency=_clean(data.get("other1_currency")),
+                other1_payment_date=_parse_date_str(data.get("other1_payment_date")),
+
+                other2_invoice_no=_clean(data.get("other2_invoice_no")),
+                other2_price=_dec_or_none("other2_price"),
+                other2_currency=_clean(data.get("other2_currency")),
+                other2_payment_date=_parse_date_str(data.get("other2_payment_date")),
+
+                
             )
 
             # --- handle packages_json -> ImportPackage + totals ---
