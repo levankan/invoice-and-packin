@@ -12,23 +12,34 @@
   <div id="chargesBody" style="display:none;">
     <div class="row g-3">
 
-      {% for block in "transport transported"|make_list %}{% endfor %}
-
       <!-- ✅ TRANSPORTATION -->
       <div class="col-12 mt-3"><strong>Transportation</strong></div>
+
       <div class="col-md-3">
-        <input type="text" name="transport_invoice_no"
-               value="{{ import_obj.transport_invoice_no|default:'' }}"
+        <select name="transport_forwarder" class="form-select form-select-sm">
+          <option value="">Forwarder</option>
+          {% for f in forwarders %}
+            <option value="{{ f.id }}" {% if import_obj and import_obj.transport_forwarder_id == f.id %}selected{% endif %}>
+              {{ f.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <input type="text" name="transport_invoice_no" value="{{ import_obj.transport_invoice_no|default:'' }}"
                class="form-control form-control-sm" placeholder="Invoice No">
       </div>
-      <div class="col-md-3">
-        <input type="number" step="0.01" name="transport_price"
-               value="{{ import_obj.transport_price|default:'' }}"
+
+      <div class="col-md-2">
+        <input type="number" step="0.01" name="transport_price" value="{{ import_obj.transport_price|default:'' }}"
                class="form-control form-control-sm" placeholder="Price">
       </div>
+
       <div class="col-md-2">
         <select name="transport_currency" class="form-select form-select-sm">
           <option value="">—</option>
+         
           <option value="USD" {% if import_obj.transport_currency == "USD" %}selected{% endif %}>USD</option>
           <option value="EUR" {% if import_obj.transport_currency == "EUR" %}selected{% endif %}>EUR</option>
           <option value="GEL" {% if import_obj.transport_currency == "GEL" %}selected{% endif %}>GEL</option>
@@ -38,24 +49,38 @@
           <option value="CNY" {% if import_obj.transport_currency == "CNY" %}selected{% endif %}>CNY</option>
         </select>
       </div>
-      <div class="col-md-4">
+
+      <div class="col-md-2">
         <input type="date" name="transport_payment_date"
                value="{{ import_obj.transport_payment_date|date:'Y-m-d' }}"
                class="form-control form-control-sm">
       </div>
 
+
       <!-- ✅ BROKERAGE -->
       <div class="col-12 mt-3"><strong>Brokerage</strong></div>
+
       <div class="col-md-3">
-        <input type="text" name="brokerage_invoice_no"
-               value="{{ import_obj.brokerage_invoice_no|default:'' }}"
+        <select name="brokerage_forwarder" class="form-select form-select-sm">
+          <option value="">Forwarder</option>
+          {% for f in forwarders %}
+            <option value="{{ f.id }}" {% if import_obj and import_obj.brokerage_forwarder_id == f.id %}selected{% endif %}>
+              {{ f.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <input type="text" name="brokerage_invoice_no" value="{{ import_obj.brokerage_invoice_no|default:'' }}"
                class="form-control form-control-sm" placeholder="Invoice No">
       </div>
-      <div class="col-md-3">
-        <input type="number" step="0.01" name="brokerage_price"
-               value="{{ import_obj.brokerage_price|default:'' }}"
+
+      <div class="col-md-2">
+        <input type="number" step="0.01" name="brokerage_price" value="{{ import_obj.brokerage_price|default:'' }}"
                class="form-control form-control-sm" placeholder="Price">
       </div>
+
       <div class="col-md-2">
         <select name="brokerage_currency" class="form-select form-select-sm">
           <option value="">—</option>
@@ -68,24 +93,38 @@
           <option value="CNY" {% if import_obj.brokerage_currency == "CNY" %}selected{% endif %}>CNY</option>
         </select>
       </div>
-      <div class="col-md-4">
+
+      <div class="col-md-2">
         <input type="date" name="brokerage_payment_date"
                value="{{ import_obj.brokerage_payment_date|date:'Y-m-d' }}"
                class="form-control form-control-sm">
       </div>
 
+
       <!-- ✅ INTERNAL DELIVERY -->
       <div class="col-12 mt-3"><strong>Internal Delivery</strong></div>
+
       <div class="col-md-3">
-        <input type="text" name="internal_delivery_invoice_no"
-               value="{{ import_obj.internal_delivery_invoice_no|default:'' }}"
+        <select name="internal_delivery_forwarder" class="form-select form-select-sm">
+          <option value="">Forwarder</option>
+          {% for f in forwarders %}
+            <option value="{{ f.id }}" {% if import_obj and import_obj.internal_delivery_forwarder_id == f.id %}selected{% endif %}>
+              {{ f.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <input type="text" name="internal_delivery_invoice_no" value="{{ import_obj.internal_delivery_invoice_no|default:'' }}"
                class="form-control form-control-sm" placeholder="Invoice No">
       </div>
-      <div class="col-md-3">
-        <input type="number" step="0.01" name="internal_delivery_price"
-               value="{{ import_obj.internal_delivery_price|default:'' }}"
+
+      <div class="col-md-2">
+        <input type="number" step="0.01" name="internal_delivery_price" value="{{ import_obj.internal_delivery_price|default:'' }}"
                class="form-control form-control-sm" placeholder="Price">
       </div>
+
       <div class="col-md-2">
         <select name="internal_delivery_currency" class="form-select form-select-sm">
           <option value="">—</option>
@@ -98,24 +137,38 @@
           <option value="CNY" {% if import_obj.internal_delivery_currency == "CNY" %}selected{% endif %}>CNY</option>
         </select>
       </div>
-      <div class="col-md-4">
+
+      <div class="col-md-2">
         <input type="date" name="internal_delivery_payment_date"
                value="{{ import_obj.internal_delivery_payment_date|date:'Y-m-d' }}"
                class="form-control form-control-sm">
       </div>
 
-      <!-- ✅ OTHER #1 -->
-      <div class="col-12 mt-3"><strong>Other Charges #1</strong></div>
+
+      <!-- ✅ OTHER CHARGE #1 -->
+      <div class="col-12 mt-3"><strong>Other Charge #1</strong></div>
+
       <div class="col-md-3">
-        <input type="text" name="other1_invoice_no"
-               value="{{ import_obj.other1_invoice_no|default:'' }}"
+        <select name="other1_forwarder" class="form-select form-select-sm">
+          <option value="">Forwarder</option>
+          {% for f in forwarders %}
+            <option value="{{ f.id }}" {% if import_obj and import_obj.other1_forwarder_id == f.id %}selected{% endif %}>
+              {{ f.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <input type="text" name="other1_invoice_no" value="{{ import_obj.other1_invoice_no|default:'' }}"
                class="form-control form-control-sm" placeholder="Invoice No">
       </div>
-      <div class="col-md-3">
-        <input type="number" step="0.01" name="other1_price"
-               value="{{ import_obj.other1_price|default:'' }}"
+
+      <div class="col-md-2">
+        <input type="number" step="0.01" name="other1_price" value="{{ import_obj.other1_price|default:'' }}"
                class="form-control form-control-sm" placeholder="Price">
       </div>
+
       <div class="col-md-2">
         <select name="other1_currency" class="form-select form-select-sm">
           <option value="">—</option>
@@ -128,24 +181,38 @@
           <option value="CNY" {% if import_obj.other1_currency == "CNY" %}selected{% endif %}>CNY</option>
         </select>
       </div>
-      <div class="col-md-4">
+
+      <div class="col-md-2">
         <input type="date" name="other1_payment_date"
                value="{{ import_obj.other1_payment_date|date:'Y-m-d' }}"
                class="form-control form-control-sm">
       </div>
 
-      <!-- ✅ OTHER #2 -->
-      <div class="col-12 mt-3"><strong>Other Charges #2</strong></div>
+
+      <!-- ✅ OTHER CHARGE #2 -->
+      <div class="col-12 mt-3"><strong>Other Charge #2</strong></div>
+
       <div class="col-md-3">
-        <input type="text" name="other2_invoice_no"
-               value="{{ import_obj.other2_invoice_no|default:'' }}"
+        <select name="other2_forwarder" class="form-select form-select-sm">
+          <option value="">Forwarder</option>
+          {% for f in forwarders %}
+            <option value="{{ f.id }}" {% if import_obj and import_obj.other2_forwarder_id == f.id %}selected{% endif %}>
+              {{ f.name }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-3">
+        <input type="text" name="other2_invoice_no" value="{{ import_obj.other2_invoice_no|default:'' }}"
                class="form-control form-control-sm" placeholder="Invoice No">
       </div>
-      <div class="col-md-3">
-        <input type="number" step="0.01" name="other2_price"
-               value="{{ import_obj.other2_price|default:'' }}"
+
+      <div class="col-md-2">
+        <input type="number" step="0.01" name="other2_price" value="{{ import_obj.other2_price|default:'' }}"
                class="form-control form-control-sm" placeholder="Price">
       </div>
+
       <div class="col-md-2">
         <select name="other2_currency" class="form-select form-select-sm">
           <option value="">—</option>
@@ -158,7 +225,8 @@
           <option value="CNY" {% if import_obj.other2_currency == "CNY" %}selected{% endif %}>CNY</option>
         </select>
       </div>
-      <div class="col-md-4">
+
+      <div class="col-md-2">
         <input type="date" name="other2_payment_date"
                value="{{ import_obj.other2_payment_date|date:'Y-m-d' }}"
                class="form-control form-control-sm">
@@ -172,6 +240,7 @@
 function toggleCharges() {
   const body = document.getElementById("chargesBody");
   const icon = document.getElementById("chargesIcon");
+
   if (body.style.display === "none") {
     body.style.display = "block";
     icon.innerText = "➖";

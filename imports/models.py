@@ -36,30 +36,66 @@ class Import(models.Model):
     transport_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     transport_currency = models.CharField(max_length=10, blank=True, null=True)
     transport_payment_date = models.DateField(blank=True, null=True)
+    transport_forwarder = models.ForeignKey(
+        "admin_area.Forwarder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transport_imports"
+    )
+
 
     # --- BROKERAGE ---
     brokerage_invoice_no = models.CharField(max_length=100, blank=True, null=True)
     brokerage_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     brokerage_currency = models.CharField(max_length=10, blank=True, null=True)
     brokerage_payment_date = models.DateField(blank=True, null=True)
+    brokerage_forwarder = models.ForeignKey(
+        "admin_area.Forwarder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="brokerage_imports"
+    )
 
     # --- INTERNAL DELIVERY ---
     internal_delivery_invoice_no = models.CharField(max_length=100, blank=True, null=True)
     internal_delivery_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     internal_delivery_currency = models.CharField(max_length=10, blank=True, null=True)
     internal_delivery_payment_date = models.DateField(blank=True, null=True)
+    internal_delivery_forwarder = models.ForeignKey(
+        "admin_area.Forwarder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="internal_delivery_imports"
+    )
 
     # --- OTHER CHARGES #1 ---
     other1_invoice_no = models.CharField(max_length=100, blank=True, null=True)
     other1_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     other1_currency = models.CharField(max_length=10, blank=True, null=True)
     other1_payment_date = models.DateField(blank=True, null=True)
+    other1_forwarder = models.ForeignKey(
+        "admin_area.Forwarder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="other1_imports"
+    )
 
     # --- OTHER CHARGES #2 ---
     other2_invoice_no = models.CharField(max_length=100, blank=True, null=True)
     other2_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
     other2_currency = models.CharField(max_length=10, blank=True, null=True)
     other2_payment_date = models.DateField(blank=True, null=True)
+    other2_forwarder = models.ForeignKey(
+        "admin_area.Forwarder",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="other2_imports"
+    )
 
 
     forwarder = models.ForeignKey(
