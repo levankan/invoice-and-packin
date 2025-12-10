@@ -126,7 +126,7 @@ def export_imports_excel(request):
         "Transportation Currency",
         "Transportation Payment Date",
 
-        "brokerage_forwarder",
+        "Brokerage Forwarder",
         "Brokerage Invoice No",
         "Brokerage Price",
         "Brokerage Currency",
