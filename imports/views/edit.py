@@ -41,6 +41,21 @@ from ..forms import ExporterCountryForm
 from ..permissions import has_imports_access
 
 
+from decimal import Decimal, InvalidOperation
+from datetime import datetime
+import json
+
+import openpyxl
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import get_object_or_404, redirect, render
+
+from admin_area.models import Forwarder, Vendor
+from ..forms import ExporterCountryForm
+from ..models import Import, ImportLine, ImportPackage
+from ..permissions import has_imports_access
+
+
 @login_required
 @user_passes_test(has_imports_access)
 def edit_import(request, pk):
@@ -54,6 +69,15 @@ def edit_import(request, pk):
         s = str(val).strip()
         return s or None
 
+    def _dec_or_none(val):
+        val = _clean(val)
+        if not val:
+            return None
+        try:
+            return Decimal(val.replace(",", ""))
+        except (InvalidOperation, AttributeError):
+            return None
+
     def _parse_date(key):
         v = _clean(request.POST.get(key))
         if not v:
@@ -63,9 +87,6 @@ def edit_import(request, pk):
         except ValueError:
             return None
 
-    # =============================
-    # ✅ LOAD PACKAGES FROM DB
-    # =============================
     def _build_packages_context(import_obj):
         packages_qs = ImportPackage.objects.filter(import_header=import_obj).order_by("pk")
         packages_list = []
@@ -80,9 +101,6 @@ def edit_import(request, pk):
             })
         return packages_list, json.dumps(packages_list, default=str)
 
-    # =============================
-    # ✅ LOAD LINES FROM DB
-    # =============================
     def _build_lines_context(import_obj):
         lines_qs = import_obj.lines.all().order_by("pk")
         lines_list = []
@@ -101,13 +119,10 @@ def edit_import(request, pk):
             })
         return lines_list, json.dumps(lines_list, default=str)
 
-    # ✅ DEFAULT VIEW STATE (GET)
+    # ✅ DEFAULT VIEW STATE
     packages_list, packages_json = _build_packages_context(imp)
     lines_data, lines_json = _build_lines_context(imp)
 
-    # ============================================================
-    # ✅ POST
-    # ============================================================
     if request.method == "POST":
         action = request.POST.get("action", "save")
 
@@ -116,7 +131,6 @@ def edit_import(request, pk):
         # =============================
         if action == "upload_lines":
             upload = request.FILES.get("lines_file")
-
             if not upload:
                 messages.error(request, "Please choose an Excel file.")
                 return redirect("imports_edit", pk=imp.pk)
@@ -126,23 +140,13 @@ def edit_import(request, pk):
                 sheet = wb.active
 
                 new_lines = []
-
                 for row in sheet.iter_rows(min_row=2, values_only=True):
-                    if not any(row):   # ✅ SAFE CHECK (same as register page)
+                    if not any(row):
                         continue
 
                     (
-                        doc_no,
-                        line_no,
-                        item_no,
-                        desc,
-                        qty,
-                        uom,
-                        unit_cost,
-                        line_amount,
-                        exp_rec_date,
-                        deliv_date,
-                        *_,
+                        doc_no, line_no, item_no, desc, qty, uom, unit_cost,
+                        line_amount, exp_rec_date, deliv_date, *_
                     ) = (list(row) + [None] * 10)[:10]
 
                     def _as_str(x):
@@ -150,8 +154,8 @@ def edit_import(request, pk):
 
                     def _as_dec(x):
                         try:
-                            return Decimal(str(x)) if x not in (None, "") else None
-                        except:
+                            return Decimal(str(x).replace(",", "")) if x not in (None, "") else None
+                        except (InvalidOperation, TypeError):
                             return None
 
                     def _as_date(x):
@@ -162,7 +166,7 @@ def edit_import(request, pk):
                             for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y"):
                                 try:
                                     return datetime.strptime(x, fmt).date()
-                                except:
+                                except ValueError:
                                     continue
                         return None
 
@@ -179,28 +183,20 @@ def edit_import(request, pk):
                         "delivery_date": _as_date(deliv_date),
                     })
 
-                # ✅ ONLY NOW delete + insert
                 if not new_lines:
                     messages.error(request, "Excel contains no valid data rows.")
                     return redirect("imports_edit", pk=imp.pk)
 
+                # ✅ replace lines in DB
                 imp.lines.all().delete()
-
                 for l in new_lines:
-                    ImportLine.objects.create(
-                        import_header=imp,
-                        **l
-                    )
+                    ImportLine.objects.create(import_header=imp, **l)
 
-                messages.success(
-                    request, f"{len(new_lines)} new lines uploaded and replaced successfully."
-                )
-
+                messages.success(request, f"{len(new_lines)} new lines uploaded and replaced successfully.")
             except Exception as e:
                 messages.error(request, f"Excel error: {e}")
 
             return redirect("imports_edit", pk=imp.pk)
-
 
         # =============================
         # ✅ NORMAL SAVE MODE
@@ -213,6 +209,7 @@ def edit_import(request, pk):
                 fid = data.get(key)
                 return Forwarder.objects.filter(pk=fid).first() if fid else None
 
+            # forwarders
             imp.forwarder = get_forwarder("forwarder")
             imp.transport_forwarder = get_forwarder("transport_forwarder")
             imp.brokerage_forwarder = get_forwarder("brokerage_forwarder")
@@ -220,12 +217,42 @@ def edit_import(request, pk):
             imp.other1_forwarder = get_forwarder("other1_forwarder")
             imp.other2_forwarder = get_forwarder("other2_forwarder")
 
+            # ✅ charges (THIS WAS YOUR ISSUE)
+            imp.transport_invoice_no = _clean(data.get("transport_invoice_no"))
+            imp.transport_price = _dec_or_none(data.get("transport_price"))
+            imp.transport_currency = _clean(data.get("transport_currency"))
+            imp.transport_payment_date = _parse_date("transport_payment_date")
+
+            imp.brokerage_invoice_no = _clean(data.get("brokerage_invoice_no"))
+            imp.brokerage_price = _dec_or_none(data.get("brokerage_price"))
+            imp.brokerage_currency = _clean(data.get("brokerage_currency"))
+            imp.brokerage_payment_date = _parse_date("brokerage_payment_date")
+
+            imp.internal_delivery_invoice_no = _clean(data.get("internal_delivery_invoice_no"))
+            imp.internal_delivery_price = _dec_or_none(data.get("internal_delivery_price"))
+            imp.internal_delivery_currency = _clean(data.get("internal_delivery_currency"))
+            imp.internal_delivery_payment_date = _parse_date("internal_delivery_payment_date")
+
+            imp.other1_invoice_no = _clean(data.get("other1_invoice_no"))
+            imp.other1_price = _dec_or_none(data.get("other1_price"))
+            imp.other1_currency = _clean(data.get("other1_currency"))
+            imp.other1_payment_date = _parse_date("other1_payment_date")
+
+            imp.other2_invoice_no = _clean(data.get("other2_invoice_no"))
+            imp.other2_price = _dec_or_none(data.get("other2_price"))
+            imp.other2_currency = _clean(data.get("other2_currency"))
+            imp.other2_payment_date = _parse_date("other2_payment_date")
+
+            # header
             imp.vendor_name = _clean(data.get("vendor_name")) or ""
             imp.exporter_country = form.cleaned_data.get("exporter_country")
             imp.incoterms = _clean(data.get("incoterms"))
             imp.currency_code = _clean(data.get("currency_code"))
-            imp.goods_price = Decimal(data.get("goods_price")) if data.get("goods_price") else None
-            imp.tracking_no = _clean(data.get("tracking_no"))
+            imp.goods_price = _dec_or_none(data.get("goods_price"))
+
+            tracking = _clean(data.get("tracking_no"))
+            imp.tracking_no = tracking.upper() if tracking else None
+
             imp.shipping_method = _clean(data.get("shipping_method"))
             imp.shipment_status = _clean(data.get("shipment_status"))
             imp.pickup_address = _clean(data.get("pickup_address"))
@@ -233,15 +260,14 @@ def edit_import(request, pk):
             imp.is_stackable = bool(data.get("is_stackable"))
             imp.expected_receipt_date = _parse_date("expected_receipt_date")
             imp.notes = _clean(data.get("notes"))
-            # ✅ SAVE CUSTOMS DECLARATION
+
+            # customs
             imp.declaration_c_number = _clean(data.get("declaration_c_number"))
             imp.declaration_a_number = _clean(data.get("declaration_a_number"))
             imp.declaration_date = _parse_date("declaration_date")
-            # =============================
-            # ✅ UPDATE PACKAGES FROM EDIT PAGE
-            # =============================
-            ImportPackage.objects.filter(import_header=imp).delete()
 
+            # packages replace + totals
+            ImportPackage.objects.filter(import_header=imp).delete()
             packages_raw = request.POST.get("packages_json")
 
             total_gw = Decimal("0")
@@ -254,14 +280,17 @@ def edit_import(request, pk):
                     packages = []
 
                 for p in packages:
-                    length = Decimal(p.get("length")) if p.get("length") else None
-                    width = Decimal(p.get("width")) if p.get("width") else None
-                    height = Decimal(p.get("height")) if p.get("height") else None
-                    gw = Decimal(p.get("gross_weight")) if p.get("gross_weight") else None
+                    length = _dec_or_none(p.get("length"))
+                    width = _dec_or_none(p.get("width"))
+                    height = _dec_or_none(p.get("height"))
+                    gw = _dec_or_none(p.get("gross_weight"))
+
+                    if not any([p.get("type"), length, width, height, gw]):
+                        continue
 
                     ImportPackage.objects.create(
                         import_header=imp,
-                        package_type=p.get("type"),
+                        package_type=(p.get("type") or "").upper() or None,
                         length_cm=length,
                         width_cm=width,
                         height_cm=height,
@@ -269,23 +298,18 @@ def edit_import(request, pk):
                         unit_system=p.get("unit_system", "metric"),
                     )
 
-                    if gw:
+                    if gw is not None:
                         total_gw += gw
-
-                    if length and width and height:
+                    if length is not None and width is not None and height is not None:
                         total_vol += (length * width * height) / Decimal("6000")
 
-            # ✅ SAVE TOTALS
             imp.total_gross_weight_kg = total_gw if total_gw != 0 else None
-            imp.total_volumetric_weight_kg = total_vol if total_vol != 0 else None
-
+            imp.total_volumetric_weight_kg = total_vol.quantize(Decimal("0.001")) if total_vol != 0 else None
 
             imp.save()
             return redirect("imports_home")
 
-    # ============================================================
-    # ✅ FINAL GET RENDER
-    # ============================================================
+    # ✅ GET render
     form = ExporterCountryForm(initial={"exporter_country": imp.exporter_country})
     return render(
         request,
