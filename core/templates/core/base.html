@@ -34,9 +34,15 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <!-- ✅ Logo links to Home -->
-            <a href="{% url 'home' %}" class="d-inline-block">
+            {% if user.is_authenticated %}
+                <!-- Logo clickable everywhere EXCEPT login -->
+                <a href="{% url 'home' %}" class="d-inline-block">
+                    <img src="{% static 'img/atc_logo.jpeg' %}" alt="ATC Logo" class="logo">
+                </a>
+            {% else %}
+                <!-- Login page: logo NOT clickable -->
                 <img src="{% static 'img/atc_logo.jpeg' %}" alt="ATC Logo" class="logo">
-            </a>
+            {% endif %}
 
             <button id="theme-toggle" class="btn btn-outline-secondary">🌓 Toggle Theme</button>
         </div>
