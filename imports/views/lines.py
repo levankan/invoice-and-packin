@@ -12,7 +12,7 @@ from ..permissions import has_imports_access
 
 
 @login_required
-@user_passes_test(has_imports_access)
+#@user_passes_test(has_imports_access)
 def upload_import_lines(request, pk):
     """
     Upload Excel lines for a given Import (pk) (edit mode).

@@ -8,7 +8,7 @@ from ..permissions import has_imports_access, STATUS_CHOICES, METHOD_CHOICES
 
 
 @login_required
-@user_passes_test(has_imports_access)
+#@user_passes_test(has_imports_access)
 def imports_dashboard(request):
     q = (request.GET.get("q") or "").strip()
 

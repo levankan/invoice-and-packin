@@ -12,7 +12,7 @@ from ..permissions import has_imports_access
 
 
 @login_required
-@user_passes_test(has_imports_access)
+#@user_passes_test(has_imports_access)
 def export_payments_excel(request):
     """
     Export payments/charges data to Excel.

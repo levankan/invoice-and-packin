@@ -371,13 +371,14 @@
                   </td>
                   <td class="col-created text-nowrap">{{ imp.created_at|date:"Y-m-d" }}</td>
 
-                  {% if user.is_superuser %}
+                  
                   <td class="text-end col-actions">
                     <a href="{% url 'import_single_excel' imp.pk %}"
                       class="btn btn-sm btn-outline-success mb-1">
                       📥
                     </a>
                     <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary mb-1"> ✎</a>
+                    {% if user.is_superuser %}
                     <form method="post" action="{% url 'imports_delete' imp.pk %}" class="d-inline">
                       {% csrf_token %}
                       <button type="submit"

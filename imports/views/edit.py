@@ -57,7 +57,7 @@ from ..permissions import has_imports_access
 
 
 @login_required
-@user_passes_test(has_imports_access)
+#@user_passes_test(has_imports_access)
 def edit_import(request, pk):
     imp = get_object_or_404(Import, pk=pk)
     vendors = Vendor.objects.all().order_by("name")
@@ -332,6 +332,7 @@ def edit_import(request, pk):
 
 
 @login_required
+@user_passes_test(has_imports_access)
 def delete_import(request, pk):
     if not request.user.is_superuser:
         return redirect("imports_home")
