@@ -22,4 +22,6 @@ urlpatterns = [
         views.export_single_import_excel,
         name="import_single_excel",
     ),
+
+    path("payments/export/", views.export_payments_excel, name="imports_payments_excel"),
 ]

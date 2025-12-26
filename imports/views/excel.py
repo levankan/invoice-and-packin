@@ -38,7 +38,8 @@ from ..models import ImportLine
 from ..permissions import has_imports_access
 from admin_area.models import Item
 
-
+from openpyxl import Workbook
+from datetime import date
 
 
 
@@ -321,6 +322,15 @@ from ..permissions import has_imports_access
 from admin_area.models import Item   # ✅ correct app name
 
 
+from collections import defaultdict
+from decimal import Decimal
+from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required, user_passes_test
+
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+
 @login_required
 @user_passes_test(has_imports_access)
 def export_import_lines_excel(request):
@@ -330,11 +340,16 @@ def export_import_lines_excel(request):
       - header totals (GW / VW)
       - calculated line gross & volumetric weight
       - vendor/forwarder references & customs info
+      - Vendor VRS = (Register Date - Delivery Date) in days
     """
     qs = (
         ImportLine.objects
         .select_related("import_header")
-        .order_by("import_header__pk", "document_no", "line_no")
+        .order_by(
+            "-import_header__created_at",  # newest imports first ✅
+            "document_no",
+            "line_no",
+        )
     )
 
     # ------------------------------------------------------------------
@@ -373,14 +388,14 @@ def export_import_lines_excel(request):
         "Unit of Measure",
         "Unit Cost",
         "Line Amount",
-        "Goods Currency",              # after Line Amount
+        "Goods Currency",
         "Expected Receipt Date",
         "Delivery Date",
-        "ATC Receipt Date", 
+        "ATC Receipt Date",
         "Created At",
-        "Shipment Status", 
+        "Shipment Status",
         "Tracking Number",
-        "Vendor Reference",            # all after Tracking Number
+        "Vendor Reference",
         "Forwarder Reference",
         "Declaration C Number",
         "Declaration A Number",
@@ -390,6 +405,7 @@ def export_import_lines_excel(request):
         "Total Import VW (kg)",
         "Line Gross Weight (kg)",
         "Line Volumetric Weight (kg)",
+        "Vendor VRS",  # ✅ NEW COLUMN
     ]
     ws.append(headers)
 
@@ -410,7 +426,7 @@ def export_import_lines_excel(request):
         cell.border = thin_border
 
     # ------------------------------------------------------------------
-    # 4) Data rows with calculated line weights
+    # 4) Data rows with calculated line weights + Vendor VRS
     # ------------------------------------------------------------------
     for line in qs:
         imp = line.import_header
@@ -440,6 +456,13 @@ def export_import_lines_excel(request):
             elif total_vw_import is not None and total_qty:
                 line_vw = (total_vw_import * qty) / total_qty
 
+        # ✅ Vendor VRS = Register Date (imp.created_at) - Delivery Date (line.delivery_date)
+        vendor_vrs = ""
+        register_date = imp.created_at if imp else None
+        delivery_date = line.delivery_date
+        if register_date and delivery_date:
+            vendor_vrs = (register_date.date() - delivery_date).days
+
         # append row
         ws.append([
             line.pk,
@@ -454,23 +477,24 @@ def export_import_lines_excel(request):
             line.unit_of_measure or "",
             float(line.unit_cost) if line.unit_cost is not None else "",
             float(line.line_amount) if line.line_amount is not None else "",
-            imp.currency_code or "" if imp else "",                        # Goods Currency
+            (imp.currency_code or "") if imp else "",
             line.expected_receipt_date.isoformat() if line.expected_receipt_date else "",
             line.delivery_date.isoformat() if line.delivery_date else "",
             imp.expected_receipt_date.isoformat() if (imp and imp.expected_receipt_date) else "",
             imp.created_at.strftime("%Y-%m-%d") if (imp and imp.created_at) else "",
-            imp.shipment_status or "" if imp else "", 
+            (imp.shipment_status or "") if imp else "",
             imp.tracking_no if (imp and imp.tracking_no) else "",
-            imp.vendor_reference or "" if imp else "",
-            imp.forwarder_reference or "" if imp else "",
-            imp.declaration_c_number or "" if imp else "",
-            imp.declaration_a_number or "" if imp else "",
+            (imp.vendor_reference or "") if imp else "",
+            (imp.forwarder_reference or "") if imp else "",
+            (imp.declaration_c_number or "") if imp else "",
+            (imp.declaration_a_number or "") if imp else "",
             imp.declaration_date.isoformat() if (imp and imp.declaration_date) else "",
-            imp.incoterms or "" if imp else "",
+            (imp.incoterms or "") if imp else "",
             float(total_gw_import) if total_gw_import is not None else "",
             float(total_vw_import) if total_vw_import is not None else "",
             float(line_gw) if line_gw is not None else "",
             float(line_vw) if line_vw is not None else "",
+            vendor_vrs,  # ✅ IMPORTANT: add the value at the end
         ])
 
         # ----------------------------
@@ -508,6 +532,7 @@ def export_import_lines_excel(request):
 
     wb.save(response)
     return response
+
 
 
 

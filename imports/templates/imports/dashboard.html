@@ -23,7 +23,6 @@
     max-width: 1400px;   /* or remove if you want auto */
 }
 
-
   .card-body {
       padding-left: 1.5rem;
       padding-right: 1.5rem;
@@ -138,8 +137,6 @@
   }
 </style>
 
-
-
 <div class="page-wrapper">
   <div class="card mx-auto shadow-sm border-0 card-outer">
     <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center flex-wrap">
@@ -147,6 +144,13 @@
         <h1 class="h5 mb-1">Imports</h1>
         <div class="text-muted small">Browse and manage registered imports</div>
       </div>
+
+      {# ✅ FIXED: no request.GET.getlist() calls inside template #}
+      <a class="btn btn-outline-success btn-sm"
+         href="{% url 'imports_payments_excel' %}?q={{ q }}{% for s in status_selected %}&status={{ s }}{% endfor %}{% for m in method_selected %}&method={{ m }}{% endfor %}">
+        Payments
+      </a>
+
       <div class="d-flex gap-2">
         <a class="btn btn-sm btn-outline-secondary" href="{% url 'imports_export' %}">
           Download Imports
@@ -384,13 +388,14 @@
                     </form>
                   </td>
                   {% endif %}
-
                 </tr>
 
                 {# DETAIL ROW WITH LINES TABLE #}
                 <tr class="lines-row d-none" data-import-id="{{ imp.id }}">
                   <td colspan="{% if user.is_superuser %}13{% else %}12{% endif %}">
-                    {% if imp.lines.all %}
+
+                    {# ✅ FIXED: use exists() #}
+                    {% if imp.lines.exists %}
                       <div class="table-responsive mt-2 mb-2">
                         <table class="table table-sm table-bordered mb-0">
                           <thead class="table-light">
@@ -415,33 +420,13 @@
                                 <td>{{ line.line_no|default:"" }}</td>
                                 <td>{{ line.item_no|default:"" }}</td>
                                 <td>{{ line.description|default:"" }}</td>
-                                <td>
-                                  {% if line.quantity is not None %}
-                                    {{ line.quantity }}
-                                  {% endif %}
-                                </td>
+                                <td>{% if line.quantity is not None %}{{ line.quantity }}{% endif %}</td>
                                 <td>{{ line.unit_of_measure|default:"" }}</td>
-                                <td>
-                                  {% if line.unit_cost is not None %}
-                                    {{ line.unit_cost }}
-                                  {% endif %}
-                                </td>
-                                <td>
-                                  {% if line.line_amount is not None %}
-                                    {{ line.line_amount }}
-                                  {% endif %}
-                                </td>
+                                <td>{% if line.unit_cost is not None %}{{ line.unit_cost }}{% endif %}</td>
+                                <td>{% if line.line_amount is not None %}{{ line.line_amount }}{% endif %}</td>
                                 <td>{{ imp.currency_code|default:"" }}</td>
-                                <td>
-                                  {% if line.expected_receipt_date %}
-                                    {{ line.expected_receipt_date|date:"Y-m-d" }}
-                                  {% endif %}
-                                </td>
-                                <td>
-                                  {% if line.delivery_date %}
-                                    {{ line.delivery_date|date:"Y-m-d" }}
-                                  {% endif %}
-                                </td>
+                                <td>{% if line.expected_receipt_date %}{{ line.expected_receipt_date|date:"Y-m-d" }}{% endif %}</td>
+                                <td>{% if line.delivery_date %}{{ line.delivery_date|date:"Y-m-d" }}{% endif %}</td>
                               </tr>
                             {% endfor %}
                           </tbody>
@@ -507,7 +492,6 @@
     </nav>
   </div>
 {% endif %}
-
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
