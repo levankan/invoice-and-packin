@@ -101,7 +101,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Set session cookie lifetime to 20 minutes (in seconds).
 # SESSION_SAVE_EVERY_REQUEST=True makes the session "sliding" — each request
 # refreshes the expiry, so 20 minutes of inactivity will expire the session.
-SESSION_COOKIE_AGE = 20 * 60                # 20 minutes
+SESSION_COOKIE_AGE = 15 * 60                # 15 minutes
 SESSION_SAVE_EVERY_REQUEST = True           # extend expiry on each request
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 LOGIN_URL = '/' # or the URL name/path for your login view
