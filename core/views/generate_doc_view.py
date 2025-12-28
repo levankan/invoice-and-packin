@@ -4,19 +4,30 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from core.models import Export, LineItem, Pallet
 from decimal import Decimal
-from django.db.models import Q
+from django.db.models import Q  # keep unused as you requested
 
 
 EXPECTED_HEADERS = [
-    "Serial/Lot Number","Document Number","Item Number","Cross Reference #",
-    "QTY","Unit of Measure","Box #","Commercial Invoice #","Posting Date",
-    "Shipment #","Description","Carbon QTY","Carbon LOT","Customer PO",
-    "PO Line","Sales Order","Sales Order Line","Pallet #","Price","LU"
+    "Serial/Lot Number", "Document Number", "Item Number", "Cross Reference #",
+    "QTY", "Unit of Measure", "Box #", "Commercial Invoice #", "Posting Date",
+    "Shipment #", "Description", "Carbon QTY", "Carbon LOT", "Customer PO",
+    "PO Line", "Sales Order", "Sales Order Line", "Pallet #", "Price", "LU"
 ]
 
 EXPECTED_PALLET_HEADERS = [
     "Pallet #", "Lenght (Cm)", "Width (Cm)", "Height (Cm)", "Gross Weight (Kg)"
 ]
+
+
+def _is_blank(val) -> bool:
+    """Treat NaN / None / '' / 'nan' as blank."""
+    if val is None:
+        return True
+    if pd.isna(val):
+        return True
+    if isinstance(val, str) and val.strip().lower() in ("", "nan", "none"):
+        return True
+    return False
 
 
 @login_required
@@ -48,7 +59,6 @@ def generate_doc_view(request):
             "terms": "Terms of Payment: 30D",
         },
     }
-
 
     shipped_to_list = [
         {
@@ -96,7 +106,7 @@ def generate_doc_view(request):
         project = request.POST.get("project")
         file = request.FILES.get("excel_file")
 
-        sold_to_key = request.POST.get("sold_to")  # comes from <select name="sold_to">
+        sold_to_key = request.POST.get("sold_to")
         soldto = sold_to_options.get(sold_to_key)
 
         if not soldto:
@@ -110,7 +120,7 @@ def generate_doc_view(request):
         ]
         for line in soldto["address_lines"]:
             sold_to_lines.append(line)
-        if soldto["terms"]:
+        if soldto.get("terms"):
             sold_to_lines.append(soldto["terms"])
 
         sold_to_block = "\n".join(sold_to_lines)
@@ -125,7 +135,9 @@ def generate_doc_view(request):
             messages.error(request, "⚠ Could not read Excel file. Make sure it's .xlsx or .xls")
             return redirect("generate_doc")
 
-        # 🔹 Validate Sheet1
+        # -------------------------
+        # Sheet1 validation
+        # -------------------------
         if "Sheet1" not in xls.sheet_names:
             messages.error(request, "⚠ Missing Sheet1 for items.")
             return redirect("generate_doc")
@@ -141,8 +153,9 @@ def generate_doc_view(request):
             return redirect("generate_doc")
 
         existing_serials = set(
-            LineItem.objects.filter(serial_lot_number__in=df["Serial/Lot Number"].dropna().tolist())
-            .values_list("serial_lot_number", flat=True)
+            LineItem.objects.filter(
+                serial_lot_number__in=df["Serial/Lot Number"].dropna().tolist()
+            ).values_list("serial_lot_number", flat=True)
         )
         if existing_serials:
             messages.error(
@@ -151,20 +164,51 @@ def generate_doc_view(request):
             )
             return redirect("generate_doc")
 
-        # NEW: Ensure Box # is present for every row (not null/empty)
-        if "Box #" not in df.columns:
-            messages.error(request, "⚠ 'Box #' column is missing from Sheet1.")
+        # ✅ Sheet1: Box/Pallet validation
+        if "Box #" not in df.columns or "Pallet #" not in df.columns:
+            messages.error(request, "⚠ Sheet1 must contain both 'Box #' and 'Pallet #' columns.")
             return redirect("generate_doc")
 
-        # consider empty strings and NaN as empty
-        box_empty_mask = df["Box #"].isnull() | (df["Box #"].astype(str).str.strip() == "")
-        if box_empty_mask.any():
-            # show up to first few offending rows to help user fix sheet
-            empty_rows = df[box_empty_mask].index.tolist()
-            messages.error(request, f"⚠ Some rows in Sheet1 have empty 'Box #' values (rows: {', '.join(str(i+2) for i in empty_rows[:10])}). Please fill all box numbers.")
+        box = df["Box #"].astype(str).fillna("").str.strip().replace({"nan": ""})
+        pallet = df["Pallet #"].astype(str).fillna("").str.strip().replace({"nan": ""})
+
+        empty_boxes = box == ""
+        if empty_boxes.any():
+            rows = (empty_boxes[empty_boxes].index + 2)[:10]  # Excel row numbers (header=1)
+            messages.error(
+                request,
+                f"⚠ Some rows have empty 'Box #' values (rows: {', '.join(map(str, rows))})."
+            )
             return redirect("generate_doc")
 
-        # NEW: Validate pallets sheet exists and contains pallet info
+        empty_pallets = pallet == ""
+        if empty_pallets.any():
+            rows = (empty_pallets[empty_pallets].index + 2)[:10]
+            messages.error(
+                request,
+                f"⚠ Some rows have empty 'Pallet #' values (rows: {', '.join(map(str, rows))})."
+            )
+            return redirect("generate_doc")
+
+        # Box # cannot belong to multiple pallets
+        valid = (box != "") & (pallet != "")
+        box_pallet_counts = df.loc[valid].groupby(box[valid])["Pallet #"].nunique()
+        bad_boxes = box_pallet_counts[box_pallet_counts > 1].index.tolist()
+
+        if bad_boxes:
+            conflicts = (
+                df.loc[valid & box.isin(bad_boxes), ["Box #", "Pallet #"]]
+                .groupby("Box #")["Pallet #"]
+                .unique()
+                .to_dict()
+            )
+            msg = ", ".join(f"{b}: {', '.join(map(str, v))}" for b, v in conflicts.items())
+            messages.error(request, f"⚠ Box numbers on multiple pallets: {msg}")
+            return redirect("generate_doc")
+
+        # -------------------------
+        # Sheet2 validation
+        # -------------------------
         if "Sheet2" not in xls.sheet_names:
             messages.error(request, "⚠ Missing Sheet2 with pallet information. Please add pallet data.")
             return redirect("generate_doc")
@@ -176,18 +220,93 @@ def generate_doc_view(request):
             return redirect("generate_doc")
 
         if list(df2.columns) != EXPECTED_PALLET_HEADERS:
-            messages.error(request, "⚠ Sheet2 headers do not match expected pallet format. Please use the correct pallet headers.")
+            messages.error(
+                request,
+                "⚠ Sheet2 headers do not match expected pallet format. Please use the correct pallet headers."
+            )
             return redirect("generate_doc")
 
-        # Ensure that pallet numbers referenced in Sheet1 exist in Sheet2
-        pallets_in_lines = set(df["Pallet #"].dropna().astype(str).str.strip().unique())
-        pallets_in_sheet2 = set(df2["Pallet #"].dropna().astype(str).str.strip().unique())
+        # ✅ Normalize pallet numbers
+        df2_pallet = df2["Pallet #"].astype(str).fillna("").str.strip().replace({"nan": ""})
+
+        # ✅ Pallet # must not be empty
+        empty_pallet_no = df2_pallet == ""
+        if empty_pallet_no.any():
+            rows = (empty_pallet_no[empty_pallet_no].index + 2)[:10]
+            messages.error(
+                request,
+                f"⚠ Some rows in Sheet2 have empty 'Pallet #' values (rows: {', '.join(map(str, rows))})."
+            )
+            return redirect("generate_doc")
+
+        # ✅ Pallet # in Sheet2 must be unique
+        dup_mask = df2_pallet.duplicated(keep=False)
+        if dup_mask.any():
+            dup_vals = df2_pallet[dup_mask].unique().tolist()
+            messages.error(
+                request,
+                f"⚠ Duplicate 'Pallet #' values in Sheet2: {', '.join(map(str, dup_vals))}. Each pallet must appear only once."
+            )
+            return redirect("generate_doc")
+
+        # ✅ Validate pallet dimensions/weight not empty + must be numeric
+        required_cols = ["Lenght (Cm)", "Width (Cm)", "Height (Cm)", "Gross Weight (Kg)"]
+
+        # blank check
+        blank_rows = []
+        for idx, row in df2.iterrows():
+            pallet_no = str(row.get("Pallet #", "")).strip()
+            for col in required_cols:
+                if _is_blank(row.get(col)):
+                    blank_rows.append(idx)
+                    break
+
+        if blank_rows:
+            rows = [str(i + 2) for i in blank_rows[:10]]
+            messages.error(
+                request,
+                f"⚠ Sheet2 has missing pallet dimensions/weight for some rows (rows: {', '.join(rows)}). "
+                "Please fill Lenght/Width/Height/Gross Weight for every pallet."
+            )
+            return redirect("generate_doc")
+
+        # numeric check (coerce)
+        for col in required_cols:
+            tmp = pd.to_numeric(df2[col], errors="coerce")
+            bad = tmp.isna()
+            if bad.any():
+                rows = (bad[bad].index + 2)[:10]
+                messages.error(
+                    request,
+                    f"⚠ Sheet2 column '{col}' contains non-numeric values (rows: {', '.join(map(str, rows))})."
+                )
+                return redirect("generate_doc")
+
+            # optional: disallow <= 0
+            non_positive = tmp <= 0
+            if non_positive.any():
+                rows = (non_positive[non_positive].index + 2)[:10]
+                messages.error(
+                    request,
+                    f"⚠ Sheet2 column '{col}' must be > 0 (rows: {', '.join(map(str, rows))})."
+                )
+                return redirect("generate_doc")
+
+        # Ensure pallets referenced in Sheet1 exist in Sheet2
+        pallets_in_lines = set(pallet.dropna().astype(str).str.strip().unique())
+        pallets_in_sheet2 = set(df2_pallet.unique())
         missing_pallets = sorted(pallets_in_lines - pallets_in_sheet2)
+
         if missing_pallets:
-            messages.error(request, f"⚠ The following pallet numbers are referenced in Sheet1 but missing in Sheet2: {', '.join(missing_pallets)}")
+            messages.error(
+                request,
+                f"⚠ The following pallet numbers are referenced in Sheet1 but missing in Sheet2: {', '.join(missing_pallets)}"
+            )
             return redirect("generate_doc")
 
-        # 🔹 Build Shipped To block
+        # -------------------------
+        # Build Shipped To block
+        # -------------------------
         consignee = next((c for c in shipped_to_list if c["name"] == shipped_to_name), None)
         if not consignee:
             messages.error(request, "⚠ Invalid 'Shipped To' selection.")
@@ -203,15 +322,19 @@ def generate_doc_view(request):
 
         shipped_to_block = "\n".join(lines)
 
-        # 🔹 Create Export (now after validations)
+        # -------------------------
+        # Create Export (after validations)
+        # -------------------------
         export = Export.objects.create(
             seller=seller_info["name"],
             sold_to=sold_to_block,
-            shipped_to=shipped_to_block,      # full block now
+            shipped_to=shipped_to_block,
             project_no=project,
         )
 
-        # 🔹 Save LineItems
+        # -------------------------
+        # Save LineItems
+        # -------------------------
         for _, row in df.iterrows():
             LineItem.objects.create(
                 export=export,
@@ -237,15 +360,17 @@ def generate_doc_view(request):
                 lu=row["LU"],
             )
 
-        # 🔹 Save Pallets from Sheet2 (headers already validated and non-empty)
+        # -------------------------
+        # Save Pallets (safe: validated, numeric, >0, unique)
+        # -------------------------
         for _, row in df2.iterrows():
             Pallet.objects.create(
                 export=export,
-                pallet_number=row["Pallet #"],
-                length_cm=Decimal(str(row["Lenght (Cm)"])) if row["Lenght (Cm)"] is not None else None,
-                width_cm=Decimal(str(row["Width (Cm)"])) if row["Width (Cm)"] is not None else None,
-                height_cm=Decimal(str(row["Height (Cm)"])) if row["Height (Cm)"] is not None else None,
-                gross_weight_kg=Decimal(str(row["Gross Weight (Kg)"])) if row["Gross Weight (Kg)"] is not None else None,
+                pallet_number=str(row["Pallet #"]).strip(),
+                length_cm=Decimal(str(row["Lenght (Cm)"])),
+                width_cm=Decimal(str(row["Width (Cm)"])),
+                height_cm=Decimal(str(row["Height (Cm)"])),
+                gross_weight_kg=Decimal(str(row["Gross Weight (Kg)"])),
             )
 
         return render(request, "core/export_success.html", {
