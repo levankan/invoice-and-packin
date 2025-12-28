@@ -144,14 +144,15 @@
         <h1 class="h5 mb-1">Imports</h1>
         <div class="text-muted small">Browse and manage registered imports</div>
       </div>
-
-      {# ✅ FIXED: no request.GET.getlist() calls inside template #}
-      <a class="btn btn-outline-success btn-sm"
-         href="{% url 'imports_payments_excel' %}?q={{ q }}{% for s in status_selected %}&status={{ s }}{% endfor %}{% for m in method_selected %}&method={{ m }}{% endfor %}">
-        Payments
-      </a>
+  
 
       <div class="d-flex gap-2">
+
+        <a class="btn btn-outline-success btn-sm"
+          href="{% url 'imports_payments_excel' %}?q={{ q }}{% for s in status_selected %}&status={{ s }}{% endfor %}{% for m in method_selected %}&method={{ m }}{% endfor %}">
+          Payments
+        </a>
+
         <a class="btn btn-sm btn-outline-secondary" href="{% url 'imports_export' %}">
           Download Imports
         </a>
