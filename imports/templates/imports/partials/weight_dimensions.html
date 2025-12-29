@@ -2,11 +2,13 @@
 <div class="section">
   <div class="section-title d-flex justify-content-between align-items-center">
     <span>Weight &amp; Dimensions</span>
+
     <div class="d-flex align-items-center gap-2">
       <small class="text-muted me-1" id="unitLabel">cm / kg</small>
+
       <div class="form-check form-switch mb-0">
         <input class="form-check-input" type="checkbox" id="unitToggle">
-        <label class="form-check-label small" for="unitToggle">in / lbs</label>
+        <label class="form-check-label small" for="unitToggle">Imperial</label>
       </div>
     </div>
   </div>
@@ -28,7 +30,7 @@
         {# If we have packages_list (edit mode or POST error), show those rows #}
         {% if packages_list %}
           {% for p in packages_list %}
-            <tr data-unit-system="{{ p.unit_system|default:'metric' }}">
+            <tr>
               <td>
                 <select class="form-select form-select-sm pkg-type">
                   <option value=""></option>
@@ -39,42 +41,48 @@
                   <option value="ENVELOPE" {% if p.type == "ENVELOPE" %}selected{% endif %}>Envelope</option>
                 </select>
               </td>
+
               <td>
                 <input type="number"
+                       min="0"
                        step="0.01"
                        class="form-control form-control-sm pkg-length"
-                       placeholder=""
-                       value="{{ p.length }}">
+                       value="{{ p.length|default_if_none:'' }}">
               </td>
+
               <td>
                 <input type="number"
+                       min="0"
                        step="0.01"
                        class="form-control form-control-sm pkg-width"
-                       placeholder=""
-                       value="{{ p.width }}">
+                       value="{{ p.width|default_if_none:'' }}">
               </td>
+
               <td>
                 <input type="number"
+                       min="0"
                        step="0.01"
                        class="form-control form-control-sm pkg-height"
-                       placeholder=""
-                       value="{{ p.height }}">
+                       value="{{ p.height|default_if_none:'' }}">
               </td>
+
               <td>
                 <input type="number"
+                       min="0"
                        step="0.01"
                        class="form-control form-control-sm pkg-gw"
-                       placeholder=""
-                       value="{{ p.gross_weight }}">
+                       value="{{ p.gross_weight|default_if_none:'' }}">
               </td>
+
               <td class="text-end">
                 <button type="button"
-                        class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
+                        class="btn btn-sm btn-outline-danger btn-remove-pkg"
+                        aria-label="Remove package">&times;</button>
               </td>
             </tr>
           {% endfor %}
         {% else %}
-          {# Default empty row (new import with no packages yet) #}
+          {# Default empty row (new import) #}
           <tr>
             <td>
               <select class="form-select form-select-sm pkg-type">
@@ -86,13 +94,16 @@
                 <option value="ENVELOPE">Envelope</option>
               </select>
             </td>
-            <td><input type="number" step="0.01" class="form-control form-control-sm pkg-length" placeholder=""></td>
-            <td><input type="number" step="0.01" class="form-control form-control-sm pkg-width" placeholder=""></td>
-            <td><input type="number" step="0.01" class="form-control form-control-sm pkg-height" placeholder=""></td>
-            <td><input type="number" step="0.01" class="form-control form-control-sm pkg-gw" placeholder=""></td>
+
+            <td><input type="number" min="0" step="0.01" class="form-control form-control-sm pkg-length"></td>
+            <td><input type="number" min="0" step="0.01" class="form-control form-control-sm pkg-width"></td>
+            <td><input type="number" min="0" step="0.01" class="form-control form-control-sm pkg-height"></td>
+            <td><input type="number" min="0" step="0.01" class="form-control form-control-sm pkg-gw"></td>
+
             <td class="text-end">
               <button type="button"
-                      class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
+                      class="btn btn-sm btn-outline-danger btn-remove-pkg"
+                      aria-label="Remove package">&times;</button>
             </td>
           </tr>
         {% endif %}
@@ -111,17 +122,18 @@
           <input type="text"
                  class="form-control"
                  id="total_gw"
-                 value="{{ import_obj.total_gross_weight_kg }}"
+                 value="{{ import_obj.total_gross_weight_kg|default_if_none:'' }}"
                  readonly>
           <label for="total_gw">Total Gross Weight (kg)</label>
         </div>
       </div>
+
       <div class="col-md-4">
         <div class="form-floating">
           <input type="text"
                  class="form-control"
                  id="total_vw"
-                 value="{{ import_obj.total_volumetric_weight_kg }}"
+                 value="{{ import_obj.total_volumetric_weight_kg|default_if_none:'' }}"
                  readonly>
           <label for="total_vw">Total Volumetric Weight (kg)</label>
         </div>
@@ -129,180 +141,3 @@
     </div>
   {% endif %}
 </div>
-
-
-
-<script>
-  // ---------- Bootstrap validation + serialize packages before submit ----------
-  (function () {
-    'use strict';
-    const forms = document.querySelectorAll('.needs-validation');
-    Array.prototype.slice.call(forms).forEach(function (form) {
-      form.addEventListener('submit', function (event) {
-
-        // Before validation, serialize packages into hidden field
-        serializePackages();
-
-        if (!form.checkValidity()) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        form.classList.add('was-validated');
-      }, false);
-    });
-  })();
-
-  document.addEventListener('DOMContentLoaded', function () {
-    // Uppercase fields
-    function upperize(el) {
-      if (!el) return;
-      el.addEventListener('input', function () {
-        const p = this.selectionStart;
-        this.value = this.value.toUpperCase();
-        try { this.setSelectionRange(p, p); } catch(e) {}
-      });
-    }
-    upperize(document.getElementById('tracking_no'));
-    upperize(document.getElementById('declaration_c_number'));
-    upperize(document.getElementById('declaration_a_number'));
-
-    // Select2 init...
-    const $vendor = $('#vendor_name');
-    if ($vendor.length) {
-      $vendor.select2({
-        width: '100%',
-        placeholder: 'Select vendor',
-        allowClear: true
-      });
-      $vendor.on('change', function () {
-        this.setCustomValidity(this.value ? '' : ' ');
-      });
-    }
-
-    const $country = $('#id_exporter_country');
-    if ($country.length) {
-      $country.select2({
-        width: '100%',
-        placeholder: 'Exporter Country',
-        allowClear: true
-      });
-    }
-
-    // 🔹 Initialize packages section
-    initPackagesSection();
-  });
-
-  // --- Packages JS ---
-  let currentUnitSystem = 'metric'; // 'metric' = cm/kg, 'imperial' = in/lbs
-
-  function initPackagesSection() {
-    const addBtn    = document.getElementById('addPackageBtn');
-    const unitToggle = document.getElementById('unitToggle');
-    const tbody      = document.getElementById('packagesBody');
-
-    if (!tbody) {
-      console.warn('packagesBody not found in DOM');
-      return;
-    }
-
-    if (addBtn) {
-      addBtn.addEventListener('click', function () {
-        addPackageRow();
-      });
-    }
-
-    // Attach remove handler for the initial row rendered by template
-    const existingRows = document.querySelectorAll('#packagesBody tr');
-    existingRows.forEach(tr => attachRemoveHandler(tr));
-
-    if (unitToggle) {
-      unitToggle.addEventListener('change', function () {
-        currentUnitSystem = this.checked ? 'imperial' : 'metric';
-        updateUnitLabels();
-      });
-    }
-    updateUnitLabels();
-  }
-
-  function updateUnitLabels() {
-    const unitLabel = document.getElementById('unitLabel');
-    const lenLabels = document.querySelectorAll('.len-label');
-    const widLabels = document.querySelectorAll('.wid-label');
-    const heiLabels = document.querySelectorAll('.hei-label');
-    const gwLabels  = document.querySelectorAll('.gw-label');
-
-    if (currentUnitSystem === 'imperial') {
-      if (unitLabel) unitLabel.textContent = 'in / lbs';
-      lenLabels.forEach(l => l.textContent = 'Length (in)');
-      widLabels.forEach(l => l.textContent = 'Width (in)');
-      heiLabels.forEach(l => l.textContent = 'Height (in)');
-      gwLabels.forEach(l  => l.textContent = 'Gross Weight (lbs)');
-    } else {
-      if (unitLabel) unitLabel.textContent = 'cm / kg';
-      lenLabels.forEach(l => l.textContent = 'Length (cm)');
-      widLabels.forEach(l => l.textContent = 'Width (cm)');
-      heiLabels.forEach(l => l.textContent = 'Height (cm)');
-      gwLabels.forEach(l  => l.textContent = 'Gross Weight (kg)');
-    }
-  }
-
-  function addPackageRow() {
-    const tbody = document.getElementById('packagesBody');
-    if (!tbody) return;
-
-    const tr = document.createElement('tr');
-
-    tr.innerHTML = `
-      <td>
-        <select class="form-select form-select-sm pkg-type">
-          <option value=""></option>
-          <option value="BOX">Box</option>
-          <option value="PALLET">Pallet</option>
-          <option value="SKID">Skid</option>
-          <option value="ROLL">Roll</option>
-          <option value="ENVELOPE">Envelope</option>
-        </select>
-      </td>
-      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-length" placeholder=""></td>
-      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-width" placeholder=""></td>
-      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-height" placeholder=""></td>
-      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-gw" placeholder=""></td>
-      <td class="text-end">
-        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
-      </td>
-    `;
-
-    tbody.appendChild(tr);
-    attachRemoveHandler(tr);
-  }
-
-  function attachRemoveHandler(tr) {
-    const removeBtn = tr.querySelector('.btn-remove-pkg');
-    if (!removeBtn) return;
-    removeBtn.addEventListener('click', function () {
-      tr.remove();
-    });
-  }
-
-  function serializePackages() {
-    const tbody = document.getElementById('packagesBody');
-    const hidden = document.getElementById('packages_json');
-    if (!tbody || !hidden) return;
-
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    const data = rows.map(row => {
-      return {
-        type:        row.querySelector('.pkg-type')?.value || '',
-        length:      row.querySelector('.pkg-length')?.value || '',
-        width:       row.querySelector('.pkg-width')?.value || '',
-        height:      row.querySelector('.pkg-height')?.value || '',
-        gross_weight:row.querySelector('.pkg-gw')?.value || '',
-        unit_system: currentUnitSystem
-      };
-    }).filter(p =>
-      p.type || p.length || p.width || p.height || p.gross_weight
-    );
-
-    hidden.value = data.length ? JSON.stringify(data) : '';
-  }
-</script>

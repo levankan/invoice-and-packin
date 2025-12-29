@@ -56,13 +56,33 @@ from ..models import Import, ImportLine, ImportPackage
 from ..permissions import has_imports_access
 
 
+# imports/views/edit.py
+
+import json
+from decimal import Decimal, InvalidOperation
+from datetime import datetime
+
+import openpyxl
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required  # , user_passes_test
+from django.shortcuts import get_object_or_404, redirect, render
+
+from admin_area.models import Forwarder, Vendor
+from ..forms import ExporterCountryForm
+from ..models import Import, ImportLine, ImportPackage
+# from ..permissions import has_imports_access
+
+
 @login_required
-#@user_passes_test(has_imports_access)
+# @user_passes_test(has_imports_access)
 def edit_import(request, pk):
     imp = get_object_or_404(Import, pk=pk)
     vendors = Vendor.objects.all().order_by("name")
     forwarders = Forwarder.objects.all().order_by("name")
 
+    # -------------------------
+    # Helpers
+    # -------------------------
     def _clean(val):
         if val is None:
             return None
@@ -93,11 +113,11 @@ def edit_import(request, pk):
         for p in packages_qs:
             packages_list.append({
                 "type": p.package_type or "",
-                "length": p.length_cm,
+                "length": p.length_cm,          # already stored as cm
                 "width": p.width_cm,
                 "height": p.height_cm,
-                "gross_weight": p.gross_weight_kg,
-                "unit_system": p.unit_system or "metric",
+                "gross_weight": p.gross_weight_kg,  # already stored as kg
+                "unit_system": "metric",        # ✅ we store metric in DB; UI toggle can still show imperial
             })
         return packages_list, json.dumps(packages_list, default=str)
 
@@ -119,7 +139,9 @@ def edit_import(request, pk):
             })
         return lines_list, json.dumps(lines_list, default=str)
 
-    # ✅ DEFAULT VIEW STATE
+    # -------------------------
+    # Default view state (GET + fallback)
+    # -------------------------
     packages_list, packages_json = _build_packages_context(imp)
     lines_data, lines_json = _build_lines_context(imp)
 
@@ -127,7 +149,7 @@ def edit_import(request, pk):
         action = request.POST.get("action", "save")
 
         # =============================
-        # ✅ EXCEL UPLOAD MODE
+        # EXCEL UPLOAD MODE (replace lines)
         # =============================
         if action == "upload_lines":
             upload = request.FILES.get("lines_file")
@@ -187,7 +209,6 @@ def edit_import(request, pk):
                     messages.error(request, "Excel contains no valid data rows.")
                     return redirect("imports_edit", pk=imp.pk)
 
-                # ✅ replace lines in DB
                 imp.lines.all().delete()
                 for l in new_lines:
                     ImportLine.objects.create(import_header=imp, **l)
@@ -199,7 +220,7 @@ def edit_import(request, pk):
             return redirect("imports_edit", pk=imp.pk)
 
         # =============================
-        # ✅ NORMAL SAVE MODE
+        # NORMAL SAVE MODE
         # =============================
         form = ExporterCountryForm(request.POST)
         if form.is_valid():
@@ -217,7 +238,7 @@ def edit_import(request, pk):
             imp.other1_forwarder = get_forwarder("other1_forwarder")
             imp.other2_forwarder = get_forwarder("other2_forwarder")
 
-            # ✅ charges (THIS WAS YOUR ISSUE)
+            # charges
             imp.transport_invoice_no = _clean(data.get("transport_invoice_no"))
             imp.transport_price = _dec_or_none(data.get("transport_price"))
             imp.transport_currency = _clean(data.get("transport_currency"))
@@ -266,12 +287,26 @@ def edit_import(request, pk):
             imp.declaration_a_number = _clean(data.get("declaration_a_number"))
             imp.declaration_date = _parse_date("declaration_date")
 
-            # packages replace + totals
+            # -------------------------
+            # PACKAGES replace + totals (✅ ALWAYS STORE CM/KG)
+            # -------------------------
             ImportPackage.objects.filter(import_header=imp).delete()
             packages_raw = request.POST.get("packages_json")
 
             total_gw = Decimal("0")
             total_vol = Decimal("0")
+
+            INCH_TO_CM = Decimal("2.54")
+            LB_TO_KG = Decimal("0.45359237")
+            VOL_DIVISOR = Decimal("6000")  # cm^3/kg
+
+            def to_decimal_any(v):
+                if v in (None, "", " "):
+                    return None
+                try:
+                    return Decimal(str(v))
+                except (InvalidOperation, TypeError):
+                    return None
 
             if packages_raw:
                 try:
@@ -280,36 +315,56 @@ def edit_import(request, pk):
                     packages = []
 
                 for p in packages:
-                    length = _dec_or_none(p.get("length"))
-                    width = _dec_or_none(p.get("width"))
-                    height = _dec_or_none(p.get("height"))
-                    gw = _dec_or_none(p.get("gross_weight"))
+                    p_type = (p.get("type") or "").upper() or None
+                    unit_system = (p.get("unit_system") or "metric").lower()
 
-                    if not any([p.get("type"), length, width, height, gw]):
+                    length = to_decimal_any(p.get("length"))
+                    width = to_decimal_any(p.get("width"))
+                    height = to_decimal_any(p.get("height"))
+                    gw = to_decimal_any(p.get("gross_weight"))
+
+                    # Convert imperial -> metric before saving
+                    if unit_system == "imperial":
+                        if length is not None:
+                            length = (length * INCH_TO_CM).quantize(Decimal("0.01"))
+                        if width is not None:
+                            width = (width * INCH_TO_CM).quantize(Decimal("0.01"))
+                        if height is not None:
+                            height = (height * INCH_TO_CM).quantize(Decimal("0.01"))
+                        if gw is not None:
+                            gw = (gw * LB_TO_KG).quantize(Decimal("0.001"))
+
+                    # Skip empty rows
+                    if not any([p_type, length, width, height, gw]):
                         continue
 
                     ImportPackage.objects.create(
                         import_header=imp,
-                        package_type=(p.get("type") or "").upper() or None,
+                        package_type=p_type,
                         length_cm=length,
                         width_cm=width,
                         height_cm=height,
                         gross_weight_kg=gw,
-                        unit_system=p.get("unit_system", "metric"),
+                        unit_system="metric",  # ✅ DB always cm/kg
                     )
 
                     if gw is not None:
                         total_gw += gw
                     if length is not None and width is not None and height is not None:
-                        total_vol += (length * width * height) / Decimal("6000")
+                        total_vol += (length * width * height) / VOL_DIVISOR
 
             imp.total_gross_weight_kg = total_gw if total_gw != 0 else None
             imp.total_volumetric_weight_kg = total_vol.quantize(Decimal("0.001")) if total_vol != 0 else None
 
             imp.save()
+            messages.success(request, f"Import {imp.import_code} updated successfully.")
             return redirect("imports_home")
 
-    # ✅ GET render
+        # if form invalid -> fall through to render with errors
+
+    # -------------------------
+    # GET render (or POST invalid form render)
+    # -------------------------
     form = ExporterCountryForm(initial={"exporter_country": imp.exporter_country})
     return render(
         request,

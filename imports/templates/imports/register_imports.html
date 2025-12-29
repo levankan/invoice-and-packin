@@ -1,5 +1,6 @@
 {# imports/templates/imports/register_imports.html #}
 {% extends 'core/base.html' %}
+{% load static %}
 {% block title %}{% if import_obj %}Edit Import {{ import_obj.import_code }}{% else %}Register Import{% endif %}{% endblock %}
 
 {% block content %}
@@ -48,7 +49,15 @@
                id="lines_json"
                value="{{ lines_json|default:''|escape }}">
 
-        <input type="hidden" name="packages_json" id="packages_json">
+        {# IMPORTANT: preserve packages_json on re-render #}
+        <input type="hidden"
+               name="packages_json"
+               id="packages_json"
+               value="{{ packages_json|default:''|escape }}">
+
+        {# Safe JSON blobs for JS (avoid HTML escaping issues) #}
+        {{ lines_json|default:"[]"|json_script:"lines-json" }}
+        {{ packages_json|default:"[]"|json_script:"packages-initial" }}
 
         {# 🔹 SECTIONS AS PARTIALS #}
         {% include "imports/partials/basic_details.html" %}
@@ -67,172 +76,249 @@
 </div>
 
 <script>
-  // ---------- Bootstrap validation + serialize packages before submit ----------
-  (function () {
-    'use strict';
-    const forms = document.querySelectorAll('.needs-validation');
-    Array.prototype.slice.call(forms).forEach(function (form) {
-      form.addEventListener('submit', function (event) {
-
-        // Before validation, serialize packages into hidden field
-        serializePackages();
-
-        if (!form.checkValidity()) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        form.classList.add('was-validated');
-      }, false);
-    });
-  })();
 
   document.addEventListener('DOMContentLoaded', function () {
-    // Uppercase fields
+    const form = document.querySelector('form.needs-validation');
+    if (form) {
+      form.addEventListener('submit', function () {
+        if (window._serializePackages) window._serializePackages();
+      }, true); // capture = true ensures it runs early
+    }
+  });
+
+
+  (function () {
+    'use strict';
+
+    // -------------------------
+    // Helpers
+    // -------------------------
+    const parseNum = (s) => {
+      if (s === '' || s == null) return null;
+      const n = parseFloat(s);
+      return Number.isFinite(n) ? n : null;
+    };
+
     function upperize(el) {
       if (!el) return;
       el.addEventListener('input', function () {
         const p = this.selectionStart;
         this.value = this.value.toUpperCase();
-        try { this.setSelectionRange(p, p); } catch(e) {}
-      });
-    }
-    upperize(document.getElementById('tracking_no'));
-    upperize(document.getElementById('declaration_c_number'));
-    upperize(document.getElementById('declaration_a_number'));
-
-    // Select2 init...
-    const $vendor = $('#vendor_name');
-    if ($vendor.length) {
-      $vendor.select2({
-        width: '100%',
-        placeholder: 'Select vendor',
-        allowClear: true
-      });
-      $vendor.on('change', function () {
-        this.setCustomValidity(this.value ? '' : ' ');
+        try { this.setSelectionRange(p, p); } catch (e) {}
       });
     }
 
-    const $country = $('#id_exporter_country');
-    if ($country.length) {
-      $country.select2({
-        width: '100%',
-        placeholder: 'Exporter Country',
-        allowClear: true
+    // -------------------------
+    // Select2
+    // -------------------------
+    function initSelect2() {
+      const $vendor = $('#vendor_name');
+      if ($vendor.length) {
+        $vendor.select2({
+          width: '100%',
+          placeholder: 'Select vendor',
+          allowClear: true
+        });
+        $vendor.on('change', function () {
+          this.setCustomValidity(this.value ? '' : ' ');
+        });
+      }
+
+      const $country = $('#id_exporter_country');
+      if ($country.length) {
+        $country.select2({
+          width: '100%',
+          placeholder: 'Exporter Country',
+          allowClear: true
+        });
+      }
+    }
+
+    // -------------------------
+    // Packages UI
+    // -------------------------
+    // UI toggle ONLY changes labels; server converts imperial->cm/kg and stores cm/kg
+    let currentUnitSystem = 'metric'; // metric = cm/kg, imperial = in/lbs
+
+    function updateUnitLabels() {
+      const unitLabel = document.getElementById('unitLabel');
+      const lenLabels = document.querySelectorAll('.len-label');
+      const widLabels = document.querySelectorAll('.wid-label');
+      const heiLabels = document.querySelectorAll('.hei-label');
+      const gwLabels  = document.querySelectorAll('.gw-label');
+
+      if (currentUnitSystem === 'imperial') {
+        if (unitLabel) unitLabel.textContent = 'in / lbs';
+        lenLabels.forEach(l => l.textContent = 'Length (in)');
+        widLabels.forEach(l => l.textContent = 'Width (in)');
+        heiLabels.forEach(l => l.textContent = 'Height (in)');
+        gwLabels.forEach(l  => l.textContent = 'Gross Weight (lbs)');
+      } else {
+        if (unitLabel) unitLabel.textContent = 'cm / kg';
+        lenLabels.forEach(l => l.textContent = 'Length (cm)');
+        widLabels.forEach(l => l.textContent = 'Width (cm)');
+        heiLabels.forEach(l => l.textContent = 'Height (cm)');
+        gwLabels.forEach(l  => l.textContent = 'Gross Weight (kg)');
+      }
+    }
+
+    function createPackageRow(pkg = {}) {
+      const tr = document.createElement('tr');
+
+      const type = (pkg.type || '').toUpperCase();
+      const length = (pkg.length != null) ? pkg.length : '';
+      const width  = (pkg.width != null) ? pkg.width : '';
+      const height = (pkg.height != null) ? pkg.height : '';
+      const gw     = (pkg.gross_weight != null) ? pkg.gross_weight : '';
+
+      tr.innerHTML = `
+        <td>
+          <select class="form-select form-select-sm pkg-type">
+            <option value=""></option>
+            <option value="BOX" ${type === 'BOX' ? 'selected' : ''}>Box</option>
+            <option value="PALLET" ${type === 'PALLET' ? 'selected' : ''}>Pallet</option>
+            <option value="SKID" ${type === 'SKID' ? 'selected' : ''}>Skid</option>
+            <option value="ROLL" ${type === 'ROLL' ? 'selected' : ''}>Roll</option>
+            <option value="ENVELOPE" ${type === 'ENVELOPE' ? 'selected' : ''}>Envelope</option>
+          </select>
+        </td>
+        <td><input type="number" min="0" step="0.01" class="form-control form-control-sm pkg-length" value="${length}" inputmode="decimal"></td>
+        <td><input type="number" min="0" step="0.01" class="form-control form-control-sm pkg-width"  value="${width}"  inputmode="decimal"></td>
+        <td><input type="number" min="0" step="0.01" class="form-control form-control-sm pkg-height" value="${height}" inputmode="decimal"></td>
+        <td><input type="number" min="0" step="0.01" class="form-control form-control-sm pkg-gw"     value="${gw}"     inputmode="decimal"></td>
+        <td class="text-end">
+          <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pkg" aria-label="Remove package">&times;</button>
+        </td>
+      `;
+      return tr;
+    }
+
+    function addPackageRow(pkg = {}) {
+      const tbody = document.getElementById('packagesBody');
+      if (!tbody) return;
+      tbody.appendChild(createPackageRow(pkg));
+    }
+
+    // ✅ FIX: hydrate ONLY if packages-initial contains rows
+    function hydratePackagesFromJSONIfAny() {
+      const tbody = document.getElementById('packagesBody');
+      const initialEl = document.getElementById('packages-initial');
+      if (!tbody || !initialEl) return;
+
+      let initial = [];
+      try {
+        initial = JSON.parse(initialEl.textContent || '[]');
+      } catch (e) {
+        initial = [];
+      }
+
+      // If we have JSON rows -> use them (clear tbody)
+      if (Array.isArray(initial) && initial.length) {
+        tbody.innerHTML = '';
+        initial.forEach(p => addPackageRow(p));
+      }
+      // else: do nothing (keep server-rendered rows)
+    }
+
+    // NOTE:
+    // We do NOT convert numbers in the browser.
+    // We just tag unit_system, server converts and stores cm/kg.
+    function serializePackages() {
+      const tbody = document.getElementById('packagesBody');
+      const hidden = document.getElementById('packages_json');
+      if (!tbody || !hidden) return;
+
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+
+      const data = rows.map(row => {
+        const type = (row.querySelector('.pkg-type')?.value || '').toUpperCase();
+        const length = parseNum(row.querySelector('.pkg-length')?.value);
+        const width  = parseNum(row.querySelector('.pkg-width')?.value);
+        const height = parseNum(row.querySelector('.pkg-height')?.value);
+        const gross_weight = parseNum(row.querySelector('.pkg-gw')?.value);
+
+        return { type, length, width, height, gross_weight, unit_system: currentUnitSystem };
+      }).filter(p =>
+        p.type || [p.length, p.width, p.height, p.gross_weight].some(v => v !== null)
+      );
+
+      hidden.value = data.length ? JSON.stringify(data) : '';
+    }
+
+    function initPackagesSection() {
+      const tbody = document.getElementById('packagesBody');
+      const addBtn = document.getElementById('addPackageBtn');
+      const unitToggle = document.getElementById('unitToggle');
+
+      if (!tbody) return;
+
+      // remove button handler (delegation)
+      tbody.addEventListener('click', function (e) {
+        if (e.target && e.target.matches('.btn-remove-pkg')) {
+          const tr = e.target.closest('tr');
+          if (tr) tr.remove();
+        }
+      });
+
+      if (addBtn) {
+        addBtn.addEventListener('click', function () {
+          addPackageRow();
+        });
+      }
+
+      // Default UI to metric (DB stored cm/kg)
+      if (unitToggle) {
+        unitToggle.checked = false;
+        currentUnitSystem = 'metric';
+        unitToggle.addEventListener('change', function () {
+          currentUnitSystem = this.checked ? 'imperial' : 'metric';
+          updateUnitLabels();
+        });
+      }
+
+      updateUnitLabels();
+
+      // ✅ hydrate only if JSON has rows; otherwise keep server template rows
+      hydratePackagesFromJSONIfAny();
+
+      // Ensure hidden field is populated on load
+      serializePackages();
+    }
+
+    // -------------------------
+    // Bootstrap validation + serialize before submit
+    // -------------------------
+    function initFormHandlers() {
+      const forms = document.querySelectorAll('.needs-validation');
+      Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+          serializePackages();
+
+          if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+          form.classList.add('was-validated');
+        }, false);
       });
     }
 
-    // 🔹 Initialize packages section
-    initPackagesSection();
-  });
+    // -------------------------
+    // DOM Ready
+    // -------------------------
+    document.addEventListener('DOMContentLoaded', function () {
+      upperize(document.getElementById('tracking_no'));
+      upperize(document.getElementById('declaration_c_number'));
+      upperize(document.getElementById('declaration_a_number'));
 
-  // --- Packages JS ---
-  let currentUnitSystem = 'metric'; // 'metric' = cm/kg, 'imperial' = in/lbs
-
-  function initPackagesSection() {
-    const addBtn = document.getElementById('addPackageBtn');
-    const unitToggle = document.getElementById('unitToggle');
-
-    if (addBtn) {
-      addBtn.addEventListener('click', function () {
-        addPackageRow();
-      });
-    }
-
-    // Attach remove handler for the initial row rendered by template
-    const existingRows = document.querySelectorAll('#packagesBody tr');
-    existingRows.forEach(tr => attachRemoveHandler(tr));
-
-    if (unitToggle) {
-      unitToggle.addEventListener('change', function () {
-        currentUnitSystem = this.checked ? 'imperial' : 'metric';
-        updateUnitLabels();
-      });
-    }
-    updateUnitLabels();
-  }
-
-  function updateUnitLabels() {
-    const unitLabel = document.getElementById('unitLabel');
-    const lenLabels = document.querySelectorAll('.len-label');
-    const widLabels = document.querySelectorAll('.wid-label');
-    const heiLabels = document.querySelectorAll('.hei-label');
-    const gwLabels  = document.querySelectorAll('.gw-label');
-
-    if (currentUnitSystem === 'imperial') {
-      if (unitLabel) unitLabel.textContent = 'in / lbs';
-      lenLabels.forEach(l => l.textContent = 'Length (in)');
-      widLabels.forEach(l => l.textContent = 'Width (in)');
-      heiLabels.forEach(l => l.textContent = 'Height (in)');
-      gwLabels.forEach(l  => l.textContent = 'Gross Weight (lbs)');
-    } else {
-      if (unitLabel) unitLabel.textContent = 'cm / kg';
-      lenLabels.forEach(l => l.textContent = 'Length (cm)');
-      widLabels.forEach(l => l.textContent = 'Width (cm)');
-      heiLabels.forEach(l => l.textContent = 'Height (cm)');
-      gwLabels.forEach(l  => l.textContent = 'Gross Weight (kg)');
-    }
-  }
-
-  function addPackageRow() {
-    const tbody = document.getElementById('packagesBody');
-    if (!tbody) return;
-
-    const tr = document.createElement('tr');
-
-    tr.innerHTML = `
-      <td>
-        <select class="form-select form-select-sm pkg-type">
-          <option value=""></option>
-          <option value="BOX">Box</option>
-          <option value="PALLET">Pallet</option>
-          <option value="SKID">Skid</option>
-          <option value="ROLL">Roll</option>
-          <option value="ENVELOPE">Envelope</option>
-        </select>
-      </td>
-      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-length" placeholder=""></td>
-      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-width" placeholder=""></td>
-      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-height" placeholder=""></td>
-      <td><input type="number" step="0.01" class="form-control form-control-sm pkg-gw" placeholder=""></td>
-      <td class="text-end">
-        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-pkg">&times;</button>
-      </td>
-    `;
-
-    tbody.appendChild(tr);
-    attachRemoveHandler(tr);
-  }
-
-  function attachRemoveHandler(tr) {
-    const removeBtn = tr.querySelector('.btn-remove-pkg');
-    if (!removeBtn) return;
-    removeBtn.addEventListener('click', function () {
-      tr.remove();
+      initSelect2();
+      initPackagesSection();
+      initFormHandlers();
     });
-  }
 
-  function serializePackages() {
-    const tbody = document.getElementById('packagesBody');
-    const hidden = document.getElementById('packages_json');
-    if (!tbody || !hidden) return;
+    window._serializePackages = serializePackages;
 
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    const data = rows.map(row => {
-      return {
-        type:        row.querySelector('.pkg-type')?.value || '',
-        length:      row.querySelector('.pkg-length')?.value || '',
-        width:       row.querySelector('.pkg-width')?.value || '',
-        height:      row.querySelector('.pkg-height')?.value || '',
-        gross_weight:row.querySelector('.pkg-gw')?.value || '',
-        unit_system: currentUnitSystem
-      };
-    }).filter(p =>
-      p.type || p.length || p.width || p.height || p.gross_weight
-    );
-
-    hidden.value = data.length ? JSON.stringify(data) : '';
-  }
+  })();
 </script>
 
 {% endblock %}
