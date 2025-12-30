@@ -7,7 +7,7 @@ from datetime import datetime
 import openpyxl
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction  # ✅ ADDED
+from django.db import transaction
 from django.shortcuts import render, redirect
 
 from admin_area.models import Forwarder, Vendor
@@ -195,10 +195,10 @@ def register_import(request):
             )
 
         # =========================================================
-        # 2) SAVE IMPORT + LINES + PACKAGES (✅ ATOMIC)
+        # 2) SAVE IMPORT + LINES + PACKAGES (ATOMIC + BULK)
         # =========================================================
         if form.is_valid():
-            with transaction.atomic():  # ✅ ADDED
+            with transaction.atomic():
                 data = request.POST
                 exporter_country = form.cleaned_data.get("exporter_country")
 
@@ -285,10 +285,11 @@ def register_import(request):
                     other2_forwarder=other2_forwarder,
                 )
 
-                # --- packages ---
+                # --- packages (bulk_create) ---
                 packages_raw = data.get("packages_json")
                 total_gw_kg = Decimal("0")
                 total_vol_kg = Decimal("0")
+                package_objs = []
 
                 if packages_raw:
                     try:
@@ -313,15 +314,19 @@ def register_import(request):
                             height = to_decimal(p.get("height"))
                             gw = to_decimal(p.get("gross_weight"))
 
-                            ImportPackage.objects.create(
-                                import_header=imp,
-                                package_type=p_type,
-                                length_cm=length,
-                                width_cm=width,
-                                height_cm=height,
-                                gross_weight_kg=gw,
-                                unit_system=unit_system,
-                            )
+                            # only create if something is filled (prevents empty rows)
+                            if any([p_type, length, width, height, gw]):
+                                package_objs.append(
+                                    ImportPackage(
+                                        import_header=imp,
+                                        package_type=p_type,
+                                        length_cm=length,
+                                        width_cm=width,
+                                        height_cm=height,
+                                        gross_weight_kg=gw,
+                                        unit_system=unit_system,
+                                    )
+                                )
 
                             if gw is not None:
                                 total_gw_kg += gw
@@ -329,29 +334,42 @@ def register_import(request):
                             if length is not None and width is not None and height is not None:
                                 total_vol_kg += (length * width * height) / VOL_DIVISOR
 
+                if package_objs:
+                    ImportPackage.objects.bulk_create(package_objs, batch_size=200)
+
                 imp.total_gross_weight_kg = total_gw_kg if total_gw_kg != 0 else None
                 imp.total_volumetric_weight_kg = (
                     total_vol_kg.quantize(Decimal("0.001")) if total_vol_kg != 0 else None
                 )
                 imp.save()
 
-                # --- lines ---
-                for l in json.loads(lines_json or "[]"):
-                    ImportLine.objects.create(
-                        import_header=imp,
-                        document_no=l.get("document_no") or "",
-                        line_no=l.get("line_no") or "",
-                        item_no=l.get("item_no") or "",
-                        description=l.get("description") or "",
-                        quantity=l.get("quantity"),
-                        unit_of_measure=l.get("unit_of_measure") or "",
-                        unit_cost=l.get("unit_cost"),
-                        line_amount=l.get("line_amount"),
-                        expected_receipt_date=_parse_date_str(l.get("expected_receipt_date")),
-                        delivery_date=_parse_date_str(l.get("delivery_date")),
+                # --- lines (bulk_create) ---
+                line_objs = []
+                try:
+                    lines_for_save = json.loads(lines_json or "[]")
+                except json.JSONDecodeError:
+                    lines_for_save = []
+
+                for l in lines_for_save:
+                    line_objs.append(
+                        ImportLine(
+                            import_header=imp,
+                            document_no=l.get("document_no") or "",
+                            line_no=l.get("line_no") or "",
+                            item_no=l.get("item_no") or "",
+                            description=l.get("description") or "",
+                            quantity=l.get("quantity"),
+                            unit_of_measure=l.get("unit_of_measure") or "",
+                            unit_cost=l.get("unit_cost"),
+                            line_amount=l.get("line_amount"),
+                            expected_receipt_date=_parse_date_str(l.get("expected_receipt_date")),
+                            delivery_date=_parse_date_str(l.get("delivery_date")),
+                        )
                     )
 
-            # ✅ If we got here, transaction succeeded
+                if line_objs:
+                    ImportLine.objects.bulk_create(line_objs, batch_size=500)
+
             messages.success(
                 request,
                 f"Import {imp.import_code} created together with {len(lines_data)} line(s).",
