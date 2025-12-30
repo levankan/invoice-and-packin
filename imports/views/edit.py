@@ -7,6 +7,7 @@ from datetime import datetime
 import openpyxl
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -14,7 +15,6 @@ from admin_area.models import Forwarder, Vendor
 from ..forms import ExporterCountryForm
 from ..models import Import, ImportLine, ImportPackage
 from ..permissions import has_imports_access
-from django.core.exceptions import PermissionDenied
 
 
 @login_required
@@ -52,6 +52,15 @@ def edit_import(request, pk):
         try:
             return datetime.strptime(v, "%Y-%m-%d").date()
         except ValueError:
+            return None
+
+    # ✅ NEW: strict JSON -> Decimal coercion (same fix as register view)
+    def _to_decimal(val):
+        if val in (None, "", " "):
+            return None
+        try:
+            return Decimal(str(val).replace(",", ""))
+        except (InvalidOperation, TypeError):
             return None
 
     def _build_packages_context(import_obj):
@@ -120,7 +129,7 @@ def edit_import(request, pk):
                 return redirect("imports_edit", pk=imp.pk)
 
             try:
-                wb = openpyxl.load_workbook(upload, data_only=True)
+                wb = openpyxl.load_workbook(upload, data_only=True, read_only=True)
                 sheet = wb.active
 
                 new_lines = []
@@ -191,7 +200,6 @@ def edit_import(request, pk):
                 # ✅ ATOMIC replace + ✅ BULK create
                 with transaction.atomic():
                     imp.lines.all().delete()
-
                     line_objs = [ImportLine(import_header=imp, **l) for l in new_lines]
                     ImportLine.objects.bulk_create(line_objs, batch_size=500)
 
@@ -220,9 +228,7 @@ def edit_import(request, pk):
                 imp.forwarder = get_forwarder("forwarder")
                 imp.transport_forwarder = get_forwarder("transport_forwarder")
                 imp.brokerage_forwarder = get_forwarder("brokerage_forwarder")
-                imp.internal_delivery_forwarder = get_forwarder(
-                    "internal_delivery_forwarder"
-                )
+                imp.internal_delivery_forwarder = get_forwarder("internal_delivery_forwarder")
                 imp.other1_forwarder = get_forwarder("other1_forwarder")
                 imp.other2_forwarder = get_forwarder("other2_forwarder")
 
@@ -237,18 +243,10 @@ def edit_import(request, pk):
                 imp.brokerage_currency = _clean(data.get("brokerage_currency"))
                 imp.brokerage_payment_date = _parse_date("brokerage_payment_date")
 
-                imp.internal_delivery_invoice_no = _clean(
-                    data.get("internal_delivery_invoice_no")
-                )
-                imp.internal_delivery_price = _dec_or_none(
-                    data.get("internal_delivery_price")
-                )
-                imp.internal_delivery_currency = _clean(
-                    data.get("internal_delivery_currency")
-                )
-                imp.internal_delivery_payment_date = _parse_date(
-                    "internal_delivery_payment_date"
-                )
+                imp.internal_delivery_invoice_no = _clean(data.get("internal_delivery_invoice_no"))
+                imp.internal_delivery_price = _dec_or_none(data.get("internal_delivery_price"))
+                imp.internal_delivery_currency = _clean(data.get("internal_delivery_currency"))
+                imp.internal_delivery_payment_date = _parse_date("internal_delivery_payment_date")
 
                 imp.other1_invoice_no = _clean(data.get("other1_invoice_no"))
                 imp.other1_price = _dec_or_none(data.get("other1_price"))
@@ -284,6 +282,53 @@ def edit_import(request, pk):
                 imp.declaration_date = _parse_date("declaration_date")
 
                 # -------------------------
+                # LINES from hidden JSON (optional but recommended for Decimal safety)
+                # If your template posts lines_json, we'll replace lines from it.
+                # -------------------------
+                posted_lines_json = request.POST.get("lines_json")
+                if posted_lines_json:
+                    try:
+                        posted_lines = json.loads(posted_lines_json) if posted_lines_json else []
+                    except json.JSONDecodeError:
+                        posted_lines = []
+
+                    if posted_lines:
+                        imp.lines.all().delete()
+                        line_objs = []
+                        for l in posted_lines:
+                            line_objs.append(
+                                ImportLine(
+                                    import_header=imp,
+                                    document_no=l.get("document_no") or "",
+                                    line_no=l.get("line_no") or "",
+                                    item_no=l.get("item_no") or "",
+                                    description=l.get("description") or "",
+                                    quantity=_to_decimal(l.get("quantity")),
+                                    unit_of_measure=l.get("unit_of_measure") or "",
+                                    unit_cost=_to_decimal(l.get("unit_cost")),
+                                    line_amount=_to_decimal(l.get("line_amount")),
+                                    expected_receipt_date=_parse_date(
+                                        "dummy"
+                                    ),  # will be overwritten below if needed
+                                )
+                            )
+                        # expected_receipt_date / delivery_date are strings in JSON (YYYY-MM-DD)
+                        # handle them safely per line:
+                        for obj, l in zip(line_objs, posted_lines):
+                            obj.expected_receipt_date = (
+                                datetime.strptime(l.get("expected_receipt_date"), "%Y-%m-%d").date()
+                                if l.get("expected_receipt_date")
+                                else None
+                            )
+                            obj.delivery_date = (
+                                datetime.strptime(l.get("delivery_date"), "%Y-%m-%d").date()
+                                if l.get("delivery_date")
+                                else None
+                            )
+
+                        ImportLine.objects.bulk_create(line_objs, batch_size=500)
+
+                # -------------------------
                 # PACKAGES replace + totals (ALWAYS STORE CM/KG)
                 # -------------------------
                 ImportPackage.objects.filter(import_header=imp).delete()
@@ -300,7 +345,7 @@ def edit_import(request, pk):
                     if v in (None, "", " "):
                         return None
                     try:
-                        return Decimal(str(v))
+                        return Decimal(str(v).replace(",", ""))
                     except (InvalidOperation, TypeError):
                         return None
 
@@ -369,7 +414,6 @@ def edit_import(request, pk):
         # -------------------------
         # FORM INVALID -> render with errors
         # -------------------------
-        # rebuild lines/packages for display
         packages_list, packages_json = _build_packages_context(imp)
         lines_data, lines_json = _build_lines_context(imp)
         return render(
@@ -378,7 +422,7 @@ def edit_import(request, pk):
             {
                 "vendors": vendors,
                 "forwarders": forwarders,
-                "form": form,  # ✅ includes errors
+                "form": form,  # includes errors
                 "import_obj": imp,
                 "lines_data": lines_data,
                 "lines_json": lines_json,
@@ -405,8 +449,6 @@ def edit_import(request, pk):
             "packages_list": packages_list,
         },
     )
-
-
 
 
 @login_required

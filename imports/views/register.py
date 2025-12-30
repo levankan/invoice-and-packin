@@ -6,7 +6,7 @@ from datetime import datetime
 
 import openpyxl
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import transaction
 from django.shortcuts import render, redirect
 
@@ -14,8 +14,6 @@ from admin_area.models import Forwarder, Vendor
 from ..forms import ExporterCountryForm
 from ..models import Import, ImportLine, ImportPackage
 from ..permissions import has_imports_access
-from django.contrib.auth.decorators import login_required, user_passes_test
-
 
 
 @login_required
@@ -40,6 +38,15 @@ def register_import(request):
         try:
             return datetime.strptime(s, "%Y-%m-%d").date()
         except ValueError:
+            return None
+
+    # ✅ NEW: strict re-hydration for JSON -> Decimal (fixes brittle behavior)
+    def _to_decimal(val):
+        if val in (None, "", " "):
+            return None
+        try:
+            return Decimal(str(val).replace(",", ""))
+        except (InvalidOperation, TypeError):
             return None
 
     # defaults for template context
@@ -108,7 +115,7 @@ def register_import(request):
                 messages.error(request, "Only Excel files (.xls, .xlsx) are allowed.")
             else:
                 try:
-                    wb = openpyxl.load_workbook(upload, data_only=True)
+                    wb = openpyxl.load_workbook(upload, data_only=True,read_only=True)
                     sheet = wb.active
                     lines_data = []
 
@@ -316,7 +323,6 @@ def register_import(request):
                             height = to_decimal(p.get("height"))
                             gw = to_decimal(p.get("gross_weight"))
 
-                            # only create if something is filled (prevents empty rows)
                             if any([p_type, length, width, height, gw]):
                                 package_objs.append(
                                     ImportPackage(
@@ -360,10 +366,11 @@ def register_import(request):
                             line_no=l.get("line_no") or "",
                             item_no=l.get("item_no") or "",
                             description=l.get("description") or "",
-                            quantity=l.get("quantity"),
+                            # ✅ FIX: re-coerce JSON values to Decimal safely
+                            quantity=_to_decimal(l.get("quantity")),
                             unit_of_measure=l.get("unit_of_measure") or "",
-                            unit_cost=l.get("unit_cost"),
-                            line_amount=l.get("line_amount"),
+                            unit_cost=_to_decimal(l.get("unit_cost")),
+                            line_amount=_to_decimal(l.get("line_amount")),
                             expected_receipt_date=_parse_date_str(l.get("expected_receipt_date")),
                             delivery_date=_parse_date_str(l.get("delivery_date")),
                         )
