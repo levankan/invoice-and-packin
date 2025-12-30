@@ -14,10 +14,12 @@ from admin_area.models import Forwarder, Vendor
 from ..forms import ExporterCountryForm
 from ..models import Import, ImportLine, ImportPackage
 from ..permissions import has_imports_access
+from django.contrib.auth.decorators import login_required, user_passes_test
+
 
 
 @login_required
-# @user_passes_test(has_imports_access)
+@user_passes_test(has_imports_access)
 def register_import(request):
     vendors = Vendor.objects.all().order_by("name")
     forwarders = Forwarder.objects.all().order_by("name")

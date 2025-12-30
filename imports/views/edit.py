@@ -14,10 +14,11 @@ from admin_area.models import Forwarder, Vendor
 from ..forms import ExporterCountryForm
 from ..models import Import, ImportLine, ImportPackage
 from ..permissions import has_imports_access
+from django.core.exceptions import PermissionDenied
 
 
 @login_required
-# @user_passes_test(has_imports_access)
+@user_passes_test(has_imports_access)
 def edit_import(request, pk):
     imp = get_object_or_404(Import, pk=pk)
     vendors = Vendor.objects.all().order_by("name")
@@ -406,13 +407,14 @@ def edit_import(request, pk):
     )
 
 
+
+
 @login_required
-@user_passes_test(has_imports_access)
 def delete_import(request, pk):
     if not request.user.is_superuser:
-        return redirect("imports_home")
+        raise PermissionDenied
 
     if request.method == "POST":
-        imp = get_object_or_404(Import, pk=pk)
-        imp.delete()
+        get_object_or_404(Import, pk=pk).delete()
+
     return redirect("imports_home")

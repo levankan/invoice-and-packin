@@ -1,12 +1,11 @@
 # imports/permissions.py
-ALLOWED_ROLES = {"logistics", "procurement", "Other Employee"}
+ALLOWED_ROLES = {"logistic"}
 
 STATUS_CHOICES = ["PLANNED", "PICKED_UP", "IN_TRANSIT", "AT_CUSTOMS", "DELIVERED", "CANCELLED"]
 METHOD_CHOICES = ["AIR", "SEA", "ROAD", "COURIER", "OTHER"]
 
 
 def has_imports_access(user):
-    if getattr(user, "is_superuser", False):
+    if user.is_superuser:
         return True
-    role = getattr(user, "role", None)
-    return role in ALLOWED_ROLES
+    return getattr(user, "role", None) in ALLOWED_ROLES

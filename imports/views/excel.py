@@ -56,7 +56,6 @@ from decimal import Decimal
 
 
 @login_required
-#@user_passes_test(has_imports_access)
 def export_imports_excel(request):
     """
     Export imports (with same filters as dashboard) to a styled Excel (.xlsx),
@@ -332,7 +331,6 @@ from openpyxl.styles import Font, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 
 @login_required
-#@user_passes_test(has_imports_access)
 def export_import_lines_excel(request):
     """
     Export all import lines to a styled Excel (.xlsx) file,
@@ -538,7 +536,6 @@ def export_import_lines_excel(request):
 
 
 @login_required
-#@user_passes_test(has_imports_access)
 def export_single_import_excel(request, import_id):
     """
     Export a single import into an Excel file:

@@ -12,6 +12,8 @@ class User(AbstractUser):
         ('warehouse', 'Warehouse'),
         ('logistic', 'Logistic'),
         ('employee', 'Other Employee'),
+        ('planning', 'Planning'),
+        ('finance', 'Finance'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
 
