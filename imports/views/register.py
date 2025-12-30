@@ -1,26 +1,13 @@
 # imports/views/register.py
+
 import json
 from decimal import Decimal, InvalidOperation
 from datetime import datetime
 
 import openpyxl
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.shortcuts import render, redirect
-
-from admin_area.models import Forwarder, Vendor
-from ..forms import ExporterCountryForm
-from ..models import Import, ImportLine, ImportPackage
-from ..permissions import has_imports_access
-
-# imports/views/register.py
-import json
-from decimal import Decimal, InvalidOperation
-from datetime import datetime
-
-import openpyxl
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
+from django.db import transaction  # ✅ ADDED
 from django.shortcuts import render, redirect
 
 from admin_area.models import Forwarder, Vendor
@@ -30,10 +17,13 @@ from ..permissions import has_imports_access
 
 
 @login_required
-#@user_passes_test(has_imports_access)
+# @user_passes_test(has_imports_access)
 def register_import(request):
     vendors = Vendor.objects.all().order_by("name")
     forwarders = Forwarder.objects.all().order_by("name")
+
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+    ALLOWED_EXTENSIONS = (".xlsx", ".xls")
 
     def _clean(val):
         if val is None:
@@ -61,7 +51,7 @@ def register_import(request):
         action = request.POST.get("action", "save_import")
         form = ExporterCountryForm(request.POST)
 
-        # --- preserve form fields (so template can refill if error / upload_lines) ---
+        # --- preserve form fields ---
         form_data = {
             "vendor_name": request.POST.get("vendor_name", ""),
             "incoterms": request.POST.get("incoterms", ""),
@@ -83,7 +73,7 @@ def register_import(request):
             "notes": request.POST.get("notes", ""),
         }
 
-        # --- restore existing lines from hidden JSON (if any) ---
+        # --- restore existing lines ---
         existing_lines_json = request.POST.get("lines_json") or ""
         if existing_lines_json:
             try:
@@ -92,7 +82,7 @@ def register_import(request):
                 lines_data = []
         lines_json = existing_lines_json
 
-        # --- restore existing packages from hidden JSON (if any) ---
+        # --- restore existing packages ---
         packages_json = request.POST.get("packages_json") or ""
         if packages_json:
             try:
@@ -102,22 +92,22 @@ def register_import(request):
         else:
             packages_list = []
 
-        # ---------------------------------------------------------------------
-        # 1) UPLOAD LINES (preview only; DB save happens when we press Save)
-        # ---------------------------------------------------------------------
+        # =========================================================
+        # 1) UPLOAD LINES (preview only)
+        # =========================================================
         if action == "upload_lines":
             upload = request.FILES.get("lines_file")
+
             if not upload:
                 messages.error(request, "Please choose an Excel file to upload.")
+            elif upload.size > MAX_FILE_SIZE:
+                messages.error(request, "Excel file size must be 10 MB or less.")
+            elif not upload.name.lower().endswith(ALLOWED_EXTENSIONS):
+                messages.error(request, "Only Excel files (.xls, .xlsx) are allowed.")
             else:
                 try:
                     wb = openpyxl.load_workbook(upload, data_only=True)
                     sheet = wb.active
-
-                    # Expected columns order:
-                    # Document No., Line No., No., Description, Quantity,
-                    # Unit of Measure, Direct Unit Cost Excl. VAT,
-                    # Line Amount Excl. VAT, Expected Receipt Date, Delivery Date
                     lines_data = []
 
                     for row in sheet.iter_rows(min_row=2, values_only=True):
@@ -185,10 +175,8 @@ def register_import(request):
                     messages.error(request, f"Error reading Excel: {e}")
                     lines_data = []
 
-            # re-encode latest lines_data into hidden JSON
             lines_json = json.dumps(lines_data, default=str)
 
-            # re-render page with preview lines + preserved packages
             return render(
                 request,
                 "imports/register_imports.html",
@@ -206,162 +194,125 @@ def register_import(request):
                 },
             )
 
-        # ---------------------------------------------------------------------
-        # 2) SAVE IMPORT + SAVE LINES + PACKAGES
-        # ---------------------------------------------------------------------
+        # =========================================================
+        # 2) SAVE IMPORT + LINES + PACKAGES (✅ ATOMIC)
+        # =========================================================
         if form.is_valid():
-            data = request.POST
-            exporter_country = form.cleaned_data.get("exporter_country")
+            with transaction.atomic():  # ✅ ADDED
+                data = request.POST
+                exporter_country = form.cleaned_data.get("exporter_country")
 
-            # ✅ SAFE FORWARDER RESOLUTION (no ValueError when empty)
-            def _get_forwarder(field_name):
-                fid = data.get(field_name)
-                if not fid:
-                    return None
-                return Forwarder.objects.filter(pk=fid).first()
+                def _get_forwarder(field_name):
+                    fid = data.get(field_name)
+                    if not fid:
+                        return None
+                    return Forwarder.objects.filter(pk=fid).first()
 
-            main_forwarder = _get_forwarder("forwarder")
-            transport_forwarder = _get_forwarder("transport_forwarder")
-            brokerage_forwarder = _get_forwarder("brokerage_forwarder")
-            internal_delivery_forwarder = _get_forwarder("internal_delivery_forwarder")
-            other1_forwarder = _get_forwarder("other1_forwarder")
-            other2_forwarder = _get_forwarder("other2_forwarder")
+                main_forwarder = _get_forwarder("forwarder")
+                transport_forwarder = _get_forwarder("transport_forwarder")
+                brokerage_forwarder = _get_forwarder("brokerage_forwarder")
+                internal_delivery_forwarder = _get_forwarder("internal_delivery_forwarder")
+                other1_forwarder = _get_forwarder("other1_forwarder")
+                other2_forwarder = _get_forwarder("other2_forwarder")
 
-            def _dec_or_none(key):
-                raw = _clean(data.get(key))
-                if not raw:
-                    return None
-                try:
-                    return Decimal(raw)
-                except InvalidOperation:
-                    return None
+                def _dec_or_none(key):
+                    raw = _clean(data.get(key))
+                    if not raw:
+                        return None
+                    try:
+                        return Decimal(raw)
+                    except InvalidOperation:
+                        return None
 
-            # --- create Import header ---
-            imp = Import.objects.create(
-                vendor_name=_clean(data.get("vendor_name")) or "",
-                exporter_country=exporter_country,
-                incoterms=(_clean(data.get("incoterms")) or "").upper()
-                if _clean(data.get("incoterms"))
-                else None,
-                currency_code=_clean(data.get("currency_code")),
-                goods_price=_dec_or_none("goods_price"),
-                tracking_no=(_clean(data.get("tracking_no")) or "").upper()
-                if _clean(data.get("tracking_no"))
-                else None,
-                shipping_method=_clean(data.get("shipping_method")),
-                shipment_status=_clean(data.get("shipment_status")),
-                pickup_address=_clean(data.get("pickup_address")),
-                is_danger=bool(data.get("is_danger")),
-                is_stackable=bool(data.get("is_stackable")),
-                expected_receipt_date=_parse_date_str(data.get("expected_receipt_date")),
-                notes=_clean(data.get("notes")),
-                vendor_reference=_clean(data.get("vendor_reference")),
-                forwarder_reference=_clean(data.get("forwarder_reference")),
-                declaration_c_number=_clean(data.get("declaration_c_number")),
-                declaration_a_number=_clean(data.get("declaration_a_number")),
-                declaration_date=_parse_date_str(data.get("declaration_date")),
-                forwarder=main_forwarder,
+                imp = Import.objects.create(
+                    vendor_name=_clean(data.get("vendor_name")) or "",
+                    exporter_country=exporter_country,
+                    incoterms=(_clean(data.get("incoterms")) or "").upper()
+                    if _clean(data.get("incoterms"))
+                    else None,
+                    currency_code=_clean(data.get("currency_code")),
+                    goods_price=_dec_or_none("goods_price"),
+                    tracking_no=(_clean(data.get("tracking_no")) or "").upper()
+                    if _clean(data.get("tracking_no"))
+                    else None,
+                    shipping_method=_clean(data.get("shipping_method")),
+                    shipment_status=_clean(data.get("shipment_status")),
+                    pickup_address=_clean(data.get("pickup_address")),
+                    is_danger=bool(data.get("is_danger")),
+                    is_stackable=bool(data.get("is_stackable")),
+                    expected_receipt_date=_parse_date_str(data.get("expected_receipt_date")),
+                    notes=_clean(data.get("notes")),
+                    vendor_reference=_clean(data.get("vendor_reference")),
+                    forwarder_reference=_clean(data.get("forwarder_reference")),
+                    declaration_c_number=_clean(data.get("declaration_c_number")),
+                    declaration_a_number=_clean(data.get("declaration_a_number")),
+                    declaration_date=_parse_date_str(data.get("declaration_date")),
+                    forwarder=main_forwarder,
 
-                # --- transportation ---
-                transport_invoice_no=_clean(data.get("transport_invoice_no")),
-                transport_price=_dec_or_none("transport_price"),
-                transport_currency=_clean(data.get("transport_currency")),
-                transport_payment_date=_parse_date_str(
-                    data.get("transport_payment_date")
-                ),
-                transport_forwarder=transport_forwarder,
+                    # transport
+                    transport_invoice_no=_clean(data.get("transport_invoice_no")),
+                    transport_price=_dec_or_none("transport_price"),
+                    transport_currency=_clean(data.get("transport_currency")),
+                    transport_payment_date=_parse_date_str(data.get("transport_payment_date")),
+                    transport_forwarder=transport_forwarder,
 
-                # --- brokerage ---
-                brokerage_invoice_no=_clean(data.get("brokerage_invoice_no")),
-                brokerage_price=_dec_or_none("brokerage_price"),
-                brokerage_currency=_clean(data.get("brokerage_currency")),
-                brokerage_payment_date=_parse_date_str(
-                    data.get("brokerage_payment_date")
-                ),
-                brokerage_forwarder=brokerage_forwarder,
+                    # brokerage
+                    brokerage_invoice_no=_clean(data.get("brokerage_invoice_no")),
+                    brokerage_price=_dec_or_none("brokerage_price"),
+                    brokerage_currency=_clean(data.get("brokerage_currency")),
+                    brokerage_payment_date=_parse_date_str(data.get("brokerage_payment_date")),
+                    brokerage_forwarder=brokerage_forwarder,
 
-                # --- internal delivery ---
-                internal_delivery_invoice_no=_clean(
-                    data.get("internal_delivery_invoice_no")
-                ),
-                internal_delivery_price=_dec_or_none("internal_delivery_price"),
-                internal_delivery_currency=_clean(
-                    data.get("internal_delivery_currency")
-                ),
-                internal_delivery_payment_date=_parse_date_str(
-                    data.get("internal_delivery_payment_date")
-                ),
-                internal_delivery_forwarder=internal_delivery_forwarder,
+                    # internal delivery
+                    internal_delivery_invoice_no=_clean(data.get("internal_delivery_invoice_no")),
+                    internal_delivery_price=_dec_or_none("internal_delivery_price"),
+                    internal_delivery_currency=_clean(data.get("internal_delivery_currency")),
+                    internal_delivery_payment_date=_parse_date_str(data.get("internal_delivery_payment_date")),
+                    internal_delivery_forwarder=internal_delivery_forwarder,
 
-                # --- other charge #1 ---
-                other1_invoice_no=_clean(data.get("other1_invoice_no")),
-                other1_price=_dec_or_none("other1_price"),
-                other1_currency=_clean(data.get("other1_currency")),
-                other1_payment_date=_parse_date_str(data.get("other1_payment_date")),
-                other1_forwarder=other1_forwarder,
+                    # other #1
+                    other1_invoice_no=_clean(data.get("other1_invoice_no")),
+                    other1_price=_dec_or_none("other1_price"),
+                    other1_currency=_clean(data.get("other1_currency")),
+                    other1_payment_date=_parse_date_str(data.get("other1_payment_date")),
+                    other1_forwarder=other1_forwarder,
 
-                # --- other charge #2 ---
-                other2_invoice_no=_clean(data.get("other2_invoice_no")),
-                other2_price=_dec_or_none("other2_price"),
-                other2_currency=_clean(data.get("other2_currency")),
-                other2_payment_date=_parse_date_str(data.get("other2_payment_date")),
-                other2_forwarder=other2_forwarder,
-            )
+                    # other #2
+                    other2_invoice_no=_clean(data.get("other2_invoice_no")),
+                    other2_price=_dec_or_none("other2_price"),
+                    other2_currency=_clean(data.get("other2_currency")),
+                    other2_payment_date=_parse_date_str(data.get("other2_payment_date")),
+                    other2_forwarder=other2_forwarder,
+                )
 
-            # --- handle packages_json -> ImportPackage + totals ---
-            packages_raw = data.get("packages_json")
-            total_gw_kg = Decimal("0")
-            total_vol_kg = Decimal("0")
+                # --- packages ---
+                packages_raw = data.get("packages_json")
+                total_gw_kg = Decimal("0")
+                total_vol_kg = Decimal("0")
 
-            if packages_raw:
-                try:
-                    packages = json.loads(packages_raw)
-                except json.JSONDecodeError:
-                    packages = []
-                else:
-                    INCH_TO_CM = Decimal("2.54")
-                    LB_TO_KG = Decimal("0.45359237")
-                    VOL_DIVISOR = Decimal("6000")  # cm³ / kg
+                if packages_raw:
+                    try:
+                        packages = json.loads(packages_raw)
+                    except json.JSONDecodeError:
+                        packages = []
+                    else:
+                        VOL_DIVISOR = Decimal("6000")
 
-                    def to_decimal(value):
-                        if value in (None, "", " "):
-                            return None
-                        try:
-                            return Decimal(str(value))
-                        except (InvalidOperation, TypeError):
-                            return None
+                        def to_decimal(value):
+                            try:
+                                return Decimal(str(value)) if value not in (None, "", " ") else None
+                            except (InvalidOperation, TypeError):
+                                return None
 
-                    for p in packages:
-                        p_type = (p.get("type") or "").upper() or None
-                        unit_system = p.get("unit_system") or "metric"
+                        for p in packages:
+                            p_type = (p.get("type") or "").upper() or None
+                            unit_system = p.get("unit_system") or "metric"
 
-                        length = to_decimal(p.get("length"))
-                        width = to_decimal(p.get("width"))
-                        height = to_decimal(p.get("height"))
-                        gw = to_decimal(p.get("gross_weight"))
+                            length = to_decimal(p.get("length"))
+                            width = to_decimal(p.get("width"))
+                            height = to_decimal(p.get("height"))
+                            gw = to_decimal(p.get("gross_weight"))
 
-                        # convert imperial to metric
-                        if unit_system == "imperial":
-                            if length is not None:
-                                length = (length * INCH_TO_CM).quantize(
-                                    Decimal("0.01")
-                                )
-                            if width is not None:
-                                width = (width * INCH_TO_CM).quantize(
-                                    Decimal("0.01")
-                                )
-                            if height is not None:
-                                height = (height * INCH_TO_CM).quantize(
-                                    Decimal("0.01")
-                                )
-                            if gw is not None:
-                                gw = (gw * LB_TO_KG).quantize(Decimal("0.001"))
-                            unit_system_db = "imperial"
-                        else:
-                            unit_system_db = "metric"
-
-                        # create package row if anything is filled
-                        if any([p_type, length, width, height, gw]):
                             ImportPackage.objects.create(
                                 import_header=imp,
                                 package_type=p_type,
@@ -369,38 +320,23 @@ def register_import(request):
                                 width_cm=width,
                                 height_cm=height,
                                 gross_weight_kg=gw,
-                                unit_system=unit_system_db,
+                                unit_system=unit_system,
                             )
 
                             if gw is not None:
                                 total_gw_kg += gw
 
-                            if (
-                                length is not None
-                                and width is not None
-                                and height is not None
-                            ):
-                                vol_kg = (length * width * height) / VOL_DIVISOR
-                                total_vol_kg += vol_kg
+                            if length is not None and width is not None and height is not None:
+                                total_vol_kg += (length * width * height) / VOL_DIVISOR
 
-            # save totals on header
-            imp.total_gross_weight_kg = total_gw_kg if total_gw_kg != 0 else None
-            imp.total_volumetric_weight_kg = (
-                total_vol_kg.quantize(Decimal("0.001")) if total_vol_kg != 0 else None
-            )
-            imp.save()
-
-            # --- re-parse lines_json directly from POST and save lines ---
-            lines_json_str = request.POST.get("lines_json") or ""
-            try:
-                lines_data_for_save = (
-                    json.loads(lines_json_str) if lines_json_str else []
+                imp.total_gross_weight_kg = total_gw_kg if total_gw_kg != 0 else None
+                imp.total_volumetric_weight_kg = (
+                    total_vol_kg.quantize(Decimal("0.001")) if total_vol_kg != 0 else None
                 )
-            except json.JSONDecodeError:
-                lines_data_for_save = []
+                imp.save()
 
-            if lines_data_for_save:
-                for l in lines_data_for_save:
+                # --- lines ---
+                for l in json.loads(lines_json or "[]"):
                     ImportLine.objects.create(
                         import_header=imp,
                         document_no=l.get("document_no") or "",
@@ -411,22 +347,18 @@ def register_import(request):
                         unit_of_measure=l.get("unit_of_measure") or "",
                         unit_cost=l.get("unit_cost"),
                         line_amount=l.get("line_amount"),
-                        expected_receipt_date=_parse_date_str(
-                            l.get("expected_receipt_date")
-                        ),
+                        expected_receipt_date=_parse_date_str(l.get("expected_receipt_date")),
                         delivery_date=_parse_date_str(l.get("delivery_date")),
                     )
 
+            # ✅ If we got here, transaction succeeded
             messages.success(
                 request,
-                f"Import {imp.import_code} created together with {len(lines_data_for_save)} line(s).",
+                f"Import {imp.import_code} created together with {len(lines_data)} line(s).",
             )
             return redirect("imports_home")
 
-        # ---------------------------------------------------------------------
-        # 3) FORM INVALID → re-render with errors and keep lines & packages
-        # ---------------------------------------------------------------------
-        lines_json = json.dumps(lines_data, default=str)
+        # --- form invalid ---
         return render(
             request,
             "imports/register_imports.html",
@@ -437,16 +369,16 @@ def register_import(request):
                 "form": form,
                 "import_obj": None,
                 "lines_data": lines_data,
-                "lines_json": lines_json,
+                "lines_json": json.dumps(lines_data, default=str),
                 "form_data": form_data,
                 "packages_json": packages_json,
                 "packages_list": packages_list,
             },
         )
 
-    # -------------------------------------------------------------------------
-    # GET → empty form
-    # -------------------------------------------------------------------------
+    # =============================
+    # GET
+    # =============================
     form = ExporterCountryForm()
     return render(
         request,
