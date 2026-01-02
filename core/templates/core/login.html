@@ -1,26 +1,59 @@
 {% extends 'core/base.html' %}
 {% block title %}Login{% endblock %}
-{% block content %}
-<div class="card mx-auto shadow-lg" style="max-width: 400px; padding: 30px; border-radius: 20px;">
-    <h3 class="mb-4">🔐 Login to Shipment System</h3>
 
-    {% if user.is_authenticated %}
-        {% for message in messages %}
-            <div class="alert alert-danger">{{ message }}</div>
-        {% endfor %}
+{% block content %}
+<div class="card mx-auto shadow-lg"
+     style="max-width: 400px; padding: 30px; border-radius: 20px;">
+
+    <h3 class="mb-4 text-center">🔐 Login to Shipment System</h3>
+
+    {# 🔴 Non-field errors (e.g. wrong username/password) #}
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
     {% endif %}
 
     <form method="post" novalidate>
         {% csrf_token %}
+
+        {# IMPORTANT: preserve next URL #}
+        {% if next %}
+            <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+
         <div class="mb-3 text-start">
             <label class="form-label">Username</label>
-            <input type="text" name="username" class="form-control" placeholder="Enter your username" required>
+            <input
+                type="text"
+                name="username"
+                class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                placeholder="Enter your username"
+                value="{{ form.username.value|default:'' }}"
+                required
+            >
+            {% for error in form.username.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
         </div>
+
         <div class="mb-3 text-start">
             <label class="form-label">Password</label>
-            <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+            <input
+                type="password"
+                name="password"
+                class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                placeholder="Enter your password"
+                required
+            >
+            {% for error in form.password.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+            {% endfor %}
         </div>
-        <button type="submit" class="btn btn-primary w-100">Login</button>
+
+        <button type="submit" class="btn btn-primary w-100">
+            Login
+        </button>
     </form>
 </div>
 {% endblock %}
