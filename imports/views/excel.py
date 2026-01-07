@@ -54,6 +54,21 @@ from ..models import Import
 from ..permissions import has_imports_access
 from decimal import Decimal
 
+from decimal import Decimal
+
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404
+from openpyxl import Workbook
+from openpyxl.styles import Border, Side, Font, PatternFill
+from openpyxl.utils import get_column_letter
+
+from imports.models import Import, ImportPackage  # adjust paths if different
+from admin_area.models import Item  # adjust if different
+
+
+
+
 
 @login_required
 def export_imports_excel(request):
@@ -535,6 +550,8 @@ def export_import_lines_excel(request):
 
 
 
+
+
 @login_required
 def export_single_import_excel(request, import_id):
     """
@@ -639,7 +656,6 @@ def export_single_import_excel(request, import_id):
     # --------------------------
     # PART 2: lines from export_import_lines_excel (for this import)
     # --------------------------
-    # same headers as that function (plus ATC receipt date)
     line_headers = [
         "Line ID",
         "Import ID",
@@ -658,7 +674,7 @@ def export_single_import_excel(request, import_id):
         "Delivery Date",
         "ATC Receipt Date",
         "Created At",
-        "Shipment Status", 
+        "Shipment Status",
         "Tracking Number",
         "Vendor Reference",
         "Forwarder Reference",
@@ -670,7 +686,9 @@ def export_single_import_excel(request, import_id):
         "Total Import VW (kg)",
         "Line Gross Weight (kg)",
         "Line Volumetric Weight (kg)",
+        "Vendor VRS",
     ]
+
     start_row_lines = ws.max_row + 1
     ws.append(line_headers)
     for cell in ws[start_row_lines]:
@@ -678,13 +696,12 @@ def export_single_import_excel(request, import_id):
         cell.fill = header_fill
         cell.border = thin_border
 
-    # For weights: we can reuse the logic from export_import_lines_excel,
-    # but here only for this single import.
-    from admin_area.models import Item  # if not already imported globally
+    # Map items by number for weight calculations
     item_numbers = {l.item_no for l in lines if l.item_no}
     items = Item.objects.filter(number__in=item_numbers)
     item_map = {i.number: i for i in items}
 
+    # total qty for proportional distribution fallback
     total_qty = Decimal("0")
     for l in lines:
         if l.quantity is not None:
@@ -692,6 +709,9 @@ def export_single_import_excel(request, import_id):
 
     total_gw_import = imp.total_gross_weight_kg or Decimal("0")
     total_vw_import = imp.total_volumetric_weight_kg or Decimal("0")
+
+    # ✅ Register date for Vendor VRS calculation
+    register_dt = imp.created_at  # change to your real "register date" field if needed
 
     for l in lines:
         qty = l.quantity or Decimal("0")
@@ -712,6 +732,11 @@ def export_single_import_excel(request, import_id):
             elif total_vw_import and total_qty:
                 line_vw = (total_vw_import * qty) / total_qty
 
+        # ✅ Vendor VRS = Register Date - Delivery Date (days)
+        vendor_vrs = ""
+        if register_dt and l.delivery_date:
+            vendor_vrs = (register_dt.date() - l.delivery_date).days
+
         ws.append([
             l.pk,
             imp.pk,
@@ -730,7 +755,7 @@ def export_single_import_excel(request, import_id):
             l.delivery_date.isoformat() if l.delivery_date else "",
             imp.expected_receipt_date.isoformat() if imp.expected_receipt_date else "",
             imp.created_at.strftime("%Y-%m-%d") if imp.created_at else "",
-            imp.shipment_status or "",  
+            imp.shipment_status or "",
             imp.tracking_no or "",
             imp.vendor_reference or "",
             imp.forwarder_reference or "",
@@ -742,6 +767,7 @@ def export_single_import_excel(request, import_id):
             float(total_vw_import) if total_vw_import else "",
             float(line_gw) if line_gw is not None else "",
             float(line_vw) if line_vw is not None else "",
+            vendor_vrs,
         ])
 
         # style row
@@ -759,9 +785,10 @@ def export_single_import_excel(request, import_id):
     for column_cells in ws.columns:
         length = max(len(str(c.value)) if c.value else 0 for c in column_cells)
         col_letter = get_column_letter(column_cells[0].column)
-        ws.column_dimensions[col_letter].width = length + 2
+        ws.column_dimensions[col_letter].width = min(length + 2, 60)
 
-    ws.freeze_panes = "A2"
+    # Better freeze: keep line headers visible
+    ws.freeze_panes = f"A{start_row_lines+1}"
 
     # ==========================================================
     # SHEET 2: PACKAGES (dimensions for this import)
@@ -814,7 +841,7 @@ def export_single_import_excel(request, import_id):
     for column_cells in ws2.columns:
         length = max(len(str(c.value)) if c.value else 0 for c in column_cells)
         col_letter = get_column_letter(column_cells[0].column)
-        ws2.column_dimensions[col_letter].width = length + 2
+        ws2.column_dimensions[col_letter].width = min(length + 2, 60)
 
     ws2.freeze_panes = "A2"
 
