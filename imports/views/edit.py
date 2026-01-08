@@ -275,7 +275,8 @@ def edit_import(request, pk):
                 imp.is_stackable = bool(data.get("is_stackable"))
                 imp.expected_receipt_date = _parse_date("expected_receipt_date")
                 imp.notes = _clean(data.get("notes"))
-
+                imp.vendor_reference = _clean(data.get("vendor_reference"))
+                imp.forwarder_reference = _clean(data.get("forwarder_reference"))
                 # customs
                 imp.declaration_c_number = _clean(data.get("declaration_c_number"))
                 imp.declaration_a_number = _clean(data.get("declaration_a_number"))
