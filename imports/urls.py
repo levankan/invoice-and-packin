@@ -9,7 +9,7 @@ urlpatterns = [
 
     # Edit / Delete per row
     path("<int:pk>/edit/", views.edit_import, name="imports_edit"),
-    path("<int:pk>/delete/", views.delete_import, name="imports_delete"),
+    path("delete/<int:pk>/", views.delete_import_confirm, name="imports_delete_confirm"),
     path("<int:pk>/upload-lines/", views.upload_import_lines, name="imports_upload_lines"),
     path(
         "exports/import-lines/",

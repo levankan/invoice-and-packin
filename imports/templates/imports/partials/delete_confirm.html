@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+{% block title %}Delete Import{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 600px;">
+  <div class="card shadow-sm border-danger">
+    <div class="card-header bg-danger text-white">Confirm deletion</div>
+    <div class="card-body">
+      <p>Delete import <strong>{{ imp.import_code }}</strong>?</p>
+
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Yes, delete</button>
+        <a href="{% url 'imports_home' %}" class="btn btn-outline-secondary">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
