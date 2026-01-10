@@ -27,7 +27,8 @@
         }
         .logo {
             width: 60px;
-            height: auto;
+            height: 60px;           /* ✅ makes SVG square */
+            object-fit: contain;    /* ✅ keeps full airplane */
             cursor: pointer;
             transition: transform 0.2s ease-in-out;
         }
@@ -45,10 +46,10 @@
             <!-- ✅ Logo links to Home -->
             {% if user.is_authenticated %}
                 <a href="{% url 'home' %}" class="d-inline-block">
-                    <img src="{% static 'img/atc_logo.jpeg' %}" alt="ATC Logo" class="logo">
+                    <img src="{% static 'img/red_airplane_exact.svg' %}" alt="Logo" class="logo">
                 </a>
             {% else %}
-                <img src="{% static 'img/atc_logo.jpeg' %}" alt="ATC Logo" class="logo">
+                <img src="{% static 'img/red_airplane_exact.svg' %}" alt="Logo" class="logo">
             {% endif %}
 
             <button id="theme-toggle" class="btn btn-outline-secondary">🌓 Toggle Theme</button>
