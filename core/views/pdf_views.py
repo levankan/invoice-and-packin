@@ -1,41 +1,23 @@
-from django.http import HttpResponse
-from django.template.loader import render_to_string
-from weasyprint import HTML
-from core.models import Export
-from collections import defaultdict
 from decimal import Decimal
-import qrcode
-import base64
+from collections import defaultdict
 from io import BytesIO
-from core.models import Export, Pallet
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
-from weasyprint import HTML
-from django.contrib.auth.decorators import login_required
-from core.models import Export, Pallet
-import qrcode
 import base64
-from io import BytesIO
-from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
-from weasyprint import HTML
-from django.contrib.auth.decorators import login_required
-from core.models import Export, Pallet
+import os
+
+import qrcode
 import barcode
 from barcode.writer import ImageWriter
-import base64
-from io import BytesIO
-import io
-import io, base64, os
+
 from django.conf import settings
-from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from weasyprint import HTML
-import barcode
-from barcode.writer import ImageWriter
+from django.template.loader import render_to_string
 from django.templatetags.static import static
+
+from weasyprint import HTML
+
+from core.models import Export, Pallet
 
 
 
@@ -43,7 +25,7 @@ from django.templatetags.static import static
 # Invoice PDF (all items)
 # ===========================
 
-
+@login_required
 def invoice_pdf_view(request, export_id):
     export = Export.objects.get(id=export_id)
 
@@ -105,7 +87,7 @@ def invoice_pdf_view(request, export_id):
 # Packing List PDF (all items)
 # ===========================
 
-
+@login_required
 def packing_list_pdf_view(request, export_id):
     export = Export.objects.get(id=export_id)
 
@@ -164,7 +146,7 @@ def packing_list_pdf_view(request, export_id):
 # Invoice PDF (per pallet)
 # ===========================
 
-
+@login_required
 def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
     export = Export.objects.get(id=export_id)
     pallet = export.pallets.get(id=pallet_id)
@@ -230,7 +212,7 @@ def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
 
 
 
-
+@login_required
 def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
     export = Export.objects.get(id=export_id)
     pallet = export.pallets.get(id=pallet_id)
@@ -295,7 +277,7 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
 
 
 
-
+@login_required
 def generate_barcode_base64(data, code_type="code128"):
     """Generate a 1D barcode (default Code128) as base64 string."""
     buffer = io.BytesIO()
