@@ -452,12 +452,3 @@ def edit_import(request, pk):
     )
 
 
-@login_required
-def delete_import(request, pk):
-    if not request.user.is_superuser:
-        raise PermissionDenied
-
-    if request.method == "POST":
-        get_object_or_404(Import, pk=pk).delete()
-
-    return redirect("imports_home")
