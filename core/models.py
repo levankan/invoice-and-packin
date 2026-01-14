@@ -11,6 +11,7 @@ class User(AbstractUser):
     ROLE_CHOICES = [
         ('warehouse', 'Warehouse'),
         ('logistic', 'Logistic'),
+        ('procurement', 'Procurement'),
         ('employee', 'Other Employee'),
         ('planning', 'Planning'),
         ('finance', 'Finance'),

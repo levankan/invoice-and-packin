@@ -51,4 +51,3 @@ urlpatterns = [
         name="pallet_label_pdf",
     ),
 ]   
-

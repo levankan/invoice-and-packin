@@ -4,7 +4,6 @@ from io import BytesIO
 import base64
 import os
 
-import qrcode
 import barcode
 from barcode.writer import ImageWriter
 
@@ -18,7 +17,6 @@ from django.templatetags.static import static
 from weasyprint import HTML
 
 from core.models import Export, Pallet
-
 
 
 # ===========================
@@ -277,14 +275,18 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
 
 
 
-@login_required
+
 def generate_barcode_base64(data, code_type="code128"):
-    """Generate a 1D barcode (default Code128) as base64 string."""
-    buffer = io.BytesIO()
+    buffer = BytesIO()
     barcode_class = barcode.get_barcode_class(code_type)
     barcode_obj = barcode_class(data, writer=ImageWriter())
     barcode_obj.write(buffer, options={"module_height": 15, "font_size": 10})
     return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("utf-8")
+
+
+
+
+
 
 
 @login_required
@@ -302,14 +304,31 @@ def pallet_label_pdf_view(request, export_id, pallet_id):
     # --- Generate barcode ---
     pallet_barcode_uri = generate_barcode_base64(barcode_data)
 
+    # --- Get unique box numbers for this pallet ---
+    box_numbers = (
+        export.items
+        .filter(pallet_number=pallet.pallet_number)
+        .exclude(box_number__isnull=True)
+        .exclude(box_number__exact="")
+        .values_list("box_number", flat=True)
+        .distinct()
+        .order_by("box_number")
+    )
+    box_numbers = list(box_numbers)
+
     # --- Resolve absolute logo path ---
     logo_path = os.path.join(settings.STATIC_ROOT, "img/atc_logo.jpeg")
-    logo_uri = "file://" + logo_path if os.path.exists(logo_path) else request.build_absolute_uri(static("img/atc_logo.jpeg"))
+    logo_uri = (
+        "file://" + logo_path
+        if os.path.exists(logo_path)
+        else request.build_absolute_uri(static("img/atc_logo.jpeg"))
+    )
 
     ctx = {
         "export": export,
         "pallet": pallet,
         "unique_boxes_count": pallet.unique_boxes_count,
+        "box_numbers": box_numbers,
         "pallet_barcode_uri": pallet_barcode_uri,
         "barcode_data": barcode_data,
         "logo_uri": logo_uri,
@@ -317,4 +336,9 @@ def pallet_label_pdf_view(request, export_id, pallet_id):
 
     html_string = render(request, "core/pallet_label.html", ctx).content.decode("utf-8")
     pdf_file = HTML(string=html_string).write_pdf()
-    return HttpResponse(pdf_file, content_type="application/pdf")
+
+    # ✅ Force download (like invoice/packing list)
+    filename = f"PalletLabel_{export.export_number}_{pallet.pallet_number}.pdf"
+    response = HttpResponse(pdf_file, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
