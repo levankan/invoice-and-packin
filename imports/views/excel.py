@@ -47,6 +47,8 @@ def export_imports_excel(request):
             | Q(tracking_no__icontains=q)
             | Q(vendor_reference__icontains=q)
             | Q(forwarder_reference__icontains=q)
+            | Q(declaration_c_number__icontains=q)
+            | Q(declaration_a_number__icontains=q)
             | Q(lines__item_no__icontains=q)
             | Q(lines__document_no__icontains=q)
         ).distinct()
