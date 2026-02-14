@@ -5,14 +5,10 @@
 <style>
   body { font-size: 0.88rem; }
 
-  .page-wrapper {
-    min-height: 100vh;
-  }
+  .page-wrapper { min-height: 100vh; }
 
   /* Wider table & darker row separator */
-  .table tbody tr {
-      border-bottom: 2px solid #bcbcbc !important;
-  }
+  .table tbody tr { border-bottom: 2px solid #bcbcbc !important; }
 
   /* Full-width dashboard card */
   .card-outer {
@@ -20,120 +16,112 @@
     margin-right: auto;
     margin-bottom: 60px;
     width: 100%;
-    max-width: 1400px;   /* or remove if you want auto */
-}
+    max-width: 1400px;
+  }
 
   .card-body {
-      padding-left: 1.5rem;
-      padding-right: 1.5rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
   }
 
   .table thead th {
-      white-space: nowrap;
-      font-size: 0.82rem;
+    white-space: nowrap;
+    font-size: 0.82rem;
   }
 
   .table td {
-      font-size: 0.84rem;
-      vertical-align: middle;
+    font-size: 0.84rem;
+    vertical-align: middle;
   }
 
   .table-sticky thead th {
-      position: sticky;
-      top: 0;
-      z-index: 2;
-      background: var(--bs-table-bg, #fff);
-      border-bottom: 1px solid var(--bs-border-color);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bs-table-bg, #fff);
+    border-bottom: 1px solid var(--bs-border-color);
   }
 
   .badge-pill {
-      border-radius: 10rem;
-      font-size: 0.72rem;
+    border-radius: 10rem;
+    font-size: 0.72rem;
   }
 
   .table-compact .table td,
   .table-compact .table th {
-      padding-top: .35rem;
-      padding-bottom: .35rem;
+    padding-top: .35rem;
+    padding-bottom: .35rem;
   }
 
   .table-hover tbody tr:hover {
-      background: rgba(0,0,0,.02);
-      transition: background 0.2s;
+    background: rgba(0,0,0,.02);
+    transition: background 0.2s;
   }
 
-  .text-muted.small {
-      font-size: 0.78rem;
-  }
+  .text-muted.small { font-size: 0.78rem; }
 
-  form .form-label {
-      font-size: 0.8rem;
-  }
+  form .form-label { font-size: 0.8rem; }
 
-  .row-highlight {
-      background-color: #eafaf0 !important;
-  }
+  .row-highlight { background-color: #eafaf0 !important; }
 
-  .col-actions {
-      width: 120px;
+  .col-actions { width: 120px; }
+
+  /* ✅ DATE COLUMNS: fixed width + no wrap (ONLY dates) */
+  th.col-decl-date, td.col-decl-date,
+  th.col-expected,  td.col-expected,
+  th.col-created,   td.col-created {
+    white-space: nowrap;
+    width: 115px;
+    min-width: 110px;
+    text-align: center;
   }
 
   @media (max-width: 575.98px) {
-      .col-expected { display: none; }
+    .col-expected { display: none; }
   }
 
   @media (max-width: 767.98px) {
-      .col-incoterms, .col-created { display: none; }
+    .col-incoterms, .col-created { display: none; }
   }
 
   .pagination-fixed-bottom {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 1030;
-      background: #fff;
-      border-top: 1px solid #dee2e6;
-      padding: .25rem 1rem .35rem;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1030;
+    background: #fff;
+    border-top: 1px solid #dee2e6;
+    padding: .25rem 1rem .35rem;
   }
 
   #fixedScroller {
-      overflow-x: auto;
-      overflow-y: hidden;
-      height: 16px;
-      margin-bottom: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 16px;
+    margin-bottom: 4px;
   }
 
-  #fakeScroll {
-      height: 1px;
-  }
+  #fakeScroll { height: 1px; }
 
-  .lines-row {
-      background-color: #fcfcfc;
-  }
+  .lines-row { background-color: #fcfcfc; }
 
   .lines-row table td,
-  .lines-row table th {
-      font-size: 0.78rem;
-  }
+  .lines-row table th { font-size: 0.78rem; }
 
-  .btn-link.toggle-lines {
-      text-decoration: none;
-  }
+  .btn-link.toggle-lines { text-decoration: none; }
 
   .btn-link.toggle-lines::after {
-      content: " ▾";
-      font-size: 0.75rem;
+    content: " ▾";
+    font-size: 0.75rem;
   }
 
-  .btn-link.toggle-lines.open::after {
-      content: " ▴";
-  }
+  .btn-link.toggle-lines.open::after { content: " ▴"; }
 
   .status-dropdown-menu {
-      min-width: 220px;
-      max-height: 260px;
-      overflow-y: auto;
+    min-width: 220px;
+    max-height: 260px;
+    overflow-y: auto;
   }
 </style>
 
@@ -144,23 +132,24 @@
         <h1 class="h5 mb-1">Imports</h1>
         <div class="text-muted small">Browse and manage registered imports</div>
       </div>
-  
 
       <div class="d-flex gap-2">
-
         <a class="btn btn-outline-success btn-sm"
-          href="{% url 'imports_payments_excel' %}?q={{ q }}{% for s in status_selected %}&status={{ s }}{% endfor %}{% for m in method_selected %}&method={{ m }}{% endfor %}">
+           href="{% url 'imports_payments_excel' %}?q={{ q }}{% for s in status_selected %}&status={{ s }}{% endfor %}{% for m in method_selected %}&method={{ m }}{% endfor %}">
           Payments
         </a>
 
         <a class="btn btn-sm btn-outline-secondary" href="{% url 'imports_export' %}">
           Download Imports
         </a>
+
         <a href="{% url 'imports_export_lines_excel' %}"
            class="btn btn-sm btn-outline-secondary ms-2">
           Download lines
         </a>
+
         <a class="btn btn-sm btn-primary" href="{% url 'imports_register' %}">Register Import</a>
+
         <a class="btn btn-sm btn-outline-dark" href="{% url 'home' %}">
           ⬅️ Back
         </a>
@@ -172,7 +161,8 @@
       <form id="importsFilterForm" method="get" class="row gx-3 gy-2 align-items-end mb-3">
         <div class="col-md-5">
           <label class="form-label mb-1">Search</label>
-          <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Import code, vendor, tracking, references…">
+          <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm"
+                 placeholder="Import code, vendor, tracking, references…">
         </div>
 
         {# 🔹 STATUS FILTER: dropdown with checkboxes + ALL #}
@@ -192,17 +182,17 @@
                 {% endif %}
               </span>
             </button>
+
             <div class="dropdown-menu p-2 status-dropdown-menu"
                  aria-labelledby="statusDropdown">
               <div class="form-check mb-1">
                 <input class="form-check-input" type="checkbox"
                        id="status_all"
                        {% if not status_f %}checked{% endif %}>
-                <label class="form-check-label small" for="status_all">
-                  All
-                </label>
+                <label class="form-check-label small" for="status_all">All</label>
               </div>
               <hr class="my-1">
+
               {% for s in STATUS_CHOICES %}
                 <div class="form-check mb-1">
                   <input class="form-check-input status-checkbox"
@@ -217,7 +207,6 @@
               {% endfor %}
             </div>
           </div>
-          {# hidden inputs for ?status=VALUE params #}
           <div id="statusHiddenInputs"></div>
         </div>
 
@@ -238,17 +227,17 @@
                 {% endif %}
               </span>
             </button>
+
             <div class="dropdown-menu p-2 status-dropdown-menu"
                  aria-labelledby="methodDropdown">
               <div class="form-check mb-1">
                 <input class="form-check-input" type="checkbox"
                        id="method_all"
                        {% if not method_f %}checked{% endif %}>
-                <label class="form-check-label small" for="method_all">
-                  All
-                </label>
+                <label class="form-check-label small" for="method_all">All</label>
               </div>
               <hr class="my-1">
+
               {% for m in METHOD_CHOICES %}
                 <div class="form-check mb-1">
                   <input class="form-check-input method-checkbox"
@@ -263,7 +252,6 @@
               {% endfor %}
             </div>
           </div>
-          {# hidden inputs for ?method=VALUE params #}
           <div id="methodHiddenInputs"></div>
         </div>
 
@@ -286,7 +274,7 @@
               <th>Status</th>
               <th>Forwarder</th>
               <th>Decl. C No.</th>
-              <th>Decl. Date</th>
+              <th class="col-decl-date">Decl. Date</th>
               <th class="col-expected">Expected</th>
               <th class="col-created">Created</th>
               {% if user.is_superuser %}
@@ -294,6 +282,7 @@
               {% endif %}
             </tr>
           </thead>
+
           <tbody>
             {% if page_obj.object_list %}
               {% for imp in page_obj %}
@@ -306,6 +295,7 @@
                       {{ imp.import_code }}
                     </button>
                   </td>
+
                   <td>{{ imp.vendor_name|default:"—" }}</td>
                   <td>{{ imp.exporter_country|default:"—" }}</td>
                   <td>{{ imp.tracking_no|default:"—" }}</td>
@@ -360,41 +350,41 @@
                   </td>
 
                   <td>{{ imp.declaration_c_number|default:"—" }}</td>
-                  <td>
+
+                  <td class="col-decl-date">
                     {% if imp.declaration_date %}
                       {{ imp.declaration_date|date:"Y-m-d" }}
                     {% else %}—{% endif %}
                   </td>
+
                   <td class="col-expected">
                     {% if imp.expected_receipt_date %}
                       {{ imp.expected_receipt_date|date:"Y-m-d" }}
                     {% else %}—{% endif %}
                   </td>
-                  <td class="col-created text-nowrap">{{ imp.created_at|date:"Y-m-d" }}</td>
 
-                  
-                  <td class="text-end col-actions">
-                    <a href="{% url 'import_single_excel' imp.pk %}"
-                      class="btn btn-sm btn-outline-success mb-1">
-                      📥
-                    </a>
-                    <a href="{% url 'imports_edit' imp.pk %}" class="btn btn-sm btn-outline-primary mb-1"> ✎</a>
-                    {% if user.is_superuser %}
-                    <a href="{% url 'imports_delete_confirm' imp.pk %}"
-                      class="btn btn-sm btn-outline-danger"
-                      onclick="return confirm('Proceed to delete {{ imp.import_code }}?');">
-                      🗑
-                    </a>
-
+                  <td class="col-created">
+                    {{ imp.created_at|date:"Y-m-d" }}
                   </td>
+
+                  {% if user.is_superuser %}
+                    <td class="text-end col-actions">
+                      <a href="{% url 'import_single_excel' imp.pk %}"
+                         class="btn btn-sm btn-outline-success mb-1">📥</a>
+
+                      <a href="{% url 'imports_edit' imp.pk %}"
+                         class="btn btn-sm btn-outline-primary mb-1">✎</a>
+
+                      <a href="{% url 'imports_delete_confirm' imp.pk %}"
+                         class="btn btn-sm btn-outline-danger"
+                         onclick="return confirm('Proceed to delete {{ imp.import_code }}?');">🗑</a>
+                    </td>
                   {% endif %}
                 </tr>
 
                 {# DETAIL ROW WITH LINES TABLE #}
                 <tr class="lines-row d-none" data-import-id="{{ imp.id }}">
                   <td colspan="{% if user.is_superuser %}13{% else %}12{% endif %}">
-
-                    {# ✅ FIXED: use exists() #}
                     {% if imp.lines.exists %}
                       <div class="table-responsive mt-2 mb-2">
                         <table class="table table-sm table-bordered mb-0">
@@ -457,9 +447,7 @@
 
 {% if page_obj.paginator.num_pages > 1 %}
   <div class="pagination-fixed-bottom">
-    <div id="fixedScroller">
-      <div id="fakeScroll"></div>
-    </div>
+    <div id="fixedScroller"><div id="fakeScroll"></div></div>
 
     <nav aria-label="Imports pagination">
       <ul class="pagination pagination-sm justify-content-end mb-0">
@@ -495,150 +483,139 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-      const tableWrap = document.getElementById('tableWrap');
-      const fixedScroller = document.getElementById('fixedScroller');
-      const fakeScroll = document.getElementById('fakeScroll');
+    const tableWrap = document.getElementById('tableWrap');
+    const fixedScroller = document.getElementById('fixedScroller');
+    const fakeScroll = document.getElementById('fakeScroll');
 
-      if (tableWrap && fixedScroller && fakeScroll) {
-          function updateWidth() {
-              fakeScroll.style.width = tableWrap.scrollWidth + 'px';
-          }
-
-          updateWidth();
-          window.addEventListener('resize', updateWidth);
-
-          fixedScroller.addEventListener('scroll', function () {
-              tableWrap.scrollLeft = fixedScroller.scrollLeft;
-          });
-
-          tableWrap.addEventListener('scroll', function () {
-              fixedScroller.scrollLeft = tableWrap.scrollLeft;
-          });
+    if (tableWrap && fixedScroller && fakeScroll) {
+      function updateWidth() {
+        fakeScroll.style.width = tableWrap.scrollWidth + 'px';
       }
+      updateWidth();
+      window.addEventListener('resize', updateWidth);
 
-      // 🔽 TOGGLE IMPORT LINES
-      document.querySelectorAll('.toggle-lines').forEach(function (btn) {
-          btn.addEventListener('click', function () {
-              const importId = this.getAttribute('data-import-id');
-              const detailRow = document.querySelector(
-                  '.lines-row[data-import-id="' + importId + '"]'
-              );
-              if (!detailRow) return;
-
-              detailRow.classList.toggle('d-none');
-              this.classList.toggle('open');
-          });
+      fixedScroller.addEventListener('scroll', function () {
+        tableWrap.scrollLeft = fixedScroller.scrollLeft;
       });
 
-      const filterForm = document.getElementById('importsFilterForm');
+      tableWrap.addEventListener('scroll', function () {
+        fixedScroller.scrollLeft = tableWrap.scrollLeft;
+      });
+    }
 
-      // 🔹 STATUS CHECKBOX LOGIC + HIDDEN INPUTS
-      const statusAllCheckbox = document.getElementById('status_all');
-      const statusCheckboxes = document.querySelectorAll('.status-checkbox');
-      const statusHiddenContainer = document.getElementById('statusHiddenInputs');
-      const statusLabel = document.getElementById('statusDropdownLabel');
+    // 🔽 TOGGLE IMPORT LINES
+    document.querySelectorAll('.toggle-lines').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const importId = this.getAttribute('data-import-id');
+        const detailRow = document.querySelector('.lines-row[data-import-id="' + importId + '"]');
+        if (!detailRow) return;
+        detailRow.classList.toggle('d-none');
+        this.classList.toggle('open');
+      });
+    });
 
-      function updateStatusHiddenInputs() {
-          if (!statusHiddenContainer) return;
-          statusHiddenContainer.innerHTML = '';
-          const checked = Array.from(statusCheckboxes).filter(cb => cb.checked);
+    const filterForm = document.getElementById('importsFilterForm');
 
-          checked.forEach(cb => {
-              const input = document.createElement('input');
-              input.type = 'hidden';
-              input.name = 'status';
-              input.value = cb.value;
-              statusHiddenContainer.appendChild(input);
-          });
+    // 🔹 STATUS CHECKBOX LOGIC + HIDDEN INPUTS
+    const statusAllCheckbox = document.getElementById('status_all');
+    const statusCheckboxes = document.querySelectorAll('.status-checkbox');
+    const statusHiddenContainer = document.getElementById('statusHiddenInputs');
+    const statusLabel = document.getElementById('statusDropdownLabel');
 
-          // update label
-          if (checked.length === 0) {
-              statusLabel.textContent = 'All statuses';
-              if (statusAllCheckbox) statusAllCheckbox.checked = true;
-          } else {
-              const values = checked.map(cb => cb.value);
-              statusLabel.textContent = values.join(', ');
-              if (statusAllCheckbox) statusAllCheckbox.checked = false;
-          }
-      }
+    function updateStatusHiddenInputs() {
+      if (!statusHiddenContainer) return;
+      statusHiddenContainer.innerHTML = '';
+      const checked = Array.from(statusCheckboxes).filter(cb => cb.checked);
 
-      if (statusAllCheckbox) {
-          statusAllCheckbox.addEventListener('change', function () {
-              if (this.checked) {
-                  statusCheckboxes.forEach(cb => cb.checked = false);
-                  updateStatusHiddenInputs();
-              }
-          });
-      }
-
-      statusCheckboxes.forEach(cb => {
-          cb.addEventListener('change', function () {
-              if (statusAllCheckbox && this.checked) {
-                  statusAllCheckbox.checked = false;
-              }
-              updateStatusHiddenInputs();
-          });
+      checked.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'status';
+        input.value = cb.value;
+        statusHiddenContainer.appendChild(input);
       });
 
-      // 🔹 METHOD CHECKBOX LOGIC + HIDDEN INPUTS
-      const methodAllCheckbox = document.getElementById('method_all');
-      const methodCheckboxes = document.querySelectorAll('.method-checkbox');
-      const methodHiddenContainer = document.getElementById('methodHiddenInputs');
-      const methodLabel = document.getElementById('methodDropdownLabel');
-
-      function updateMethodHiddenInputs() {
-          if (!methodHiddenContainer) return;
-          methodHiddenContainer.innerHTML = '';
-          const checked = Array.from(methodCheckboxes).filter(cb => cb.checked);
-
-          checked.forEach(cb => {
-              const input = document.createElement('input');
-              input.type = 'hidden';
-              input.name = 'method';
-              input.value = cb.value;
-              methodHiddenContainer.appendChild(input);
-          });
-
-          // update label
-          if (checked.length === 0) {
-              methodLabel.textContent = 'All methods';
-              if (methodAllCheckbox) methodAllCheckbox.checked = true;
-          } else {
-              const values = checked.map(cb => cb.value);
-              methodLabel.textContent = values.join(', ');
-              if (methodAllCheckbox) methodAllCheckbox.checked = false;
-          }
+      if (checked.length === 0) {
+        statusLabel.textContent = 'All statuses';
+        if (statusAllCheckbox) statusAllCheckbox.checked = true;
+      } else {
+        const values = checked.map(cb => cb.value);
+        statusLabel.textContent = values.join(', ');
+        if (statusAllCheckbox) statusAllCheckbox.checked = false;
       }
+    }
 
-      if (methodAllCheckbox) {
-          methodAllCheckbox.addEventListener('change', function () {
-              if (this.checked) {
-                  methodCheckboxes.forEach(cb => cb.checked = false);
-                  updateMethodHiddenInputs();
-              }
-          });
-      }
+    if (statusAllCheckbox) {
+      statusAllCheckbox.addEventListener('change', function () {
+        if (this.checked) {
+          statusCheckboxes.forEach(cb => cb.checked = false);
+          updateStatusHiddenInputs();
+        }
+      });
+    }
 
-      methodCheckboxes.forEach(cb => {
-          cb.addEventListener('change', function () {
-              if (methodAllCheckbox && this.checked) {
-                  methodAllCheckbox.checked = false;
-              }
-              updateMethodHiddenInputs();
-          });
+    statusCheckboxes.forEach(cb => {
+      cb.addEventListener('change', function () {
+        if (statusAllCheckbox && this.checked) statusAllCheckbox.checked = false;
+        updateStatusHiddenInputs();
+      });
+    });
+
+    // 🔹 METHOD CHECKBOX LOGIC + HIDDEN INPUTS
+    const methodAllCheckbox = document.getElementById('method_all');
+    const methodCheckboxes = document.querySelectorAll('.method-checkbox');
+    const methodHiddenContainer = document.getElementById('methodHiddenInputs');
+    const methodLabel = document.getElementById('methodDropdownLabel');
+
+    function updateMethodHiddenInputs() {
+      if (!methodHiddenContainer) return;
+      methodHiddenContainer.innerHTML = '';
+      const checked = Array.from(methodCheckboxes).filter(cb => cb.checked);
+
+      checked.forEach(cb => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'method';
+        input.value = cb.value;
+        methodHiddenContainer.appendChild(input);
       });
 
-      if (filterForm) {
-          filterForm.addEventListener('submit', function () {
-              // ensure hidden inputs reflect current checkboxes before submit
-              updateStatusHiddenInputs();
-              updateMethodHiddenInputs();
-          });
+      if (checked.length === 0) {
+        methodLabel.textContent = 'All methods';
+        if (methodAllCheckbox) methodAllCheckbox.checked = true;
+      } else {
+        const values = checked.map(cb => cb.value);
+        methodLabel.textContent = values.join(', ');
+        if (methodAllCheckbox) methodAllCheckbox.checked = false;
       }
+    }
 
-      // initial sync on page load (for pre-selected filters)
-      updateStatusHiddenInputs();
-      updateMethodHiddenInputs();
+    if (methodAllCheckbox) {
+      methodAllCheckbox.addEventListener('change', function () {
+        if (this.checked) {
+          methodCheckboxes.forEach(cb => cb.checked = false);
+          updateMethodHiddenInputs();
+        }
+      });
+    }
+
+    methodCheckboxes.forEach(cb => {
+      cb.addEventListener('change', function () {
+        if (methodAllCheckbox && this.checked) methodAllCheckbox.checked = false;
+        updateMethodHiddenInputs();
+      });
+    });
+
+    if (filterForm) {
+      filterForm.addEventListener('submit', function () {
+        updateStatusHiddenInputs();
+        updateMethodHiddenInputs();
+      });
+    }
+
+    // initial sync on page load (for pre-selected filters)
+    updateStatusHiddenInputs();
+    updateMethodHiddenInputs();
   });
 </script>
 
