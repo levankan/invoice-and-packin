@@ -371,14 +371,14 @@
                     {{ imp.created_at|date:"Y-m-d" }}
                   </td>
 
-                  {% if user.is_superuser %}
+                  
                     <td class="text-end col-actions">
                       <a href="{% url 'import_single_excel' imp.pk %}"
                          class="btn btn-sm btn-outline-success mb-1">📥</a>
-
+                  
                       <a href="{% url 'imports_edit' imp.pk %}"
                          class="btn btn-sm btn-outline-primary mb-1">✎</a>
-
+                    {% if user.is_superuser %}      
                       <a href="{% url 'imports_delete_confirm' imp.pk %}"
                          class="btn btn-sm btn-outline-danger"
                          onclick="return confirm('Proceed to delete {{ imp.import_code }}?');">🗑</a>
