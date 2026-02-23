@@ -23,4 +23,5 @@ urlpatterns = [
     path('', include('core.urls')),  
     path('admin-area/', include('admin_area.urls')),
     path('imports/', include('imports.urls')),  
+    path("warehouse/", include("warehouse.urls")),
 ]
