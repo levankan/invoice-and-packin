@@ -2,14 +2,134 @@
 {% block title %}Warehouse{% endblock %}
 
 {% block content %}
-<div class="card mx-auto shadow-lg"
-     style="max-width: 600px; padding: 40px; border-radius: 20px;">
+<style>
+    .warehouse-card {
+        font-size: 0.85rem;
+    }
 
-    <h2>📍 Warehouse</h2>
+    .warehouse-card h2 {
+        font-size: 1.3rem;
+    }
 
-    <p>
-        lalala
-    </p>
+    .warehouse-card h5 {
+        font-size: 1rem;
+    }
+
+    .warehouse-card table {
+        font-size: 0.8rem;
+    }
+
+    .warehouse-card table th,
+    .warehouse-card table td {
+        padding: 6px 8px;
+    }
+
+    .warehouse-card .form-control {
+        font-size: 0.9rem;
+        padding: 6px 10px;
+    }
+
+    .warehouse-card .btn {
+        font-size: 0.9rem;
+        padding: 6px 10px;
+    }
+</style>
+
+<div class="card mx-auto shadow-lg warehouse-card"
+     style="max-width: 1100px; padding: 25px; border-radius: 15px;">
+
+    <h2 class="mb-3">📍 Warehouse Search</h2>
+
+    <!-- 🔎 SEARCH FORM -->
+    <form method="post" class="mb-4">
+        {% csrf_token %}
+        <input type="text"
+               name="tracking_number"
+               class="form-control"
+               placeholder="Scan or enter import code / tracking / declaration..."
+               autofocus required>
+        <button type="submit" class="btn btn-success mt-2 w-100">
+            🔎 Search
+        </button>
+    </form>
+
+    <!-- 📦 IMPORT HEADER TABLE -->
+    {% if results %}
+        <h5 class="mb-2">Import Information</h5>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Import Code</th>
+                        <th>Tracking</th>
+                        <th>Vendor Ref</th>
+                        <th>Forwarder Ref</th>
+                        <th>Declaration C</th>
+                        <th>Declaration A</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in results %}
+                        <tr>
+                            <td>{{ item.import_code }}</td>
+                            <td>{{ item.tracking_no }}</td>
+                            <td>{{ item.vendor_reference }}</td>
+                            <td>{{ item.forwarder_reference }}</td>
+                            <td>{{ item.declaration_c_number }}</td>
+                            <td>{{ item.declaration_a_number }}</td>
+                            <td>{{ item.status }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 📋 IMPORT LINES TABLE -->
+        {% if lines %}
+            <h5 class="mt-4 mb-2">Items (Import Lines)</h5>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-sm">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Document No</th>
+                            <th>Line No</th>
+                            <th>Item No</th>
+                            <th>Description</th>
+                            <th>Quantity</th>
+                            <th>UOM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in lines %}
+                            <tr>
+                                <td>{{ l.document_no }}</td>
+                                <td>{{ l.line_no }}</td>
+                                <td>{{ l.item_no }}</td>
+                                <td>{{ l.description }}</td>
+                                <td>{{ l.quantity }}</td>
+                                <td>{{ l.unit_of_measure }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% if results %}
+            <a class="btn btn-outline-primary mb-3"
+                href="{% url 'warehouse:download_excel' %}?q={{ query|urlencode }}">
+                ⬇️ Download Excel
+            </a>
+        {% endif %}
+
+    {% elif query %}
+        <div class="alert alert-warning">
+            No results found for "<strong>{{ query }}</strong>"
+        </div>
+    {% endif %}
 
     <a href="{% url 'home' %}" class="btn btn-secondary mt-3">
         ⬅ Back to Home
