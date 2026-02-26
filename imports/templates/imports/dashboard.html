@@ -2,6 +2,15 @@
 {% block title %}Imports{% endblock %}
 
 {% block content %}
+{% if messages %}
+  {% for message in messages %}
+    {% if "from_warehouse" in message.tags %}
+      <div class="alert alert-success">
+        🚚 {{ message }}
+      </div>
+    {% endif %}
+  {% endfor %}
+{% endif %}
 <style>
   body { font-size: 0.88rem; }
 
