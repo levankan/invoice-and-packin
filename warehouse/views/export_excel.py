@@ -1,23 +1,24 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.db.models import Q
 from django.http import HttpResponse
+from django.db.models import Q
 from imports.models import Import, ImportLine
 
 import openpyxl
 from openpyxl.utils import get_column_letter
 
 
-
-
-
-
-
 @login_required
 def download_excel(request):
     q = (request.GET.get("q") or "").strip()
 
-    # If no query provided, return empty file (or you can redirect back)
+    if q:
+        # 🔥 Remove spaces just in case
+        q = q.replace(" ", "")
+
+        # 🔥 If starts with 20010 and does NOT contain "/", add it
+        if q.startswith("20010") and "/" not in q:
+            q = f"20010/{q[5:]}"
+
     results = Import.objects.none()
     lines = ImportLine.objects.none()
 
@@ -32,24 +33,23 @@ def download_excel(request):
         ).distinct()
 
         if results.exists():
-            lines = ImportLine.objects.filter(import_header__in=results).select_related("import_header")
+            lines = ImportLine.objects.filter(
+                import_header__in=results
+            ).select_related("import_header")
 
-    # Create workbook
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Warehouse Export"
 
     headers = [
         "Import Code", "Document No", "Line No", "Item No", "Description",
-        "Quantity", "UOM", "Tracking", "Declaration C", "Declaration A", "Vendor Ref", "Forwarder Ref"
-        
+        "Quantity", "UOM", "Tracking", "Declaration C", "Declaration A",
+        "Vendor Ref", "Forwarder Ref"
     ]
     ws.append(headers)
 
-    # Fill rows (one row per ImportLine + its Import header)
     for l in lines:
-        h = l.import_header  # Import header
-
+        h = l.import_header
         ws.append([
             getattr(h, "import_code", ""),
             getattr(l, "document_no", ""),
@@ -65,11 +65,9 @@ def download_excel(request):
             getattr(h, "forwarder_reference", ""),
         ])
 
-    # Optional: auto width (simple)
     for col in range(1, len(headers) + 1):
         ws.column_dimensions[get_column_letter(col)].width = 18
 
-    # Return as file
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )

@@ -1,11 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.db.models import Q
-from django.http import HttpResponse
 from imports.models import Import, ImportLine
-
-import openpyxl
-from openpyxl.utils import get_column_letter
 
 
 @login_required
@@ -18,6 +14,13 @@ def dashboard(request):
         query = request.POST.get("tracking_number", "").strip()
 
         if query:
+            # 🔥 Remove spaces just in case
+            query = query.replace(" ", "")
+
+            # 🔥 If starts with 20010 and does NOT contain "/", add it
+            if query.startswith("20010") and "/" not in query:
+                query = f"20010/{query[5:]}"
+
             results = Import.objects.filter(
                 Q(import_code__icontains=query) |
                 Q(tracking_no__icontains=query) |
@@ -28,11 +31,12 @@ def dashboard(request):
             ).distinct()
 
             if results.exists():
-                lines = ImportLine.objects.filter(import_header__in=results)
+                lines = ImportLine.objects.filter(
+                    import_header__in=results
+                )
 
     return render(request, "warehouse/dashboard.html", {
         "query": query,
         "results": results,
         "lines": lines,
     })
-
