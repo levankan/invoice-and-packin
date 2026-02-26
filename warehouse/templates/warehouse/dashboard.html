@@ -63,11 +63,10 @@
                     <tr>
                         <th>Import Code</th>
                         <th>Tracking</th>
-                        <th>Vendor Ref</th>
-                        <th>Forwarder Ref</th>
                         <th>Declaration C</th>
                         <th>Declaration A</th>
-                        <th>Status</th>
+                        <th>Vendor Ref</th>
+                        <th>Forwarder Ref</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -75,11 +74,10 @@
                         <tr>
                             <td>{{ item.import_code }}</td>
                             <td>{{ item.tracking_no }}</td>
-                            <td>{{ item.vendor_reference }}</td>
-                            <td>{{ item.forwarder_reference }}</td>
                             <td>{{ item.declaration_c_number }}</td>
                             <td>{{ item.declaration_a_number }}</td>
-                            <td>{{ item.status }}</td>
+                            <td>{{ item.vendor_reference }}</td>
+                            <td>{{ item.forwarder_reference }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
