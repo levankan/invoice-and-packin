@@ -2,6 +2,7 @@
 from django.urls import path
 from . import views
 
+
 urlpatterns = [
     path("", views.imports_dashboard, name="imports_home"),
     path("register/", views.register_import, name="imports_register"),
@@ -24,4 +25,5 @@ urlpatterns = [
     ),
 
     path("payments/export/", views.export_payments_excel, name="imports_payments_excel"),
+    path("notifications/dismiss/<int:pk>/", views.dismiss_notification, name="dismiss_notification"),
 ]

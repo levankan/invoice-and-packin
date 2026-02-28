@@ -3,8 +3,9 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import render
 
-from ..models import Import
+from ..models import Import, GlobalNotification
 from ..permissions import has_imports_access, STATUS_CHOICES, METHOD_CHOICES
+
 
 
 @login_required
@@ -14,6 +15,12 @@ def imports_dashboard(request):
     # multiple statuses + multiple methods
     status_f = request.GET.getlist("status")  # list
     method_f = request.GET.getlist("method")  # list
+
+    notifications = GlobalNotification.objects.filter(
+        is_active=True
+    ).exclude(
+        dismissed_by=request.user
+    ).order_by("-created_at")
 
     qs = (
         Import.objects
@@ -50,6 +57,7 @@ def imports_dashboard(request):
     method_qs = "&".join(f"method={m}" for m in method_f)
 
     ctx = {
+        "notifications": notifications,
         "page_obj": page_obj,
         "q": q,
         "status_f": status_f,     # list

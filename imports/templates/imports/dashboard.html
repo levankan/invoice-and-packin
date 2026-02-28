@@ -2,15 +2,19 @@
 {% block title %}Imports{% endblock %}
 
 {% block content %}
-{% if messages %}
-  {% for message in messages %}
-    {% if "from_warehouse" in message.tags %}
-      <div class="alert alert-success">
-        🚚 {{ message }}
-      </div>
-    {% endif %}
-  {% endfor %}
-{% endif %}
+{% for n in notifications %}
+  <div class="alert alert-{{ n.level }} alert-dismissible fade show" role="alert">
+    {{ n.message }}
+
+    <form method="post"
+          action="{% url 'dismiss_notification' n.id %}"
+          class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn-close" aria-label="Close"></button>
+    </form>
+  </div>
+{% endfor %}
+
 <style>
   body { font-size: 0.88rem; }
 

@@ -1,10 +1,11 @@
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.db.models import Q
 from django.db import transaction
 from django.utils import timezone
 from django.contrib import messages
-from imports.models import Import, ImportLine
+
+from imports.models import Import, ImportLine, GlobalNotification
 
 
 @login_required
@@ -19,6 +20,7 @@ def dashboard(request):
         if query:
             query = query.replace(" ", "")
 
+            # ✅ normalize declaration C format: 20010/xxxx
             if query.startswith("20010") and "/" not in query:
                 query = f"20010/{query[5:]}"
 
@@ -32,7 +34,7 @@ def dashboard(request):
             ).distinct()
 
             # ✅ Auto-mark Delivered if exactly one match
-            if results.count() == 1:
+            if results.count() >= 1:
                 imp = results.first()
 
                 with transaction.atomic():
@@ -46,14 +48,21 @@ def dashboard(request):
 
                         imp.save()
 
-                        # 🔥 Show message on next page
-                        messages.success(
-                        request,
-                        f"Status updated to Delivered (Import: {imp.import_code})",
-                        extra_tags="from_warehouse"
+                        # ✅ Global notification (visible to all users on imports dashboard)
+                        GlobalNotification.objects.create(
+                            level="success",
+                            message=f"✅ Status updated to Delivered (Import: {imp.import_code})",
+                            created_by=request.user,
+                            import_ref=imp,
+                            is_active=True,
                         )
 
-
+                        # ✅ Optional: django message (only if you want)
+                        messages.success(
+                            request,
+                            f"Status updated to Delivered (Import: {imp.import_code})",
+                            extra_tags="from_warehouse"
+                        )
 
             if results.exists():
                 lines = ImportLine.objects.filter(import_header__in=results)

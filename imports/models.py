@@ -3,6 +3,9 @@ from django.utils import timezone
 from django_countries.fields import CountryField
 from admin_area.models import Forwarder  
 from decimal import Decimal
+from django.db import models
+from django.conf import settings
+
 
 class ImportSequence(models.Model):
     """Keeps a single counter for generating sequential import codes."""
@@ -217,3 +220,45 @@ class ImportPackage(models.Model):
 
     def __str__(self):
         return f"{self.import_header.import_code} – {self.package_type or 'Package'}"
+
+
+
+
+
+class GlobalNotification(models.Model):
+    LEVEL_CHOICES = (
+        ("success", "Success"),
+        ("info", "Info"),
+        ("warning", "Warning"),
+        ("danger", "Danger"),
+    )
+
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default="info")
+    message = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_notifications"
+    )
+
+    import_ref = models.ForeignKey(
+        "imports.Import",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    # 👇 NEW FIELD
+    dismissed_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="dismissed_notifications"
+    )
+
+    def __str__(self):
+        return f"[{self.level}] {self.message}"

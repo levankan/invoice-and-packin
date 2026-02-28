@@ -7,6 +7,7 @@ from .delete import delete_import_confirm
 from .excel import export_imports_excel, export_import_lines_excel, export_single_import_excel
 from .lines import upload_import_lines
 from .payments_excel import export_payments_excel
+from .dismiss_notification import dismiss_notification
 
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "upload_import_lines",
     "export_single_import_excel",
     "export_payments_excel",
+    "dismiss_notification",
 ]
