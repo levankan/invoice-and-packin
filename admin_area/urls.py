@@ -27,6 +27,7 @@ urlpatterns = [
     path("items/add/", views.item_add, name="item_add"),
     path("items/<int:pk>/edit/", views.item_edit, name="item_edit"),
     path("items/<int:pk>/delete/", views.item_delete, name="item_delete"),
+    path("emails/", views.manage_emails, name="manage_emails"),
 
 
 

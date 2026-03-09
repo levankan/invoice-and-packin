@@ -7,6 +7,9 @@ from django.contrib import messages
 
 from imports.models import Import, ImportLine, GlobalNotification
 
+# 📧 Import email sender
+from warehouse.services.email_service import send_delivery_email
+
 
 @login_required
 def dashboard(request):
@@ -20,7 +23,7 @@ def dashboard(request):
         if query:
             query = query.replace(" ", "")
 
-            # ✅ normalize declaration C format: 20010/xxxx
+            # normalize declaration C format: 20010/xxxx
             if query.startswith("20010") and "/" not in query:
                 query = f"20010/{query[5:]}"
 
@@ -33,7 +36,7 @@ def dashboard(request):
                 Q(declaration_a_number__icontains=query)
             ).distinct()
 
-            # ✅ Auto-mark Delivered if exactly one match
+            # Auto-mark Delivered if exactly one match
             if results.count() >= 1:
                 imp = results.first()
 
@@ -48,7 +51,12 @@ def dashboard(request):
 
                         imp.save()
 
-                        # ✅ Global notification (visible to all users on imports dashboard)
+                        try:
+                            send_delivery_email(imp)
+                        except Exception as e:
+                            print("Email sending failed:", e)
+
+                        # Global notification
                         GlobalNotification.objects.create(
                             level="success",
                             message=f"✅ Status updated to Delivered (Import: {imp.import_code})",
@@ -57,7 +65,6 @@ def dashboard(request):
                             is_active=True,
                         )
 
-                        # ✅ Optional: django message (only if you want)
                         messages.success(
                             request,
                             f"Status updated to Delivered (Import: {imp.import_code})",

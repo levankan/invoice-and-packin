@@ -19,6 +19,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import user_passes_test
+from django.shortcuts import render
 
 from .models import Forwarder
 
@@ -585,3 +587,52 @@ def item_delete(request, pk):
         item = get_object_or_404(Item, pk=pk)
         item.delete()
     return redirect("items_view")
+
+
+
+
+
+from django.contrib import messages
+from django.contrib.auth.decorators import user_passes_test
+from django.shortcuts import render, redirect
+
+from .models import DeliveryEmailConfiguration
+
+
+@user_passes_test(lambda u: u.is_superuser)
+def manage_emails(request):
+    config = DeliveryEmailConfiguration.objects.first()
+
+    if request.method == "POST":
+        description = request.POST.get("email_description", "").strip()
+        email_subject = request.POST.get("email_subject", "").strip()
+        email_to = request.POST.get("email_to", "").strip()
+        cc = request.POST.get("email_cc", "").strip()
+        bcc = request.POST.get("email_bcc", "").strip()
+        email_text = request.POST.get("email_text", "").strip()
+        is_active = request.POST.get("is_active") == "on"
+
+        if config:
+            config.description = description
+            config.email_subject = email_subject
+            config.email_to = email_to
+            config.cc = cc
+            config.bcc = bcc
+            config.email_text = email_text
+            config.is_active = is_active
+            config.save()
+        else:
+            DeliveryEmailConfiguration.objects.create(
+                description=description,
+                email_subject=email_subject,
+                email_to=email_to,
+                cc=cc,
+                bcc=bcc,
+                email_text=email_text,
+                is_active=is_active,
+            )
+
+        messages.success(request, "Email configuration saved successfully.")
+        return redirect("manage_emails")
+
+    return render(request, "admin_area/manage_emails.html", {"config": config})

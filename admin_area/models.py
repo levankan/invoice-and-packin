@@ -50,3 +50,59 @@ class Forwarder(models.Model):
         if self.legal_name:
             return f"{self.name} — {self.legal_name}"
         return self.name
+
+
+
+
+from django.db import models
+
+
+class DeliveryEmailConfiguration(models.Model):
+
+    description = models.CharField(
+        max_length=255,
+        help_text="Internal name for this email configuration"
+    )
+
+    email_subject = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Email subject line"
+    )
+
+    email_to = models.TextField(
+        help_text="Enter email addresses separated by commas"
+    )
+
+    cc = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional CC emails separated by commas"
+    )
+
+    bcc = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional BCC emails separated by commas"
+    )
+
+    email_text = models.TextField(
+        help_text="Email message template"
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Turn ON/OFF email sending"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Delivery Email Configuration"
+        verbose_name_plural = "Delivery Email Configurations"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.description

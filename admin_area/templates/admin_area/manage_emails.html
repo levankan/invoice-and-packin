@@ -1,0 +1,131 @@
+{% extends "core/base.html" %}
+
+{% block title %}Manage Emails{% endblock %}
+
+{% block content %}
+<div class="card mx-auto shadow-lg" style="max-width: 1000px; padding: 32px; border-radius: 20px;">
+
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <h2 class="mb-0">📧 Manage Email Notifications</h2>
+    <a href="{% url 'admin_area' %}" class="btn btn-secondary">⬅️ Back</a>
+  </div>
+
+  <hr>
+
+  <p class="text-muted mb-4">
+    Here you can configure automatic system email notifications.
+  </p>
+
+  <div class="card border-0 shadow-sm" style="border-radius: 16px; background: #f8f9fa;">
+    <div class="card-body p-4">
+
+      <h4 class="mb-4">Delivery Area</h4>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+          <label for="email_description" class="form-label fw-bold">Email Description</label>
+          <input
+            type="text"
+            class="form-control"
+            id="email_description"
+            name="email_description"
+            value="{{ config.description|default:'' }}"
+            placeholder="Example: Warehouse Received Notification"
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="email_subject" class="form-label fw-bold">Email Subject</label>
+          <input
+            type="text"
+            class="form-control"
+            id="email_subject"
+            name="email_subject"
+            value="{{ config.email_subject|default:'' }}"
+            placeholder="Example: Shipment Delivered: {import_code}"
+          >
+        </div>
+
+        <div class="mb-3">
+          <label for="email_to" class="form-label fw-bold">Email To</label>
+          <input
+            type="text"
+            class="form-control"
+            id="email_to"
+            name="email_to"
+            value="{{ config.email_to|default:'' }}"
+            placeholder="example1@company.com, example2@company.com"
+          >
+          <div class="form-text">
+            Enter multiple email addresses separated by commas.
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="email_cc" class="form-label fw-bold">CC</label>
+          <input
+            type="text"
+            class="form-control"
+            id="email_cc"
+            name="email_cc"
+            value="{{ config.cc|default:'' }}"
+            placeholder="cc1@company.com, cc2@company.com"
+          >
+          <div class="form-text">
+            Enter multiple CC email addresses separated by commas.
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="email_bcc" class="form-label fw-bold">BCC</label>
+          <input
+            type="text"
+            class="form-control"
+            id="email_bcc"
+            name="email_bcc"
+            value="{{ config.bcc|default:'' }}"
+            placeholder="bcc1@company.com, bcc2@company.com"
+          >
+          <div class="form-text">
+            Enter multiple BCC email addresses separated by commas.
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <label for="email_text" class="form-label fw-bold">Email Text</label>
+          <textarea
+            class="form-control"
+            id="email_text"
+            name="email_text"
+            rows="8"
+            placeholder="Write the email template here..."
+          >{{ config.email_text|default:'' }}</textarea>
+        </div>
+
+        <div class="mb-3 form-check form-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="is_active"
+            name="is_active"
+            {% if config and config.is_active %}checked{% endif %}
+          >
+          <label class="form-check-label fw-bold" for="is_active">
+            Enable email sending
+          </label>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mt-4">
+          <button type="submit" class="btn btn-dark">💾 Save Configuration</button>
+          <button type="reset" class="btn btn-outline-secondary">Clear</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
