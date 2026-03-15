@@ -1,3 +1,4 @@
+#admin_area/email_service.py
 from django.core.mail import EmailMessage
 from django.conf import settings
 from .models import DeliveryEmailConfiguration

@@ -17,6 +17,8 @@ def send_delivery_email(import_obj):
     import_code = getattr(import_obj, "import_code", "N/A")
     tracking_no = getattr(import_obj, "tracking_no", "N/A")
     vendor_reference = getattr(import_obj, "vendor_reference", "N/A")
+    declaration_c_number = getattr(import_obj, "declaration_c_number", "N/A")
+    declaration_a_number = getattr(import_obj, "declaration_a_number", "N/A")
     received_at = getattr(import_obj, "received_at", None)
     received_by = getattr(import_obj, "received_by", None)
 
@@ -42,6 +44,8 @@ def send_delivery_email(import_obj):
 Import Code: {import_code}
 Tracking Number: {tracking_no}
 Vendor Reference: {vendor_reference}
+Declaration C Number: {declaration_c_number}
+Declaration A Number: {declaration_a_number}
 Received At: {received_at_value}
 Received By: {received_by_value}
 """
@@ -75,6 +79,8 @@ Received By: {received_by_value}
         <p><strong>Import Code:</strong> {import_code}</p>
         <p><strong>Tracking Number:</strong> {tracking_no}</p>
         <p><strong>Vendor Reference:</strong> {vendor_reference}</p>
+        <p><strong>Declaration C Number:</strong> {declaration_c_number}</p>
+        <p><strong>Declaration A Number:</strong> {declaration_a_number}</p>
         <p><strong>Received At:</strong> {received_at_value}</p>
         <p><strong>Received By:</strong> {received_by_value}</p>
 
