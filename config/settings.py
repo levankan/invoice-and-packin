@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'imports',
     'django_countries',
     'warehouse',
+    'stats',
 ]
 
 MIDDLEWARE = [

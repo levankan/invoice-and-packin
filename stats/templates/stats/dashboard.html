@@ -1,0 +1,438 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<style>
+    .stats-page {
+        padding: 28px;
+        background: #f5f7fb;
+        min-height: calc(100vh - 80px);
+    }
+
+    .stats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stats-title-wrap h2 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stats-title-wrap p {
+        margin: 6px 0 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .stats-filter-box {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        margin-bottom: 24px;
+    }
+
+    .stats-filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        align-items: end;
+    }
+
+    .stats-field {
+        display: flex;
+        flex-direction: column;
+        min-width: 180px;
+    }
+
+    .stats-field label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+    }
+
+    .stats-field input[type="date"] {
+        padding: 11px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        background: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: 0.2s ease;
+    }
+
+    .stats-field input[type="date"]:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .stats-btn {
+        height: 44px;
+        padding: 0 18px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .stats-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
+    }
+
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+        margin-bottom: 26px;
+    }
+
+    .stat-card {
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 20px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: #2563eb;
+    }
+
+    .stat-card.air::before { background: #0ea5e9; }
+    .stat-card.sea::before { background: #14b8a6; }
+    .stat-card.road::before { background: #f59e0b; }
+    .stat-card.courier::before { background: #8b5cf6; }
+    .stat-card.other::before { background: #6b7280; }
+
+    .stat-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .stat-card-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .stat-card-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        background: #eff6ff;
+    }
+
+    .stat-card.air .stat-card-icon { background: #e0f2fe; }
+    .stat-card.sea .stat-card-icon { background: #ccfbf1; }
+    .stat-card.road .stat-card-icon { background: #fef3c7; }
+    .stat-card.courier .stat-card-icon { background: #ede9fe; }
+    .stat-card.other .stat-card-icon { background: #f3f4f6; }
+
+    .stat-card-value {
+        font-size: 34px;
+        font-weight: 800;
+        line-height: 1;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .stat-card-note {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .stats-panel {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        overflow: hidden;
+    }
+
+    .stats-panel-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #eef2f7;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .stats-panel-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stats-panel-header span {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .stats-table-wrap {
+        overflow-x: auto;
+    }
+
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 980px;
+    }
+
+    .stats-table thead th {
+        background: #f8fafc;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        padding: 14px 12px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .stats-table tbody tr {
+        transition: background 0.15s ease;
+    }
+
+    .stats-table tbody tr:hover {
+        background: #f9fbff;
+    }
+
+    .stats-table tbody td {
+        padding: 15px 12px;
+        border-bottom: 1px solid #eef2f7;
+        font-size: 14px;
+        color: #1f2937;
+    }
+
+    .stats-table tbody td:first-child {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .stats-table .num {
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .badge-soft {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    @media (max-width: 768px) {
+        .stats-page {
+            padding: 16px;
+        }
+
+        .stats-title-wrap h2 {
+            font-size: 24px;
+        }
+
+        .stat-card-value {
+            font-size: 28px;
+        }
+
+        .stats-filter-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .stats-field {
+            min-width: 100%;
+        }
+
+        .stats-btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="stats-page">
+    <div class="stats-header">
+        <div class="stats-title-wrap">
+            <h2>Statistics Dashboard</h2>
+            <p>Shipment overview by date range and transportation method</p>
+        </div>
+        <span class="badge-soft">Import Statistics</span>
+    </div>
+
+    <div class="stats-filter-box">
+        <form method="get" class="stats-filter-form">
+            <div class="stats-field">
+                <label for="date_from">Date From</label>
+                <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
+            </div>
+
+            <div class="stats-field">
+                <label for="date_to">Date To</label>
+                <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
+            </div>
+
+            <button type="submit" class="stats-btn">Apply Filter</button>
+        </form>
+    </div>
+
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-card-label">All Shipments</div>
+                <div class="stat-card-icon">📦</div>
+            </div>
+            <div class="stat-card-value">{{ stats.total_registered.all }}</div>
+            <div class="stat-card-note">Total registered shipments</div>
+        </div>
+
+        <div class="stat-card air">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Air</div>
+                <div class="stat-card-icon">✈️</div>
+            </div>
+            <div class="stat-card-value">{{ stats.total_registered.air }}</div>
+            <div class="stat-card-note">Registered air shipments</div>
+        </div>
+
+        <div class="stat-card sea">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Sea</div>
+                <div class="stat-card-icon">🚢</div>
+            </div>
+            <div class="stat-card-value">{{ stats.total_registered.sea }}</div>
+            <div class="stat-card-note">Registered sea shipments</div>
+        </div>
+
+        <div class="stat-card road">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Road</div>
+                <div class="stat-card-icon">🚚</div>
+            </div>
+            <div class="stat-card-value">{{ stats.total_registered.road }}</div>
+            <div class="stat-card-note">Registered road shipments</div>
+        </div>
+
+        <div class="stat-card courier">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Courier</div>
+                <div class="stat-card-icon">📬</div>
+            </div>
+            <div class="stat-card-value">{{ stats.total_registered.courier }}</div>
+            <div class="stat-card-note">Registered courier shipments</div>
+        </div>
+
+        <div class="stat-card other">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Other</div>
+                <div class="stat-card-icon">📁</div>
+            </div>
+            <div class="stat-card-value">{{ stats.total_registered.other }}</div>
+            <div class="stat-card-note">Registered other shipments</div>
+        </div>
+    </div>
+
+    <div class="stats-panel">
+        <div class="stats-panel-header">
+            <h3>Shipment Status Breakdown</h3>
+            <span>Counts by transportation method</span>
+        </div>
+
+        <div class="stats-table-wrap">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Metric</th>
+                        <th>All</th>
+                        <th>Air</th>
+                        <th>Sea</th>
+                        <th>Road</th>
+                        <th>Courier</th>
+                        <th>Other</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Total Registered Shipments</td>
+                        <td class="num">{{ stats.total_registered.all }}</td>
+                        <td class="num">{{ stats.total_registered.air }}</td>
+                        <td class="num">{{ stats.total_registered.sea }}</td>
+                        <td class="num">{{ stats.total_registered.road }}</td>
+                        <td class="num">{{ stats.total_registered.courier }}</td>
+                        <td class="num">{{ stats.total_registered.other }}</td>
+                    </tr>
+                    <tr>
+                        <td>Planned Quantity</td>
+                        <td class="num">{{ stats.planned.all }}</td>
+                        <td class="num">{{ stats.planned.air }}</td>
+                        <td class="num">{{ stats.planned.sea }}</td>
+                        <td class="num">{{ stats.planned.road }}</td>
+                        <td class="num">{{ stats.planned.courier }}</td>
+                        <td class="num">{{ stats.planned.other }}</td>
+                    </tr>
+                    <tr>
+                        <td>In Transit Quantity</td>
+                        <td class="num">{{ stats.in_transit.all }}</td>
+                        <td class="num">{{ stats.in_transit.air }}</td>
+                        <td class="num">{{ stats.in_transit.sea }}</td>
+                        <td class="num">{{ stats.in_transit.road }}</td>
+                        <td class="num">{{ stats.in_transit.courier }}</td>
+                        <td class="num">{{ stats.in_transit.other }}</td>
+                    </tr>
+                    <tr>
+                        <td>At Customs Quantity</td>
+                        <td class="num">{{ stats.at_customs.all }}</td>
+                        <td class="num">{{ stats.at_customs.air }}</td>
+                        <td class="num">{{ stats.at_customs.sea }}</td>
+                        <td class="num">{{ stats.at_customs.road }}</td>
+                        <td class="num">{{ stats.at_customs.courier }}</td>
+                        <td class="num">{{ stats.at_customs.other }}</td>
+                    </tr>
+                    <tr>
+                        <td>Delivered Quantity</td>
+                        <td class="num">{{ stats.delivered.all }}</td>
+                        <td class="num">{{ stats.delivered.air }}</td>
+                        <td class="num">{{ stats.delivered.sea }}</td>
+                        <td class="num">{{ stats.delivered.road }}</td>
+                        <td class="num">{{ stats.delivered.courier }}</td>
+                        <td class="num">{{ stats.delivered.other }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
