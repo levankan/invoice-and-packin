@@ -325,6 +325,9 @@
                 <div class="stat-card-icon">✈️</div>
             </div>
             <div class="stat-card-value">{{ stats.total_registered.air }}</div>
+            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                ({{ stats.total_registered.air_percent }}%)
+            </span>
             <div class="stat-card-note">Registered air shipments</div>
         </div>
 
@@ -334,6 +337,9 @@
                 <div class="stat-card-icon">🚢</div>
             </div>
             <div class="stat-card-value">{{ stats.total_registered.sea }}</div>
+            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                ({{ stats.total_registered.sea_percent }}%)
+            </span>
             <div class="stat-card-note">Registered sea shipments</div>
         </div>
 
@@ -343,6 +349,9 @@
                 <div class="stat-card-icon">🚚</div>
             </div>
             <div class="stat-card-value">{{ stats.total_registered.road }}</div>
+            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                ({{ stats.total_registered.road_percent }}%)
+            </span>
             <div class="stat-card-note">Registered road shipments</div>
         </div>
 
@@ -352,6 +361,9 @@
                 <div class="stat-card-icon">📬</div>
             </div>
             <div class="stat-card-value">{{ stats.total_registered.courier }}</div>
+            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                ({{ stats.total_registered.courier_percent }}%)
+            </span>
             <div class="stat-card-note">Registered courier shipments</div>
         </div>
 
@@ -361,6 +373,9 @@
                 <div class="stat-card-icon">📁</div>
             </div>
             <div class="stat-card-value">{{ stats.total_registered.other }}</div>
+            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                ({{ stats.total_registered.other_percent }}%)
+            </span>
             <div class="stat-card-note">Registered other shipments</div>
         </div>
     </div>

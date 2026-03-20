@@ -14,9 +14,7 @@ def _shipping_method_filter(method_name):
     method_name = (method_name or "").lower().strip()
 
     if method_name == "air":
-        return (
-            Q(shipping_method__icontains="air")
-        )
+        return Q(shipping_method__icontains="air")
 
     if method_name == "sea":
         return (
@@ -53,10 +51,6 @@ def _shipping_method_filter(method_name):
 
 
 def _status_filter(status_name):
-    """
-    Flexible matching because statuses in DB may vary.
-    Adjust later if your exact status values are different.
-    """
     status_name = (status_name or "").lower().strip()
 
     if status_name == "planned":
@@ -100,6 +94,21 @@ def _count_shipments(base_qs, status=None, shipping_method=None):
     return qs.count()
 
 
+def add_percentages(stats):
+    total = stats["total_registered"]["all"] or 1
+
+    methods = ["air", "sea", "road", "courier", "other"]
+    sections = ["total_registered", "planned", "in_transit", "at_customs", "delivered"]
+
+    for key in sections:
+        for method in methods:
+            value = stats[key][method]
+            percent = (value / total) * 100
+            stats[key][f"{method}_percent"] = round(percent, 1)
+
+    return stats
+
+
 def get_import_statistics(date_from=None, date_to=None):
     base_qs = Import.objects.all()
     base_qs = _apply_date_range(base_qs, date_from, date_to)
@@ -107,10 +116,16 @@ def get_import_statistics(date_from=None, date_to=None):
     methods = ["air", "sea", "road", "courier", "other"]
 
     def method_counts(status=None):
-        data = {"all": _count_shipments(base_qs, status=status)}
+        data = {
+            "all": _count_shipments(base_qs, status=status)
+        }
 
-        for m in methods:
-            data[m] = _count_shipments(base_qs, status=status, shipping_method=m)
+        for method in methods:
+            data[method] = _count_shipments(
+                base_qs,
+                status=status,
+                shipping_method=method
+            )
 
         return data
 
@@ -122,4 +137,4 @@ def get_import_statistics(date_from=None, date_to=None):
         "delivered": method_counts("delivered"),
     }
 
-    return stats
+    return add_percentages(stats)
