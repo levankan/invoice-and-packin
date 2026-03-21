@@ -10,6 +10,16 @@ def _apply_date_range(qs, date_from=None, date_to=None):
     return qs
 
 
+def _apply_extra_filters(qs, vendor_name=None, item_no=None):
+    if vendor_name:
+        qs = qs.filter(vendor_name__icontains=vendor_name)
+
+    if item_no:
+        qs = qs.filter(lines__item_no__icontains=item_no)
+
+    return qs.distinct()
+
+
 def _shipping_method_filter(method_name):
     method_name = (method_name or "").lower().strip()
 
@@ -91,7 +101,7 @@ def _count_shipments(base_qs, status=None, shipping_method=None):
     if shipping_method:
         qs = qs.filter(_shipping_method_filter(shipping_method))
 
-    return qs.count()
+    return qs.distinct().count()
 
 
 def add_percentages(stats):
@@ -109,9 +119,10 @@ def add_percentages(stats):
     return stats
 
 
-def get_import_statistics(date_from=None, date_to=None):
+def get_import_statistics(date_from=None, date_to=None, vendor_name=None, item_no=None):
     base_qs = Import.objects.all()
     base_qs = _apply_date_range(base_qs, date_from, date_to)
+    base_qs = _apply_extra_filters(base_qs, vendor_name=vendor_name, item_no=item_no)
 
     methods = ["air", "sea", "road", "courier", "other"]
 

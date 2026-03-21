@@ -59,7 +59,9 @@
         margin-bottom: 6px;
     }
 
-    .stats-field input[type="date"] {
+    .stats-field input[type="date"],
+    .stats-field input[type="text"],
+    .stats-field select {
         padding: 11px 14px;
         border: 1px solid #d1d5db;
         border-radius: 12px;
@@ -69,7 +71,9 @@
         transition: 0.2s ease;
     }
 
-    .stats-field input[type="date"]:focus {
+    .stats-field input[type="date"]:focus,
+    .stats-field input[type="text"]:focus,
+    .stats-field select:focus {
         border-color: #2563eb;
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
@@ -89,6 +93,25 @@
     .stats-btn:hover {
         transform: translateY(-1px);
         box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
+    }
+
+    .stats-btn-clear {
+        height: 44px;
+        padding: 0 18px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        background: #fff;
+        color: #374151;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s ease;
+    }
+
+    .stats-btn-clear:hover {
+        background: #f9fafb;
     }
 
     .stats-cards {
@@ -278,7 +301,8 @@
             min-width: 100%;
         }
 
-        .stats-btn {
+        .stats-btn,
+        .stats-btn-clear {
             width: 100%;
         }
     }
@@ -296,16 +320,63 @@
     <div class="stats-filter-box">
         <form method="get" class="stats-filter-form">
             <div class="stats-field">
+                <label for="period">Period</label>
+                <select id="period" name="period" onchange="toggleCustomDates()">
+                    <option value="day" {% if period == "day" %}selected{% endif %}>Day</option>
+                    <option value="month" {% if period == "month" %}selected{% endif %}>Month</option>
+                    <option value="year" {% if period == "year" %}selected{% endif %}>Year</option>
+                    <option value="custom" {% if period == "custom" %}selected{% endif %}>Custom</option>
+                </select>
+            </div>
+
+            <div class="stats-field" id="date-from-wrap">
                 <label for="date_from">Date From</label>
                 <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
             </div>
 
-            <div class="stats-field">
+            <div class="stats-field" id="date-to-wrap">
                 <label for="date_to">Date To</label>
                 <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
             </div>
 
+            <div class="stats-field">
+                <label for="vendor_name">Vendor Name</label>
+                <input
+                    type="text"
+                    id="vendor_name"
+                    name="vendor_name"
+                    value="{{ vendor_name }}"
+                    placeholder="Enter vendor name"
+                    list="vendor-name-list"
+                    autocomplete="off"
+                >
+                <datalist id="vendor-name-list">
+                    {% for vendor in vendor_suggestions %}
+                        <option value="{{ vendor }}"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+            
+            <div class="stats-field">
+                <label for="item_no">Item Number</label>
+                <input
+                    type="text"
+                    id="item_no"
+                    name="item_no"
+                    value="{{ item_no }}"
+                    placeholder="Enter item number"
+                    list="item-no-list"
+                    autocomplete="off"
+                >
+                <datalist id="item-no-list">
+                    {% for item in item_suggestions %}
+                        <option value="{{ item }}"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+
             <button type="submit" class="stats-btn">Apply Filter</button>
+            <a href="{% url 'stats:dashboard' %}" class="stats-btn-clear">Clear</a>
         </form>
     </div>
 
@@ -324,10 +395,12 @@
                 <div class="stat-card-label">Air</div>
                 <div class="stat-card-icon">✈️</div>
             </div>
-            <div class="stat-card-value">{{ stats.total_registered.air }}</div>
-            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
-                ({{ stats.total_registered.air_percent }}%)
-            </span>
+            <div class="stat-card-value">
+                {{ stats.total_registered.air }}
+                <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                    ({{ stats.total_registered.air_percent }}%)
+                </span>
+            </div>
             <div class="stat-card-note">Registered air shipments</div>
         </div>
 
@@ -336,10 +409,12 @@
                 <div class="stat-card-label">Sea</div>
                 <div class="stat-card-icon">🚢</div>
             </div>
-            <div class="stat-card-value">{{ stats.total_registered.sea }}</div>
-            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
-                ({{ stats.total_registered.sea_percent }}%)
-            </span>
+            <div class="stat-card-value">
+                {{ stats.total_registered.sea }}
+                <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                    ({{ stats.total_registered.sea_percent }}%)
+                </span>
+            </div>
             <div class="stat-card-note">Registered sea shipments</div>
         </div>
 
@@ -348,10 +423,12 @@
                 <div class="stat-card-label">Road</div>
                 <div class="stat-card-icon">🚚</div>
             </div>
-            <div class="stat-card-value">{{ stats.total_registered.road }}</div>
-            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
-                ({{ stats.total_registered.road_percent }}%)
-            </span>
+            <div class="stat-card-value">
+                {{ stats.total_registered.road }}
+                <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                    ({{ stats.total_registered.road_percent }}%)
+                </span>
+            </div>
             <div class="stat-card-note">Registered road shipments</div>
         </div>
 
@@ -360,10 +437,12 @@
                 <div class="stat-card-label">Courier</div>
                 <div class="stat-card-icon">📬</div>
             </div>
-            <div class="stat-card-value">{{ stats.total_registered.courier }}</div>
-            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
-                ({{ stats.total_registered.courier_percent }}%)
-            </span>
+            <div class="stat-card-value">
+                {{ stats.total_registered.courier }}
+                <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                    ({{ stats.total_registered.courier_percent }}%)
+                </span>
+            </div>
             <div class="stat-card-note">Registered courier shipments</div>
         </div>
 
@@ -372,10 +451,12 @@
                 <div class="stat-card-label">Other</div>
                 <div class="stat-card-icon">📁</div>
             </div>
-            <div class="stat-card-value">{{ stats.total_registered.other }}</div>
-            <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
-                ({{ stats.total_registered.other_percent }}%)
-            </span>
+            <div class="stat-card-value">
+                {{ stats.total_registered.other }}
+                <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                    ({{ stats.total_registered.other_percent }}%)
+                </span>
+            </div>
             <div class="stat-card-note">Registered other shipments</div>
         </div>
     </div>
@@ -450,4 +531,24 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleCustomDates() {
+        const period = document.getElementById("period").value;
+        const fromWrap = document.getElementById("date-from-wrap");
+        const toWrap = document.getElementById("date-to-wrap");
+
+        if (period === "custom") {
+            fromWrap.style.display = "flex";
+            toWrap.style.display = "flex";
+        } else {
+            fromWrap.style.display = "none";
+            toWrap.style.display = "none";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        toggleCustomDates();
+    });
+</script>
 {% endblock %}
