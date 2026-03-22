@@ -319,64 +319,57 @@
 
     <div class="stats-filter-box">
         <form method="get" class="stats-filter-form">
+    
             <div class="stats-field">
-                <label for="period">Period</label>
-                <select id="period" name="period" onchange="toggleCustomDates()">
-                    <option value="day" {% if period == "day" %}selected{% endif %}>Day</option>
-                    <option value="month" {% if period == "month" %}selected{% endif %}>Month</option>
-                    <option value="year" {% if period == "year" %}selected{% endif %}>Year</option>
-                    <option value="custom" {% if period == "custom" %}selected{% endif %}>Custom</option>
-                </select>
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}">
             </div>
-
-            <div class="stats-field" id="date-from-wrap">
-                <label for="date_from">Date From</label>
-                <input type="date" id="date_from" name="date_from" value="{{ date_from }}">
-            </div>
-
-            <div class="stats-field" id="date-to-wrap">
-                <label for="date_to">Date To</label>
-                <input type="date" id="date_to" name="date_to" value="{{ date_to }}">
-            </div>
-
+    
             <div class="stats-field">
-                <label for="vendor_name">Vendor Name</label>
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}">
+            </div>
+    
+            <div class="stats-field">
+                <label>Vendor Name</label>
                 <input
                     type="text"
-                    id="vendor_name"
                     name="vendor_name"
                     value="{{ vendor_name }}"
-                    placeholder="Enter vendor name"
                     list="vendor-name-list"
-                    autocomplete="off"
+                    placeholder="Vendor..."
                 >
                 <datalist id="vendor-name-list">
-                    {% for vendor in vendor_suggestions %}
-                        <option value="{{ vendor }}"></option>
+                    {% for v in vendor_suggestions %}
+                    <option value="{{ v }}"></option>
                     {% endfor %}
                 </datalist>
             </div>
-            
+    
             <div class="stats-field">
-                <label for="item_no">Item Number</label>
+                <label>Item Number</label>
                 <input
                     type="text"
-                    id="item_no"
                     name="item_no"
                     value="{{ item_no }}"
-                    placeholder="Enter item number"
                     list="item-no-list"
-                    autocomplete="off"
+                    placeholder="Item..."
                 >
                 <datalist id="item-no-list">
-                    {% for item in item_suggestions %}
-                        <option value="{{ item }}"></option>
+                    {% for i in item_suggestions %}
+                    <option value="{{ i }}"></option>
                     {% endfor %}
                 </datalist>
             </div>
-
-            <button type="submit" class="stats-btn">Apply Filter</button>
-            <a href="{% url 'stats:dashboard' %}" class="stats-btn-clear">Clear</a>
+    
+            <button type="submit" class="stats-btn">
+                Apply Filter
+            </button>
+    
+            <a href="{% url 'stats:dashboard' %}" class="stats-btn-clear">
+                Clear
+            </a>
+    
         </form>
     </div>
 
