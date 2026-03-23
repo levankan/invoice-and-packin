@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from django.db.models import Sum
 from imports.models import Import
-from stats.exchange_rates import fetch_nbg_rates_for_date, convert_to_usd, ExchangeRateError
-from stats.services import _shipping_method_filter
-
+from django.db.models import Sum
+from stats.exchange_rates import (
+    fetch_nbg_rates_for_date,
+    convert_to_usd,
+    ExchangeRateError,
+)
 
 ZERO = Decimal("0")
 SUPPORTED_CURRENCIES = {"USD", "EUR", "GEL", "GBP", "TRY", "ILS", "CNY"}
@@ -34,22 +36,22 @@ def _declared_imports_queryset(date_from=None, date_to=None, vendor_name=None, i
 def _sum_goods_amount(import_obj: Import) -> Decimal:
     result = import_obj.lines.exclude(
         line_amount__isnull=True
-    ).aggregate(
-        total=Sum("line_amount")
-    )["total"]
+    ).aggregate(total=Sum("line_amount"))["total"]
 
     return result if result is not None else ZERO
 
 
-def _shipping_method_key(import_obj: Import) -> str:
-    for method in ["air", "sea", "road", "courier"]:
-        if Import.objects.filter(pk=import_obj.pk).filter(_shipping_method_filter(method)).exists():
-            return method
-    return "other"
-
-
 def _normalize_currency(code: str | None) -> str:
     return (code or "").upper().strip()
+
+
+def _shipping_method_key(import_obj: Import) -> str:
+    method = (import_obj.shipping_method or "").strip().lower()
+
+    if method in {"air", "sea", "road", "courier"}:
+        return method
+
+    return "other"
 
 
 def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=None):
@@ -73,6 +75,9 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
     total_goods_usd = ZERO
     total_transport_usd = ZERO
 
+    # cache NBG rates by date so we do not call API repeatedly for same date
+    rates_cache: dict = {}
+
     for imp in qs:
         goods_amount = _sum_goods_amount(imp)
         transport_amount = imp.transport_price or ZERO
@@ -95,8 +100,21 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
         if transport_currency not in SUPPORTED_CURRENCIES:
             continue
 
+        declaration_date = imp.declaration_date
+        if not declaration_date:
+            continue
+
+        if declaration_date not in rates_cache:
+            try:
+                rates_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
+            except ExchangeRateError:
+                rates_cache[declaration_date] = None
+
+        rates = rates_cache.get(declaration_date)
+        if not rates:
+            continue
+
         try:
-            rates = fetch_nbg_rates_for_date(imp.declaration_date)
             goods_usd = convert_to_usd(goods_amount, goods_currency, rates)
             transport_usd = convert_to_usd(transport_amount, transport_currency, rates)
         except ExchangeRateError:
