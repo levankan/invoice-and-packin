@@ -462,14 +462,14 @@
             <div class="stat-card-note">Transport cost as % of goods value</div>
         </div>
     </div>
-
+  <!-- 
     <div class="stats-panel">
         <div class="stats-panel-header">
             <h3>Shipment Cost Breakdown</h3>
             <span>Goods and transport converted to USD by declaration date</span>
         </div>
 
-        <div class="stats-table-wrap">
+       <div class="stats-table-wrap">
             {% if analysis.rows %}
             <table class="stats-table">
                 <thead>
@@ -488,7 +488,7 @@
                         <th class="num">Transport %</th>
                     </tr>
                 </thead>
-               <!-- <tbody>
+              <tbody>
                     {% for row in analysis.rows %}
                     <tr>
                         <td>{{ row.import_code }}</td>
@@ -506,7 +506,7 @@
                     </tr>
                     {% endfor %}
                 </tbody>
-                -->
+                
             </table>
             {% else %}
             <div class="empty-state">
@@ -514,6 +514,8 @@
             </div>
             {% endif %}
         </div>
+        
     </div>
+    -->
 </div>
 {% endblock %}
