@@ -8,4 +8,5 @@ app_name = 'stats'
 urlpatterns = [
     path('', views.main, name='main'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('cost/', views.cost_analysis, name='cost'),
 ]

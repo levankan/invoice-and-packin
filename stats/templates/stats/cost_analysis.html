@@ -1,0 +1,518 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<style>
+    .stats-page {
+        padding: 28px;
+        background: #f5f7fb;
+        min-height: calc(100vh - 80px);
+    }
+
+    .stats-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stats-title-wrap h2 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stats-title-wrap p {
+        margin: 6px 0 0;
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .stats-filter-box {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        margin-bottom: 24px;
+    }
+
+    .stats-filter-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        align-items: end;
+    }
+
+    .stats-field {
+        display: flex;
+        flex-direction: column;
+        min-width: 180px;
+    }
+
+    .stats-field label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+    }
+
+    .stats-field input[type="date"],
+    .stats-field input[type="text"] {
+        padding: 11px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        background: #fff;
+        font-size: 14px;
+        outline: none;
+        transition: 0.2s ease;
+    }
+
+    .stats-field input[type="date"]:focus,
+    .stats-field input[type="text"]:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .stats-btn {
+        height: 44px;
+        padding: 0 18px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s ease;
+    }
+
+    .stats-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
+    }
+
+    .stats-btn-clear {
+        height: 44px;
+        padding: 0 18px;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        background: #fff;
+        color: #374151;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s ease;
+    }
+
+    .stats-btn-clear:hover {
+        background: #f9fafb;
+    }
+
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 18px;
+        margin-bottom: 26px;
+    }
+
+    .stat-card {
+        background: #ffffff;
+        border-radius: 18px;
+        padding: 20px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: #2563eb;
+    }
+
+    .stat-card.air::before { background: #0ea5e9; }
+    .stat-card.sea::before { background: #14b8a6; }
+    .stat-card.road::before { background: #f59e0b; }
+    .stat-card.courier::before { background: #8b5cf6; }
+    .stat-card.other::before { background: #6b7280; }
+    .stat-card.summary-goods::before { background: #10b981; }
+    .stat-card.summary-transport::before { background: #ef4444; }
+    .stat-card.summary-percent::before { background: #f59e0b; }
+
+    .stat-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .stat-card-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+    }
+
+    .stat-card-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        background: #eff6ff;
+    }
+
+    .stat-card-value {
+        font-size: 34px;
+        font-weight: 800;
+        line-height: 1.1;
+        color: #111827;
+        margin-bottom: 8px;
+    }
+
+    .stat-card-note {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 18px;
+        margin-bottom: 26px;
+    }
+
+    .stats-panel {
+        background: #ffffff;
+        border-radius: 18px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        overflow: hidden;
+    }
+
+    .stats-panel-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #eef2f7;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .stats-panel-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+    }
+
+    .stats-panel-header span {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .stats-table-wrap {
+        overflow-x: auto;
+    }
+
+    .stats-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 1400px;
+    }
+
+    .stats-table thead th {
+        background: #f8fafc;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        padding: 14px 12px;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: nowrap;
+    }
+
+    .stats-table tbody tr {
+        transition: background 0.15s ease;
+    }
+
+    .stats-table tbody tr:hover {
+        background: #f9fbff;
+    }
+
+    .stats-table tbody td {
+        padding: 15px 12px;
+        border-bottom: 1px solid #eef2f7;
+        font-size: 14px;
+        color: #1f2937;
+        white-space: nowrap;
+    }
+
+    .stats-table tbody td:first-child {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .stats-table .num {
+        text-align: right;
+        font-weight: 700;
+    }
+
+    .badge-soft {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #eff6ff;
+        color: #1d4ed8;
+    }
+
+    .empty-state {
+        padding: 30px 20px;
+        text-align: center;
+        color: #6b7280;
+    }
+
+    @media (max-width: 768px) {
+        .stats-page {
+            padding: 16px;
+        }
+
+        .stats-title-wrap h2 {
+            font-size: 24px;
+        }
+
+        .stat-card-value {
+            font-size: 28px;
+        }
+
+        .stats-filter-form {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .stats-field {
+            min-width: 100%;
+        }
+
+        .stats-btn,
+        .stats-btn-clear {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="stats-page">
+    <div class="stats-header">
+        <div class="stats-title-wrap">
+            <h2>Transportation Cost Analysis</h2>
+            <p>Transportation cost vs goods value using declaration-date exchange rates</p>
+        </div>
+        <span class="badge-soft">Declared Imports Only</span>
+    </div>
+
+    <div class="stats-filter-box">
+        <form method="get" class="stats-filter-form">
+            <div class="stats-field">
+                <label>Date From</label>
+                <input type="date" name="date_from" value="{{ date_from }}">
+            </div>
+
+            <div class="stats-field">
+                <label>Date To</label>
+                <input type="date" name="date_to" value="{{ date_to }}">
+            </div>
+
+            <div class="stats-field">
+                <label>Vendor Name</label>
+                <input
+                    type="text"
+                    name="vendor_name"
+                    value="{{ vendor_name }}"
+                    list="vendor-name-list"
+                    placeholder="Vendor..."
+                    autocomplete="off"
+                >
+                <datalist id="vendor-name-list">
+                    {% for v in vendor_suggestions %}
+                        <option value="{{ v }}"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <div class="stats-field">
+                <label>Item Number</label>
+                <input
+                    type="text"
+                    name="item_no"
+                    value="{{ item_no }}"
+                    list="item-no-list"
+                    placeholder="Item..."
+                    autocomplete="off"
+                >
+                <datalist id="item-no-list">
+                    {% for i in item_suggestions %}
+                        <option value="{{ i }}"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+
+            <button type="submit" class="stats-btn">Apply Filter</button>
+            <a href="{% url 'stats:cost' %}" class="stats-btn-clear">Clear</a>
+        </form>
+    </div>
+
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-card-label">All Shipments</div>
+                <div class="stat-card-icon">📦</div>
+            </div>
+            <div class="stat-card-value">{{ analysis.cards.all }}</div>
+            <div class="stat-card-note">Eligible declared shipments</div>
+        </div>
+
+        <div class="stat-card air">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Air</div>
+                <div class="stat-card-icon">✈️</div>
+            </div>
+            <div class="stat-card-value">{{ analysis.cards.air }}</div>
+            <div class="stat-card-note">Air shipments</div>
+        </div>
+
+        <div class="stat-card sea">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Sea</div>
+                <div class="stat-card-icon">🚢</div>
+            </div>
+            <div class="stat-card-value">{{ analysis.cards.sea }}</div>
+            <div class="stat-card-note">Sea shipments</div>
+        </div>
+
+        <div class="stat-card road">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Road</div>
+                <div class="stat-card-icon">🚚</div>
+            </div>
+            <div class="stat-card-value">{{ analysis.cards.road }}</div>
+            <div class="stat-card-note">Road shipments</div>
+        </div>
+
+        <div class="stat-card courier">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Courier</div>
+                <div class="stat-card-icon">📬</div>
+            </div>
+            <div class="stat-card-value">{{ analysis.cards.courier }}</div>
+            <div class="stat-card-note">Courier shipments</div>
+        </div>
+
+        <div class="stat-card other">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Other</div>
+                <div class="stat-card-icon">📁</div>
+            </div>
+            <div class="stat-card-value">{{ analysis.cards.other }}</div>
+            <div class="stat-card-note">Other shipments</div>
+        </div>
+    </div>
+
+    <div class="summary-cards">
+        <div class="stat-card summary-goods">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Total Goods Value</div>
+                <div class="stat-card-icon">💵</div>
+            </div>
+            <div class="stat-card-value">${{ analysis.summary.total_goods_usd }}</div>
+            <div class="stat-card-note">Summed from import lines, converted to USD</div>
+        </div>
+
+        <div class="stat-card summary-transport">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Total Transport Cost</div>
+                <div class="stat-card-icon">🚛</div>
+            </div>
+            <div class="stat-card-value">${{ analysis.summary.total_transport_usd }}</div>
+            <div class="stat-card-note">Transport price converted to USD</div>
+        </div>
+
+        <div class="stat-card summary-percent">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Transport %</div>
+                <div class="stat-card-icon">📈</div>
+            </div>
+            <div class="stat-card-value">{{ analysis.summary.overall_percent }}%</div>
+            <div class="stat-card-note">Transport cost as % of goods value</div>
+        </div>
+    </div>
+
+    <div class="stats-panel">
+        <div class="stats-panel-header">
+            <h3>Shipment Cost Breakdown</h3>
+            <span>Goods and transport converted to USD by declaration date</span>
+        </div>
+
+        <div class="stats-table-wrap">
+            {% if analysis.rows %}
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Import Code</th>
+                        <th style="text-align: left;">Vendor</th>
+                        <th style="text-align: left;">Shipping Method</th>
+                        <th style="text-align: left;">Declaration C</th>
+                        <th style="text-align: left;">Declaration Date</th>
+                        <th class="num">Goods Amount</th>
+                        <th style="text-align: left;">Goods Currency</th>
+                        <th class="num">Goods USD</th>
+                        <th class="num">Transport Amount</th>
+                        <th style="text-align: left;">Transport Currency</th>
+                        <th class="num">Transport USD</th>
+                        <th class="num">Transport %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in analysis.rows %}
+                    <tr>
+                        <td>{{ row.import_code }}</td>
+                        <td>{{ row.vendor_name|default:"-" }}</td>
+                        <td>{{ row.shipping_method|default:"-" }}</td>
+                        <td>{{ row.declaration_c_number }}</td>
+                        <td>{{ row.declaration_date|date:"Y-m-d" }}</td>
+                        <td class="num">{{ row.goods_amount }}</td>
+                        <td>{{ row.goods_currency }}</td>
+                        <td class="num">${{ row.goods_usd }}</td>
+                        <td class="num">{{ row.transport_amount }}</td>
+                        <td>{{ row.transport_currency }}</td>
+                        <td class="num">${{ row.transport_usd }}</td>
+                        <td class="num">{{ row.transport_percent }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                No declared shipments matched your filters.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
