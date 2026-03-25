@@ -8,8 +8,8 @@ import qrcode
 
 from django.contrib import messages
 from django.contrib.auth import login
-from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import AuthenticationForm
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -19,7 +19,10 @@ from django.views.decorators.http import require_http_methods
 
 @require_http_methods(["GET", "POST"])
 def login_view(request: HttpRequest) -> HttpResponse:
-    if request.user.is_authenticated and request.session.get("is_2fa_verified", False):
+    # Already logged in
+    if request.user.is_authenticated:
+        if request.user.two_factor_enabled and not request.session.get("is_2fa_verified", False):
+            return redirect("verify_2fa")
         return redirect("home")
 
     next_url = request.POST.get("next") or request.GET.get("next")
@@ -41,7 +44,6 @@ def login_view(request: HttpRequest) -> HttpResponse:
             user = form.get_user()
             login(request, user)
 
-            # reset every fresh login
             request.session["is_2fa_verified"] = False
             request.session["after_2fa_redirect"] = next_url
 
@@ -57,8 +59,12 @@ def login_view(request: HttpRequest) -> HttpResponse:
 
 
 @login_required
-def setup_2fa(request):
+def setup_2fa(request: HttpRequest) -> HttpResponse:
     user = request.user
+
+    if user.two_factor_enabled and user.two_factor_secret:
+        messages.info(request, "Two-factor authentication is already enabled.")
+        return redirect("home")
 
     if not user.two_factor_secret:
         user.two_factor_secret = pyotp.random_base32()
@@ -78,7 +84,8 @@ def setup_2fa(request):
     if request.method == "POST":
         code = request.POST.get("code", "").strip()
 
-        if totp.verify(code):
+        # valid_window=1 gives a little tolerance for phone/server time difference
+        if totp.verify(code, valid_window=1):
             user.two_factor_enabled = True
             user.save(update_fields=["two_factor_enabled"])
             request.session["is_2fa_verified"] = True
@@ -93,7 +100,7 @@ def setup_2fa(request):
 
 
 @login_required
-def verify_2fa(request):
+def verify_2fa(request: HttpRequest) -> HttpResponse:
     user = request.user
 
     if not user.two_factor_enabled or not user.two_factor_secret:
@@ -104,7 +111,7 @@ def verify_2fa(request):
         code = request.POST.get("code", "").strip()
         totp = pyotp.TOTP(user.two_factor_secret)
 
-        if totp.verify(code):
+        if totp.verify(code, valid_window=1):
             request.session["is_2fa_verified"] = True
             next_url = request.session.get("after_2fa_redirect") or reverse("home")
             return redirect(next_url)
