@@ -18,7 +18,8 @@ class User(AbstractUser):
         
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
-
+    two_factor_enabled = models.BooleanField(default=False)
+    two_factor_secret = models.CharField(max_length=64, blank=True, null=True)
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
 
@@ -156,4 +157,5 @@ class Pallet(models.Model):
             .distinct()
             .count()
         )
-    
+
+

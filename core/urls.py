@@ -5,6 +5,8 @@ from core.views.pdf_views import pallet_label_pdf_view
 
 from core.views import (
     login_view,
+    setup_2fa,
+    verify_2fa,
     home_view,
     tracking_view,
     logout_view,
@@ -25,6 +27,8 @@ from core.views import (
 
 urlpatterns = [
     path('', login_view, name='login'),
+    path('setup-2fa/', setup_2fa, name='setup_2fa'),
+    path('verify-2fa/', verify_2fa, name='verify_2fa'),
     path('home/', home_view, name='home'),
     path('logout/', logout_view, name='logout'),
 

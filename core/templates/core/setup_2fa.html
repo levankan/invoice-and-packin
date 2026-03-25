@@ -1,0 +1,95 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Setup 2FA{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+
+                <div class="text-center mb-3">
+                    <h4 class="mb-1">🔐 Enable Two-Factor Authentication</h4>
+                    <p class="text-muted small mb-0">
+                        Scan the QR code with Google Authenticator
+                    </p>
+                </div>
+
+                <!-- QR -->
+                <div class="text-center my-4">
+                    <div class="border rounded p-3 d-inline-block bg-light">
+                        <img 
+                            src="data:image/png;base64,{{ qr_base64 }}" 
+                            alt="QR Code"
+                            style="width:200px;height:200px;"
+                        >
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Authentication Code
+                        </label>
+
+                        <input
+                            type="text"
+                            name="code"
+                            class="form-control text-center fs-4"
+                            placeholder="123456"
+                            maxlength="6"
+                            autocomplete="off"
+                            required
+                        >
+                    </div>
+
+                    <div class="d-grid">
+                        <button class="btn btn-primary">
+                            Verify & Enable
+                        </button>
+                    </div>
+                </form>
+
+                {% if messages %}
+                <div class="mt-3">
+                    {% for message in messages %}
+                        <div class="alert alert-info py-2 mb-2">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <hr class="my-4">
+
+                <div class="small text-muted">
+                    <strong>Steps:</strong>
+                    <ol class="mb-0">
+                        <li>Open Google Authenticator</li>
+                        <li>Tap + button</li>
+                        <li>Scan QR code</li>
+                        <li>Enter 6-digit code</li>
+                    </ol>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const input = document.querySelector('input[name="code"]');
+if (input) {
+    input.addEventListener("input", function () {
+        this.value = this.value.replace(/\D/g, '').slice(0, 6);
+    });
+}
+</script>
+{% endblock %}
