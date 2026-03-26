@@ -26,11 +26,12 @@
             📥 Imports
         </a>
         
-        {% if user.is_superuser %}
+        
         <a href="{% url 'stats:main' %}" class="btn btn-dark btn-lg">
             📊 Statistics
         </a>
         
+        {% if user.is_superuser %}
             <a href="{% url 'admin_area' %}" class="btn btn-warning btn-lg">
                 ⚙️ Admin Area
             </a>
