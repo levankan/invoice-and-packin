@@ -158,4 +158,3 @@ class Pallet(models.Model):
             .count()
         )
 
-

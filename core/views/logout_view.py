@@ -10,3 +10,5 @@ def logout_view(request):
     request.session.pop("after_2fa_redirect", None)
     logout(request)
     return redirect("login")
+
+
