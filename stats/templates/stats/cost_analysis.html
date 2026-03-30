@@ -375,6 +375,12 @@
 
             <button type="submit" class="stats-btn">Apply Filter</button>
             <a href="{% url 'stats:cost' %}" class="stats-btn-clear">Clear</a>
+            <a
+                href="{% url 'stats:cost_export' %}?date_from={{ date_from }}&date_to={{ date_to }}&vendor_name={{ vendor_name|urlencode }}&item_no={{ item_no|urlencode }}"
+                class="stats-btn-clear"
+            >
+            📥
+            </a>
         </form>
     </div>
 
@@ -462,60 +468,5 @@
             <div class="stat-card-note">Transport cost as % of goods value</div>
         </div>
     </div>
-  <!-- 
-    <div class="stats-panel">
-        <div class="stats-panel-header">
-            <h3>Shipment Cost Breakdown</h3>
-            <span>Goods and transport converted to USD by declaration date</span>
-        </div>
-
-       <div class="stats-table-wrap">
-            {% if analysis.rows %}
-            <table class="stats-table">
-                <thead>
-                    <tr>
-                        <th style="text-align: left;">Import Code</th>
-                        <th style="text-align: left;">Vendor</th>
-                        <th style="text-align: left;">Shipping Method</th>
-                        <th style="text-align: left;">Declaration C</th>
-                        <th style="text-align: left;">Declaration Date</th>
-                        <th class="num">Goods Amount</th>
-                        <th style="text-align: left;">Goods Currency</th>
-                        <th class="num">Goods USD</th>
-                        <th class="num">Transport Amount</th>
-                        <th style="text-align: left;">Transport Currency</th>
-                        <th class="num">Transport USD</th>
-                        <th class="num">Transport %</th>
-                    </tr>
-                </thead>
-              <tbody>
-                    {% for row in analysis.rows %}
-                    <tr>
-                        <td>{{ row.import_code }}</td>
-                        <td>{{ row.vendor_name|default:"-" }}</td>
-                        <td>{{ row.shipping_method|default:"-" }}</td>
-                        <td>{{ row.declaration_c_number }}</td>
-                        <td>{{ row.declaration_date|date:"Y-m-d" }}</td>
-                        <td class="num">{{ row.goods_amount }}</td>
-                        <td>{{ row.goods_currency }}</td>
-                        <td class="num">${{ row.goods_usd }}</td>
-                        <td class="num">{{ row.transport_amount }}</td>
-                        <td>{{ row.transport_currency }}</td>
-                        <td class="num">${{ row.transport_usd }}</td>
-                        <td class="num">{{ row.transport_percent }}%</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                
-            </table>
-            {% else %}
-            <div class="empty-state">
-                No declared shipments matched your filters.
-            </div>
-            {% endif %}
-        </div>
-        
-    </div>
-    -->
 </div>
 {% endblock %}

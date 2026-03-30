@@ -62,7 +62,6 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
         item_no=item_no,
     ).prefetch_related("lines")
 
-    rows = []
     cards = {
         "all": 0,
         "air": 0,
@@ -74,9 +73,7 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
 
     total_goods_usd = ZERO
     total_transport_usd = ZERO
-
-    # cache NBG rates by date so we do not call API repeatedly for same date
-    rates_cache: dict = {}
+    rates_cache = {}
 
     for imp in qs:
         goods_amount = _sum_goods_amount(imp)
@@ -123,7 +120,6 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
         if goods_usd <= 0:
             continue
 
-        transport_percent = (transport_usd / goods_usd) * Decimal("100")
         method = _shipping_method_key(imp)
 
         cards["all"] += 1
@@ -131,21 +127,6 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
 
         total_goods_usd += goods_usd
         total_transport_usd += transport_usd
-
-        rows.append({
-            "import_code": imp.import_code,
-            "vendor_name": imp.vendor_name,
-            "shipping_method": imp.shipping_method,
-            "declaration_c_number": imp.declaration_c_number,
-            "declaration_date": imp.declaration_date,
-            "goods_amount": goods_amount,
-            "goods_currency": goods_currency,
-            "goods_usd": goods_usd.quantize(Decimal("0.01")),
-            "transport_amount": transport_amount,
-            "transport_currency": transport_currency,
-            "transport_usd": transport_usd.quantize(Decimal("0.01")),
-            "transport_percent": transport_percent.quantize(Decimal("0.01")),
-        })
 
     overall_percent = ZERO
     if total_goods_usd > 0:
@@ -160,5 +141,4 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
     return {
         "cards": cards,
         "summary": summary,
-        "rows": rows,
     }
