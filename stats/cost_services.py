@@ -54,7 +54,7 @@ def _shipping_method_key(import_obj: Import) -> str:
     return "other"
 
 
-def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=None):
+def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=None, include_rows=False):
     qs = _declared_imports_queryset(
         date_from=date_from,
         date_to=date_to,
@@ -71,6 +71,7 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
         "other": 0,
     }
 
+    rows = []
     total_goods_usd = ZERO
     total_transport_usd = ZERO
     rates_cache = {}
@@ -120,6 +121,7 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
         if goods_usd <= 0:
             continue
 
+        transport_percent = (transport_usd / goods_usd) * Decimal("100")
         method = _shipping_method_key(imp)
 
         cards["all"] += 1
@@ -127,6 +129,22 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
 
         total_goods_usd += goods_usd
         total_transport_usd += transport_usd
+
+        if include_rows:
+            rows.append({
+                "import_code": imp.import_code,
+                "vendor_name": imp.vendor_name,
+                "shipping_method": imp.shipping_method,
+                "declaration_c_number": imp.declaration_c_number,
+                "declaration_date": imp.declaration_date,
+                "goods_amount": goods_amount.quantize(Decimal("0.01")),
+                "goods_currency": goods_currency,
+                "goods_usd": goods_usd.quantize(Decimal("0.01")),
+                "transport_amount": transport_amount.quantize(Decimal("0.01")),
+                "transport_currency": transport_currency,
+                "transport_usd": transport_usd.quantize(Decimal("0.01")),
+                "transport_percent": transport_percent.quantize(Decimal("0.01")),
+            })
 
     overall_percent = ZERO
     if total_goods_usd > 0:
@@ -138,7 +156,12 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
         "overall_percent": overall_percent.quantize(Decimal("0.01")),
     }
 
-    return {
+    result = {
         "cards": cards,
         "summary": summary,
     }
+
+    if include_rows:
+        result["rows"] = rows
+
+    return result
