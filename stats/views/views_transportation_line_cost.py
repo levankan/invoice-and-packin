@@ -83,21 +83,6 @@ def build_transportation_line_fallback_analysis(
     vendor_name=None,
     item_no=None,
 ):
-    """
-    New logic only for shipments where:
-    - declaration_c_number exists
-    - declaration_date exists
-    - Import.transport_price is empty
-    - one or more ImportLine.item_no == 'TRANSPORTATION'
-
-    For such shipments:
-    transport_from_lines = sum(line_amount of TRANSPORTATION lines)
-    total_lines = sum(all line_amount)
-    goods_excluding_transport = total_lines - transport_from_lines
-
-    All values converted to USD using declaration_date.
-    """
-
     qs = _declared_imports_queryset(
         date_from=date_from,
         date_to=date_to,
@@ -106,14 +91,7 @@ def build_transportation_line_fallback_analysis(
     )
 
     result = {
-        "cards": {
-            "all": 0,
-            "air": 0,
-            "sea": 0,
-            "road": 0,
-            "courier": 0,
-            "other": 0,
-        },
+        "cards": {"all": 0, "air": 0, "sea": 0, "road": 0, "courier": 0, "other": 0},
         "summary": {
             "total_goods_usd": Decimal("0.00"),
             "total_transport_usd": Decimal("0.00"),
@@ -123,10 +101,12 @@ def build_transportation_line_fallback_analysis(
         "errors": [],
     }
 
+    # CACHE FOR NBG RATES
+    rate_cache = {}
+
     for imp in qs:
         header_transport_price = _safe_decimal(imp.transport_price)
 
-        # NEW LOGIC RUNS ONLY IF HEADER TRANSPORT PRICE IS EMPTY / ZERO
         if header_transport_price > ZERO:
             continue
 
@@ -134,14 +114,20 @@ def build_transportation_line_fallback_analysis(
         if not declaration_date:
             continue
 
-        try:
-            rates = fetch_nbg_rates_for_date(declaration_date)
-        except ExchangeRateError as exc:
-            result["errors"].append(f"{imp.import_code}: {exc}")
-            continue
-        except Exception as exc:
-            result["errors"].append(f"{imp.import_code}: unexpected exchange-rate error: {exc}")
-            continue
+        # USE CACHE
+        if declaration_date not in rate_cache:
+            try:
+                rate_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
+            except ExchangeRateError as exc:
+                result["errors"].append(f"{imp.import_code}: {exc}")
+                continue
+            except Exception as exc:
+                result["errors"].append(
+                    f"{imp.import_code}: unexpected exchange-rate error: {exc}"
+                )
+                continue
+
+        rates = rate_cache[declaration_date]
 
         line_currency = _normalize_currency(imp.currency_code or "USD")
 
@@ -160,7 +146,6 @@ def build_transportation_line_fallback_analysis(
                 transportation_lines_amount += line_amount
                 transportation_line_count += 1
 
-        # only shipments that really have TRANSPORTATION line(s)
         if transportation_line_count == 0:
             continue
 
@@ -168,9 +153,13 @@ def build_transportation_line_fallback_analysis(
         if goods_amount < ZERO:
             goods_amount = ZERO
 
-        transport_usd = _convert_amount_to_usd(transportation_lines_amount, line_currency, rates)
+        transport_usd = _convert_amount_to_usd(
+            transportation_lines_amount, line_currency, rates
+        )
         goods_usd = _convert_amount_to_usd(goods_amount, line_currency, rates)
-        total_lines_usd = _convert_amount_to_usd(total_lines_amount, line_currency, rates)
+        total_lines_usd = _convert_amount_to_usd(
+            total_lines_amount, line_currency, rates
+        )
 
         percent = ZERO
         if goods_usd > ZERO:
@@ -194,7 +183,9 @@ def build_transportation_line_fallback_analysis(
                 "currency_code": line_currency,
                 "transportation_line_count": transportation_line_count,
                 "total_lines_amount": total_lines_amount.quantize(Decimal("0.01")),
-                "transportation_lines_amount": transportation_lines_amount.quantize(Decimal("0.01")),
+                "transportation_lines_amount": transportation_lines_amount.quantize(
+                    Decimal("0.01")
+                ),
                 "goods_amount": goods_amount.quantize(Decimal("0.01")),
                 "total_lines_usd": total_lines_usd.quantize(Decimal("0.01")),
                 "transport_usd": transport_usd.quantize(Decimal("0.01")),
