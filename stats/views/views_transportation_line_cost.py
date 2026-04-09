@@ -1,4 +1,3 @@
-#stats/views/views_transportation_line_cost.py
 from __future__ import annotations
 
 from decimal import Decimal, InvalidOperation
@@ -91,7 +90,14 @@ def build_transportation_line_fallback_analysis(
     )
 
     result = {
-        "cards": {"all": 0, "air": 0, "sea": 0, "road": 0, "courier": 0, "other": 0},
+        "cards": {
+            "all": 0,
+            "air": 0,
+            "sea": 0,
+            "road": 0,
+            "courier": 0,
+            "other": 0,
+        },
         "summary": {
             "total_goods_usd": Decimal("0.00"),
             "total_transport_usd": Decimal("0.00"),
@@ -101,12 +107,32 @@ def build_transportation_line_fallback_analysis(
         "errors": [],
     }
 
-    # CACHE FOR NBG RATES
+    # Preload unique declaration dates once
+    declaration_dates = {
+        imp.declaration_date
+        for imp in qs
+        if imp.declaration_date
+    }
+
     rate_cache = {}
+    failed_dates = set()
+
+    for declaration_date in declaration_dates:
+        try:
+            rate_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
+        except ExchangeRateError as exc:
+            result["errors"].append(f"{declaration_date}: {exc}")
+            failed_dates.add(declaration_date)
+        except Exception as exc:
+            result["errors"].append(
+                f"{declaration_date}: unexpected exchange-rate error: {exc}"
+            )
+            failed_dates.add(declaration_date)
 
     for imp in qs:
         header_transport_price = _safe_decimal(imp.transport_price)
 
+        # Run fallback only when header transport is empty/zero
         if header_transport_price > ZERO:
             continue
 
@@ -114,20 +140,12 @@ def build_transportation_line_fallback_analysis(
         if not declaration_date:
             continue
 
-        # USE CACHE
-        if declaration_date not in rate_cache:
-            try:
-                rate_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
-            except ExchangeRateError as exc:
-                result["errors"].append(f"{imp.import_code}: {exc}")
-                continue
-            except Exception as exc:
-                result["errors"].append(
-                    f"{imp.import_code}: unexpected exchange-rate error: {exc}"
-                )
-                continue
+        if declaration_date in failed_dates:
+            continue
 
-        rates = rate_cache[declaration_date]
+        rates = rate_cache.get(declaration_date)
+        if not rates:
+            continue
 
         line_currency = _normalize_currency(imp.currency_code or "USD")
 
@@ -157,9 +175,7 @@ def build_transportation_line_fallback_analysis(
             transportation_lines_amount, line_currency, rates
         )
         goods_usd = _convert_amount_to_usd(goods_amount, line_currency, rates)
-        total_lines_usd = _convert_amount_to_usd(
-            total_lines_amount, line_currency, rates
-        )
+        total_lines_usd = _convert_amount_to_usd(total_lines_amount, line_currency, rates)
 
         percent = ZERO
         if goods_usd > ZERO:
@@ -183,9 +199,7 @@ def build_transportation_line_fallback_analysis(
                 "currency_code": line_currency,
                 "transportation_line_count": transportation_line_count,
                 "total_lines_amount": total_lines_amount.quantize(Decimal("0.01")),
-                "transportation_lines_amount": transportation_lines_amount.quantize(
-                    Decimal("0.01")
-                ),
+                "transportation_lines_amount": transportation_lines_amount.quantize(Decimal("0.01")),
                 "goods_amount": goods_amount.quantize(Decimal("0.01")),
                 "total_lines_usd": total_lines_usd.quantize(Decimal("0.01")),
                 "transport_usd": transport_usd.quantize(Decimal("0.01")),

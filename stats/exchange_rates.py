@@ -41,7 +41,7 @@ def fetch_nbg_rates_for_date(dt: date) -> dict[str, Decimal]:
     url = f"https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/en/json/?date={date_str}"
 
     try:
-        resp = requests.get(url, timeout=200)
+        resp = requests.get(url, timeout=20)
         resp.raise_for_status()
     except requests.exceptions.Timeout as exc:
         raise ExchangeRateError(f"NBG request timed out for {dt}") from exc
