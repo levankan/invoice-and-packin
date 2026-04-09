@@ -6,9 +6,9 @@ from django.utils.text import slugify
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
-
-
 from .views_transportation_line_cost import build_transportation_line_fallback_analysis
+
+
 
 def parse_date(date_str):
     if not date_str:
