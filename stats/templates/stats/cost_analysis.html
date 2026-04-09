@@ -316,6 +316,8 @@
             width: 100%;
         }
     }
+
+    
 </style>
 
 <div class="stats-page">
@@ -378,8 +380,17 @@
             <a
                 href="{% url 'stats:cost_export' %}?date_from={{ date_from }}&date_to={{ date_to }}&vendor_name={{ vendor_name|urlencode }}&item_no={{ item_no|urlencode }}"
                 class="stats-btn-clear"
+                title="Download standard cost analysis"
             >
-            📥
+                📥 Standard Excel
+            </a>
+
+            <a
+                href="{% url 'stats:fallback_cost_export' %}?date_from={{ date_from }}&date_to={{ date_to }}&vendor_name={{ vendor_name|urlencode }}&item_no={{ item_no|urlencode }}"
+                class="stats-btn-clear"
+                title="Download fallback cost analysis"
+            >
+                📥 Fallback Excel
             </a>
         </form>
     </div>
@@ -468,5 +479,112 @@
             <div class="stat-card-note">Transport cost as % of goods value</div>
         </div>
     </div>
+
+    <div class="stats-cards">
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Fallback Shipments</div>
+                <div class="stat-card-icon">📦</div>
+            </div>
+            <div class="stat-card-value">{{ fallback_analysis.cards.all }}</div>
+            <div class="stat-card-note">Transport price empty, TRANSPORTATION lines used</div>
+        </div>
+
+        <div class="stat-card air">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Air</div>
+                <div class="stat-card-icon">✈️</div>
+            </div>
+            <div class="stat-card-value">{{ fallback_analysis.cards.air }}</div>
+            <div class="stat-card-note">Fallback air shipments</div>
+        </div>
+
+        <div class="stat-card sea">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Sea</div>
+                <div class="stat-card-icon">🚢</div>
+            </div>
+            <div class="stat-card-value">{{ fallback_analysis.cards.sea }}</div>
+            <div class="stat-card-note">Fallback sea shipments</div>
+        </div>
+
+        <div class="stat-card road">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Road</div>
+                <div class="stat-card-icon">🚚</div>
+            </div>
+            <div class="stat-card-value">{{ fallback_analysis.cards.road }}</div>
+            <div class="stat-card-note">Fallback road shipments</div>
+        </div>
+
+        <div class="stat-card courier">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Courier</div>
+                <div class="stat-card-icon">📬</div>
+            </div>
+            <div class="stat-card-value">{{ fallback_analysis.cards.courier }}</div>
+            <div class="stat-card-note">Fallback courier shipments</div>
+        </div>
+
+        <div class="stat-card other">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Other</div>
+                <div class="stat-card-icon">📁</div>
+            </div>
+            <div class="stat-card-value">{{ fallback_analysis.cards.other }}</div>
+            <div class="stat-card-note">Fallback other shipments</div>
+        </div>
+    </div>
+
+    <div class="summary-cards" style="margin-top: 10px;">
+        <div class="stat-card summary-goods">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Fallback Goods Value</div>
+                <div class="stat-card-icon">📦</div>
+            </div>
+            <div class="stat-card-value">${{ fallback_analysis.summary.total_goods_usd }}</div>
+            <div class="stat-card-note">
+                Goods value excluding TRANSPORTATION lines, converted to USD
+            </div>
+        </div>
+
+        <div class="stat-card summary-transport">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Fallback Transport Cost</div>
+                <div class="stat-card-icon">🧾</div>
+            </div>
+            <div class="stat-card-value">${{ fallback_analysis.summary.total_transport_usd }}</div>
+            <div class="stat-card-note">
+                Summed from lines where item number = TRANSPORTATION
+            </div>
+        </div>
+
+        <div class="stat-card summary-percent">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Fallback Transport %</div>
+                <div class="stat-card-icon">📊</div>
+            </div>
+            <div class="stat-card-value">{{ fallback_analysis.summary.overall_percent }}%</div>
+            <div class="stat-card-note">
+                Transportation vs goods value for fallback shipments only
+            </div>
+        </div>
+    </div>
+
+    
+
+    {% if fallback_analysis.errors %}
+    <div class="stats-panel" style="margin-top: 20px;">
+        <div class="stats-panel-header">
+            <h3>Fallback Analysis Warnings</h3>
+            <span>Exchange-rate or data issues</span>
+        </div>
+        <div class="empty-state" style="text-align: left;">
+            {% for err in fallback_analysis.errors %}
+                <div>{{ err }}</div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

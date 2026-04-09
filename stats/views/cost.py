@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from imports.models import Import, ImportLine
 from stats.cost_services import build_cost_analysis
+from .views_transportation_line_cost import build_transportation_line_fallback_analysis
 
 
 def parse_date(date_str):
@@ -31,6 +32,13 @@ def cost_analysis(request):
         item_no=item_no,
     )
 
+    fallback_analysis = build_transportation_line_fallback_analysis(
+        date_from=date_from,
+        date_to=date_to,
+        vendor_name=vendor_name,
+        item_no=item_no,
+    )
+
     vendor_suggestions = (
         Import.objects.exclude(vendor_name__isnull=True)
         .exclude(vendor_name__exact="")
@@ -49,6 +57,7 @@ def cost_analysis(request):
 
     context = {
         "analysis": data,
+        "fallback_analysis": fallback_analysis,
         "date_from": date_from_str,
         "date_to": date_to_str,
         "vendor_name": vendor_name,
