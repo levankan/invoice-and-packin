@@ -1,24 +1,11 @@
 {% extends 'core/base.html' %}
 {% block title %}Imports{% endblock %}
 
-{% block content %}
-{% for n in notifications %}
-  <div class="alert alert-{{ n.level }} alert-dismissible fade show" role="alert">
-    {{ n.message }}
+{% block container_class %}container-fluid px-4{% endblock %}
 
-    <form method="post"
-          action="{% url 'dismiss_notification' n.id %}"
-          class="d-inline">
-      {% csrf_token %}
-      <button type="submit" class="btn-close" aria-label="Close"></button>
-    </form>
-  </div>
-{% endfor %}
-
+{% block extra_head %}
 <style>
-  body { font-size: 0.88rem; }
-
-  .page-wrapper { min-height: 100vh; }
+  .page-wrapper { font-size: 0.88rem; min-height: 100vh; }
 
   /* Wider table & darker row separator */
   .table tbody tr { border-bottom: 2px solid #bcbcbc !important; }
@@ -67,7 +54,7 @@
   }
 
   .table-hover tbody tr:hover {
-    background: rgba(0,0,0,.02);
+    background: var(--bs-table-hover-bg);
     transition: background 0.2s;
   }
 
@@ -137,6 +124,22 @@
     overflow-y: auto;
   }
 </style>
+{% endblock %}
+
+{% block content %}
+
+{% for n in notifications %}
+  <div class="alert alert-{{ n.level }} alert-dismissible fade show" role="alert">
+    {{ n.message }}
+
+    <form method="post"
+          action="{% url 'dismiss_notification' n.id %}"
+          class="d-inline">
+      {% csrf_token %}
+      <button type="submit" class="btn-close" aria-label="Close"></button>
+    </form>
+  </div>
+{% endfor %}
 
 <div class="page-wrapper">
   <div class="card mx-auto shadow-sm border-0 card-outer">
@@ -294,9 +297,7 @@
               <th class="col-decl-date">Decl. Date</th>
               <th class="col-expected">Expected</th>
               <th class="col-created">Created</th>
-              {% if user.is_superuser %}
-                <th class="text-end col-actions">Actions</th>
-              {% endif %}
+              <th class="text-end col-actions">Actions</th>
             </tr>
           </thead>
 
@@ -391,12 +392,12 @@
                   
                       <a href="{% url 'imports_edit' imp.pk %}"
                          class="btn btn-sm btn-outline-primary mb-1">✎</a>
-                  {% if user.is_superuser %}      
+                  {% if user.is_superuser %}
                       <a href="{% url 'imports_delete_confirm' imp.pk %}"
                          class="btn btn-sm btn-outline-danger"
                          onclick="return confirm('Proceed to delete {{ imp.import_code }}?');">🗑</a>
-                    </td>
                   {% endif %}
+                    </td>
                 </tr>
 
                 {# DETAIL ROW WITH LINES TABLE #}
