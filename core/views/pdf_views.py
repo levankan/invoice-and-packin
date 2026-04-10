@@ -8,7 +8,7 @@ import barcode
 from barcode.writer import ImageWriter
 
 from django.conf import settings
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.template.loader import render_to_string
@@ -19,13 +19,47 @@ from weasyprint import HTML
 from core.models import Export, Pallet
 
 
+# Roles permitted to access any export's PDF documents.
+# Adjust this set if additional roles require access.
+EXPORT_ALLOWED_ROLES = {"logistic", "procurement", "finance"}
+
+
+def _check_export_access(user, export):
+    """
+    Returns None if the user may access the export, HttpResponseForbidden otherwise.
+    Grants access when: superuser, OR role in EXPORT_ALLOWED_ROLES, OR created_by == user.
+    """
+    if user.is_superuser:
+        return None
+    if getattr(user, "role", None) in EXPORT_ALLOWED_ROLES:
+        return None
+    if export.created_by_id == user.pk:
+        return None
+    return HttpResponseForbidden("You do not have permission to access this export.")
+
+
+def _static_file_uri(filename, request):
+    """
+    Resolve a static file to an absolute file:// URI so WeasyPrint reads it
+    directly from disk. Falls back to an HTTP URL when the file is not found
+    under STATIC_ROOT (e.g. during local dev before collectstatic).
+    """
+    path = os.path.abspath(os.path.join(settings.STATIC_ROOT, filename))
+    if os.path.exists(path):
+        return "file://" + path
+    return request.build_absolute_uri(static(filename))
+
+
 # ===========================
 # Invoice PDF (all items)
 # ===========================
 
 @login_required
 def invoice_pdf_view(request, export_id):
-    export = Export.objects.get(id=export_id)
+    export = get_object_or_404(Export, id=export_id)
+    denied = _check_export_access(request.user, export)
+    if denied:
+        return denied
 
     # Grouped data container
     grouped = defaultdict(lambda: {
@@ -67,17 +101,29 @@ def invoice_pdf_view(request, export_id):
         grand_total_qty += values["total_qty"]
         grand_total_value += values["total_value"]
 
+    # ---- Temporary debug: remove after confirming images load ----
+    print("STATIC_ROOT =", settings.STATIC_ROOT)
+    print("logo_uri =", _static_file_uri("img/atc_logo.jpeg", request))
+    print("signature_uri =", _static_file_uri("img/signature.jpeg", request))
+    print("stamp_uri =", _static_file_uri("img/stamp.jpeg", request))
+    print("logo exists =", os.path.exists(os.path.join(settings.STATIC_ROOT, "img/atc_logo.jpeg")))
+    print("signature exists =", os.path.exists(os.path.join(settings.STATIC_ROOT, "img/signature.jpeg")))
+    print("stamp exists =", os.path.exists(os.path.join(settings.STATIC_ROOT, "img/stamp.jpeg")))
+
     # ---- Render invoice template ----
     html_string = render_to_string("core/invoice.html", {
         "export": export,
         "grouped_items": grouped_items,
         "grand_total_qty": grand_total_qty,
         "grand_total_value": grand_total_value,
+        "logo_uri": _static_file_uri("img/atc_logo.jpeg", request),
+        "signature_uri": _static_file_uri("img/signature.jpeg", request),
+        "stamp_uri": _static_file_uri("img/stamp.jpeg", request),
     })
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = f'attachment; filename="Invoice_{export.invoice_number}.pdf"'
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
+    HTML(string=html_string, base_url=settings.STATIC_ROOT).write_pdf(response)
     return response
 
 
@@ -87,7 +133,10 @@ def invoice_pdf_view(request, export_id):
 
 @login_required
 def packing_list_pdf_view(request, export_id):
-    export = Export.objects.get(id=export_id)
+    export = get_object_or_404(Export, id=export_id)
+    denied = _check_export_access(request.user, export)
+    if denied:
+        return denied
 
     grouped = defaultdict(lambda: {"total_qty": 0})
 
@@ -127,13 +176,14 @@ def packing_list_pdf_view(request, export_id):
         "pallets": export.pallets.all(),
         "total_gross_weight": sum(p.gross_weight_kg for p in export.pallets.all()),
         "grand_total_qty": grand_total_qty,
+        "logo_uri": _static_file_uri("img/atc_logo.jpeg", request),
     })
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = (
         f'attachment; filename="PackingList_{export.packing_list_number}.pdf"'
     )
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
+    HTML(string=html_string, base_url=settings.STATIC_ROOT).write_pdf(response)
     return response
 
 
@@ -146,8 +196,11 @@ def packing_list_pdf_view(request, export_id):
 
 @login_required
 def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
-    export = Export.objects.get(id=export_id)
-    pallet = export.pallets.get(id=pallet_id)
+    export = get_object_or_404(Export, id=export_id)
+    denied = _check_export_access(request.user, export)
+    if denied:
+        return denied
+    pallet = get_object_or_404(Pallet, id=pallet_id, export=export)
 
     # Filter only items for this pallet
     items = export.items.filter(pallet_number=pallet.pallet_number)
@@ -192,6 +245,9 @@ def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
         "grand_total_qty": grand_total_qty,
         "grand_total_value": grand_total_value,
         "pallet": pallet,  # optional: show header note
+        "logo_uri": _static_file_uri("img/atc_logo.jpeg", request),
+        "signature_uri": _static_file_uri("img/signature.jpeg", request),
+        "stamp_uri": _static_file_uri("img/stamp.jpeg", request),
     })
 
     response = HttpResponse(content_type="application/pdf")
@@ -199,7 +255,7 @@ def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
     f'attachment; filename="Invoice_{export.invoice_number}_{pallet.pallet_number}.pdf"'
 )
 
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
+    HTML(string=html_string, base_url=settings.STATIC_ROOT).write_pdf(response)
     return response
 
 
@@ -212,8 +268,11 @@ def invoice_pdf_per_pallet_view(request, export_id, pallet_id):
 
 @login_required
 def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
-    export = Export.objects.get(id=export_id)
-    pallet = export.pallets.get(id=pallet_id)
+    export = get_object_or_404(Export, id=export_id)
+    denied = _check_export_access(request.user, export)
+    if denied:
+        return denied
+    pallet = get_object_or_404(Pallet, id=pallet_id, export=export)
 
     # Filter only items for this pallet
     items = export.items.filter(pallet_number=pallet.pallet_number)
@@ -253,6 +312,7 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
         "total_gross_weight": pallet.gross_weight_kg,
         "grand_total_qty": grand_total_qty,
         "pallet": pallet,
+        "logo_uri": _static_file_uri("img/atc_logo.jpeg", request),
     })
 
     response = HttpResponse(content_type="application/pdf")
@@ -260,7 +320,7 @@ def packing_list_pdf_per_pallet_view(request, export_id, pallet_id):
         f'attachment; filename="PackingList_{export.packing_list_number}_{pallet.pallet_number}.pdf"'
     )
 
-    HTML(string=html_string, base_url=request.build_absolute_uri()).write_pdf(response)
+    HTML(string=html_string, base_url=settings.STATIC_ROOT).write_pdf(response)
     return response
 
 
@@ -292,6 +352,9 @@ def generate_barcode_base64(data, code_type="code128"):
 @login_required
 def pallet_label_pdf_view(request, export_id, pallet_id):
     export = get_object_or_404(Export, id=export_id)
+    denied = _check_export_access(request.user, export)
+    if denied:
+        return denied
     pallet = get_object_or_404(Pallet, id=pallet_id, export=export)
 
     # --- Build barcode data (with pallet references) ---

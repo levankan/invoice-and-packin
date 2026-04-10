@@ -47,8 +47,8 @@
     <table style="width: 100%; margin-bottom: 40px;">
         <tr>
             <td style="width: 50%; vertical-align: middle;">
-                <img src="{% static 'img/atc_logo.jpeg' %}" 
-                     alt="ATC Logo" 
+                <img src="{{ logo_uri }}"
+                     alt="ATC Logo"
                      style="max-height: 140px; width: auto; display: block;">
             </td>
             <td style="width: 50%; vertical-align: middle; text-align: right;">
@@ -170,15 +170,15 @@
                 <tr>
                     <!-- Signature -->
                     <td style="width: 50%; text-align: left; border: none;">
-                    <img src="{% static 'img/signature.jpeg' %}" 
-                        alt="Signature" 
+                    <img src="{{ signature_uri }}"
+                        alt="Signature"
                         style="height:80px; display:block;">
                     </td>
 
                     <!-- Stamp -->
                     <td style="width: 50%; text-align: right; border: none;">
-                    <img src="{% static 'img/stamp.jpeg' %}" 
-                        alt="Stamp" 
+                    <img src="{{ stamp_uri }}"
+                        alt="Stamp"
                         style="height:150px; display:block;">
                     </td>
                 </tr>
