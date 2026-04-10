@@ -21,6 +21,8 @@ from ..permissions import has_imports_access
 @user_passes_test(has_imports_access)
 def edit_import(request, pk):
     imp = get_object_or_404(Import, pk=pk)
+    if not request.user.is_superuser and imp.created_by_id != request.user.pk:
+        raise PermissionDenied
     vendors = Vendor.objects.all().order_by("name")
     forwarders = Forwarder.objects.all().order_by("name")
 

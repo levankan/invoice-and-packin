@@ -8,11 +8,15 @@ from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, render
 
 from core.models import Export, LineItem
+from core.views.pdf_views import _check_export_access
 
 
 @login_required
 def invoice_view(request, export_id):
     export = get_object_or_404(Export, id=export_id)
+    denied = _check_export_access(request.user, export)
+    if denied:
+        return denied
 
     # Group LineItems like a pivot table
     grouped_items = (

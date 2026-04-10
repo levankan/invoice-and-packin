@@ -26,7 +26,7 @@ def _safe_decimal(value) -> Decimal:
 
 def _normalize_currency(code: Optional[str]) -> str:
     if not code:
-        return "USD"
+        return ""
     return str(code).strip().upper()
 
 
@@ -147,7 +147,10 @@ def build_transportation_line_fallback_analysis(
         if not rates:
             continue
 
-        line_currency = _normalize_currency(imp.currency_code or "USD")
+        line_currency = _normalize_currency(imp.currency_code)
+        if not line_currency:
+            result["errors"].append(f"{imp.import_code}: missing currency_code, skipped")
+            continue
 
         total_lines_amount = ZERO
         transportation_lines_amount = ZERO

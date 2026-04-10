@@ -10,6 +10,7 @@ import pandas as pd
 from core.models import Export, LineItem, Pallet
 from core.forms import ExportForm
 from .generate_doc_view import EXPECTED_HEADERS, EXPECTED_PALLET_HEADERS
+from core.views.pdf_views import _check_export_access
 
 from django.core.paginator import Paginator
 from django.shortcuts import render, get_object_or_404, redirect
@@ -56,6 +57,9 @@ def exports_view(request):
 def edit_export(request, export_id):
     """Edit a single export (with option to re-upload Excel data)."""
     export = get_object_or_404(Export, id=export_id)
+    denied = _check_export_access(request.user, export)
+    if denied:
+        return denied
 
     if request.method == "POST":
         form = ExportForm(request.POST, instance=export)
@@ -328,4 +332,7 @@ def export_database_excel(request):
 @login_required
 def export_detail(request, export_id):
     export = get_object_or_404(Export, id=export_id)
+    denied = _check_export_access(request.user, export)
+    if denied:
+        return denied
     return render(request, "core/export_success.html", {"export": export})
