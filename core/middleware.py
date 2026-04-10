@@ -20,7 +20,7 @@ class TwoFactorMiddleware:
             # allow admin if needed, and static/media paths
             if (
                 request.path not in allowed_paths
-                and not request.path.startswith("/admin/")
+                #and not request.path.startswith("/admin/")
                 and not request.path.startswith("/static/")
                 and not request.path.startswith("/media/")
             ):

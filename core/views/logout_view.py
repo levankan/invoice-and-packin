@@ -5,6 +5,7 @@ from django.views.decorators.http import require_POST
 
 
 @login_required
+@require_POST
 def logout_view(request):
     request.session.pop("is_2fa_verified", None)
     request.session.pop("after_2fa_redirect", None)
