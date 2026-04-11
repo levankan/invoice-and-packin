@@ -3,6 +3,7 @@ Django settings for config project.
 """
 
 from pathlib import Path
+from datetime import timedelta
 from decouple import config, Csv
 
 
@@ -15,8 +16,13 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1", cast=Csv())
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
-
+SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 AUTH_USER_MODEL = 'core.User'
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
 
 # Static & Media
 STATIC_URL = '/static/'
@@ -52,6 +58,13 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+INSTALLED_APPS += ["axes"]
+MIDDLEWARE += ["axes.middleware.AxesMiddleware"]
+
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=30)
+AXES_RESET_ON_SUCCESS = True
 
 ROOT_URLCONF = 'config.urls'
 
