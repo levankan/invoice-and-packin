@@ -13,6 +13,9 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", default="unsafe-secret")
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1", cast=Csv())
 
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 AUTH_USER_MODEL = 'core.User'
 
 # Static & Media
@@ -115,7 +118,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Set session cookie lifetime to 20 minutes (in seconds).
 # SESSION_SAVE_EVERY_REQUEST=True makes the session "sliding" — each request
 # refreshes the expiry, so 20 minutes of inactivity will expire the session.
-SESSION_COOKIE_AGE = 30 * 60                # 15 minutes
+SESSION_COOKIE_AGE = 30 * 60                # 30 minutes
 SESSION_SAVE_EVERY_REQUEST = True           # extend expiry on each request
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 LOGIN_URL = '/' # or the URL name/path for your login view
