@@ -289,6 +289,100 @@
         color: #6b7280;
     }
 
+    .warn-skipped {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .warn-soft {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #fef9c3;
+        color: #92400e;
+    }
+
+    .warn-info {
+        display: inline-block;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #e0f2fe;
+        color: #0369a1;
+    }
+
+    .warnings-panel {
+        background: #ffffff;
+        border: 1px solid #fca5a5;
+        border-radius: 18px;
+        box-shadow: 0 8px 25px rgba(15, 23, 42, 0.05);
+        overflow: hidden;
+        margin-bottom: 26px;
+    }
+
+    .warnings-panel-header {
+        padding: 16px 20px;
+        background: #fff7f7;
+        border-bottom: 1px solid #fca5a5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .warnings-panel-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #991b1b;
+    }
+
+    .warnings-panel-header span {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .warnings-group {
+        padding: 14px 20px;
+        border-bottom: 1px solid #fef2f2;
+    }
+
+    .warnings-group:last-child {
+        border-bottom: none;
+    }
+
+    .warnings-group-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 8px;
+    }
+
+    .warnings-entry {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-size: 13px;
+        color: #374151;
+        padding: 3px 0;
+    }
+
+    .warnings-entry-code {
+        font-weight: 700;
+        color: #111827;
+        white-space: nowrap;
+    }
+
     @media (max-width: 768px) {
         .stats-page {
             padding: 16px;
@@ -326,7 +420,7 @@
             <h2>Transportation Cost Analysis</h2>
             <p>Transportation cost vs goods value using declaration-date exchange rates</p>
         </div>
-        <span class="badge-soft">Declared Imports Only</span>
+        <span class="warn-soft">Declared Imports Only</span>
     </div>
 
     <div class="stats-filter-box">
@@ -392,8 +486,155 @@
             >
                 📥 Fallback Excel
             </a>
+
+            <a
+                href="{% url 'stats:unified_cost_export' %}?date_from={{ date_from }}&date_to={{ date_to }}&vendor_name={{ vendor_name|urlencode }}&item_no={{ item_no|urlencode }}"
+                class="stats-btn-clear"
+                title="Download unified cost analysis"
+            >
+                📥 Unified Excel
+            </a>
         </form>
     </div>
+
+    {% if has_warnings %}
+    <div class="warnings-panel">
+        <div class="warnings-panel-header">
+            <h3>⚠ Analysis Warnings</h3>
+            <span>Issues detected across one or more analyses</span>
+        </div>
+
+        {% if warnings.exchange_rate_failures %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Exchange Rate Failures (global)</div>
+            {% for item in warnings.exchange_rate_failures %}
+            <div class="warnings-entry">
+                <span class="warn-skipped">rate</span>
+                <span>{{ item.date }} — affected: {{ item.analyses|join:", " }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.standard.skipped %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Standard Analysis — Skipped</div>
+            {% for entry in warnings.standard.skipped %}
+            <div class="warnings-entry">
+                <span class="warn-skipped">skipped</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.standard.soft %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Standard Analysis — Notes</div>
+            {% for entry in warnings.standard.soft %}
+            <div class="warnings-entry">
+                <span class="warn-soft">note</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.standard.info %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Standard Analysis — Expected Exclusions</div>
+            {% for entry in warnings.standard.info %}
+            <div class="warnings-entry">
+                <span class="warn-info">info</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.fallback.skipped %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Fallback Analysis — Skipped</div>
+            {% for entry in warnings.fallback.skipped %}
+            <div class="warnings-entry">
+                <span class="warn-skipped">skipped</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.fallback.soft %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Fallback Analysis — Notes</div>
+            {% for entry in warnings.fallback.soft %}
+            <div class="warnings-entry">
+                <span class="warn-soft">note</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.fallback.info %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Fallback Analysis — Expected Exclusions</div>
+            {% for entry in warnings.fallback.info %}
+            <div class="warnings-entry">
+                <span class="warn-info">info</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.unified.skipped %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Unified Analysis — Skipped</div>
+            {% for entry in warnings.unified.skipped %}
+            <div class="warnings-entry">
+                <span class="warn-skipped">skipped</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.unified.soft %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Unified Analysis — Notes</div>
+            {% for entry in warnings.unified.soft %}
+            <div class="warnings-entry">
+                <span class="warn-soft">note</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if warnings.unified.info %}
+        <div class="warnings-group">
+            <div class="warnings-group-label">Unified Analysis — Expected Exclusions</div>
+            {% for entry in warnings.unified.info %}
+            <div class="warnings-entry">
+                <span class="warn-info">info</span>
+                {% if entry.import_code %}<span class="warnings-entry-code">{{ entry.import_code }}</span>{% endif %}
+                <span>{{ entry.reason }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+    </div>
+    {% endif %}
 
     <div class="stats-cards">
         <div class="stat-card">
@@ -573,18 +814,96 @@
 
     
 
-    {% if fallback_analysis.errors %}
-    <div class="stats-panel" style="margin-top: 20px;">
-        <div class="stats-panel-header">
-            <h3>Fallback Analysis Warnings</h3>
-            <span>Exchange-rate or data issues</span>
+    <!-- Unified Cost Analysis: header transport + TRANSPORTATION lines combined -->
+    <div class="stats-cards" style="margin-top: 32px;">
+        <div class="stat-card">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Unified Shipments</div>
+                <div class="stat-card-icon">📦</div>
+            </div>
+            <div class="stat-card-value">{{ unified_analysis.cards.all }}</div>
+            <div class="stat-card-note">All declared shipments with valid goods</div>
         </div>
-        <div class="empty-state" style="text-align: left;">
-            {% for err in fallback_analysis.errors %}
-                <div>{{ err }}</div>
-            {% endfor %}
+
+        <div class="stat-card air">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Air</div>
+                <div class="stat-card-icon">✈️</div>
+            </div>
+            <div class="stat-card-value">{{ unified_analysis.cards.air }}</div>
+            <div class="stat-card-note">Unified air shipments</div>
+        </div>
+
+        <div class="stat-card sea">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Sea</div>
+                <div class="stat-card-icon">🚢</div>
+            </div>
+            <div class="stat-card-value">{{ unified_analysis.cards.sea }}</div>
+            <div class="stat-card-note">Unified sea shipments</div>
+        </div>
+
+        <div class="stat-card road">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Road</div>
+                <div class="stat-card-icon">🚚</div>
+            </div>
+            <div class="stat-card-value">{{ unified_analysis.cards.road }}</div>
+            <div class="stat-card-note">Unified road shipments</div>
+        </div>
+
+        <div class="stat-card courier">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Courier</div>
+                <div class="stat-card-icon">📬</div>
+            </div>
+            <div class="stat-card-value">{{ unified_analysis.cards.courier }}</div>
+            <div class="stat-card-note">Unified courier shipments</div>
+        </div>
+
+        <div class="stat-card other">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Other</div>
+                <div class="stat-card-icon">📁</div>
+            </div>
+            <div class="stat-card-value">{{ unified_analysis.cards.other }}</div>
+            <div class="stat-card-note">Unified other shipments</div>
         </div>
     </div>
-    {% endif %}
+
+    <div class="summary-cards" style="margin-top: 10px;">
+        <div class="stat-card summary-goods">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Unified Goods Value</div>
+                <div class="stat-card-icon">💵</div>
+            </div>
+            <div class="stat-card-value">${{ unified_analysis.summary.total_goods_usd }}</div>
+            <div class="stat-card-note">
+                Goods lines excluding TRANSPORTATION, converted to USD
+            </div>
+        </div>
+
+        <div class="stat-card summary-transport">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Unified Transport Cost</div>
+                <div class="stat-card-icon">🚛</div>
+            </div>
+            <div class="stat-card-value">${{ unified_analysis.summary.total_transport_usd }}</div>
+            <div class="stat-card-note">
+                Header transport + TRANSPORTATION lines, converted to USD
+            </div>
+        </div>
+
+        <div class="stat-card summary-percent">
+            <div class="stat-card-top">
+                <div class="stat-card-label">Unified Transport %</div>
+                <div class="stat-card-icon">📊</div>
+            </div>
+            <div class="stat-card-value">{{ unified_analysis.summary.overall_percent }}%</div>
+            <div class="stat-card-note">
+                Transport cost as % of goods value (combined method)
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

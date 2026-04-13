@@ -75,6 +75,7 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
     total_goods_usd = ZERO
     total_transport_usd = ZERO
     rates_cache = {}
+    warnings = {"skipped": [], "soft": [], "info": []}
 
     for imp in qs:
         goods_amount = _sum_goods_amount(imp)
@@ -84,18 +85,47 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
         transport_currency = _normalize_currency(imp.transport_currency)
 
         if goods_amount <= 0:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "goods amount is zero or negative",
+            })
             continue
 
+        # Info: no header transport price is an expected exclusion —
+        # these imports are candidates for the fallback analysis.
         if transport_amount <= 0:
+            warnings["info"].append({
+                "import_code": imp.import_code,
+                "reason": "no header transport price — handled by fallback analysis",
+            })
             continue
 
-        if not goods_currency or not transport_currency:
+        if not goods_currency:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "goods currency missing",
+            })
             continue
 
         if goods_currency not in SUPPORTED_CURRENCIES:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": f"goods currency '{goods_currency}' not supported",
+            })
+            continue
+
+        if not transport_currency:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "transport currency missing",
+            })
             continue
 
         if transport_currency not in SUPPORTED_CURRENCIES:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": f"transport currency '{transport_currency}' not supported",
+            })
             continue
 
         declaration_date = imp.declaration_date
@@ -110,15 +140,27 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
 
         rates = rates_cache.get(declaration_date)
         if not rates:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": f"exchange rate unavailable for {declaration_date}",
+            })
             continue
 
         try:
             goods_usd = convert_to_usd(goods_amount, goods_currency, rates)
             transport_usd = convert_to_usd(transport_amount, transport_currency, rates)
         except ExchangeRateError:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "currency conversion failed",
+            })
             continue
 
         if goods_usd <= 0:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "goods converted to zero USD",
+            })
             continue
 
         transport_percent = (transport_usd / goods_usd) * Decimal("100")
@@ -159,6 +201,232 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
     result = {
         "cards": cards,
         "summary": summary,
+        "warnings": warnings,
+    }
+
+    if include_rows:
+        result["rows"] = rows
+
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Unified cost analysis
+# Combines header transport price and TRANSPORTATION line items in one pass.
+# Goods and line-transport share import.currency_code (strict validation).
+# Header transport uses import.transport_currency (tolerant — bad currency
+# contributes 0 instead of skipping the shipment).
+# ---------------------------------------------------------------------------
+
+def build_unified_cost_analysis(
+    date_from=None,
+    date_to=None,
+    vendor_name=None,
+    item_no=None,
+    include_rows=False,
+):
+    qs = _declared_imports_queryset(
+        date_from=date_from,
+        date_to=date_to,
+        vendor_name=vendor_name,
+        item_no=item_no,
+    ).prefetch_related("lines")
+
+    cards = {"all": 0, "air": 0, "sea": 0, "road": 0, "courier": 0, "other": 0}
+    rows = []
+    total_goods_usd = ZERO
+    total_transport_usd = ZERO
+    rates_cache = {}
+    warnings = {"skipped": [], "soft": [], "info": []}
+
+    for imp in qs:
+
+        # ------------------------------------------------------------------
+        # STRICT: line currency governs goods and TRANSPORTATION line
+        # amounts. If it is missing or unsupported the shipment is skipped
+        # because goods cannot be converted.
+        # ------------------------------------------------------------------
+        line_currency = _normalize_currency(imp.currency_code)
+        if not line_currency:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "goods/line currency missing",
+            })
+            continue
+        if line_currency not in SUPPORTED_CURRENCIES:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": f"goods/line currency '{line_currency}' not supported",
+            })
+            continue
+
+        # ------------------------------------------------------------------
+        # TOLERANT: header transport currency governs only the header price.
+        # If it is missing or unsupported we set header_transport_usd = 0
+        # and carry on — the shipment is NOT skipped for this reason alone.
+        # ------------------------------------------------------------------
+        header_transport_price = imp.transport_price or ZERO
+        header_transport_currency = _normalize_currency(imp.transport_currency)
+        header_currency_valid = (
+            bool(header_transport_currency)
+            and header_transport_currency in SUPPORTED_CURRENCIES
+        )
+
+        # Soft: header price exists but its currency is unusable — the header
+        # contribution will be 0. The shipment is still included.
+        if header_transport_price > ZERO and not header_currency_valid:
+            warnings["soft"].append({
+                "import_code": imp.import_code,
+                "reason": "header transport currency invalid or missing — header transport contributed 0",
+            })
+
+        # Accumulate line amounts in a single pass over lines.
+        total_lines_amount = ZERO
+        transportation_lines_amount = ZERO
+
+        for line in imp.lines.all():
+            if not line.line_amount or line.line_amount <= ZERO:
+                continue
+            total_lines_amount += line.line_amount
+            if (line.item_no or "").strip().upper() == "TRANSPORTATION":
+                transportation_lines_amount += line.line_amount
+
+        # ------------------------------------------------------------------
+        # STRICT: goods_amount must be positive. Skip immediately — do not
+        # force to 0 — because a zero or negative goods value means we
+        # cannot produce a meaningful cost split for this shipment.
+        # ------------------------------------------------------------------
+        goods_amount = total_lines_amount - transportation_lines_amount
+        if goods_amount <= ZERO:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "goods amount zero or negative after excluding TRANSPORTATION lines",
+            })
+            continue
+
+        # Fetch exchange rates for the declaration date (cached per date).
+        declaration_date = imp.declaration_date
+        if not declaration_date:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "declaration date missing",
+            })
+            continue
+
+        if declaration_date not in rates_cache:
+            try:
+                rates_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
+            except ExchangeRateError:
+                rates_cache[declaration_date] = None
+
+        rates = rates_cache.get(declaration_date)
+        # STRICT: without rates neither goods nor any transport can be
+        # converted, so the shipment is skipped.
+        if not rates:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": f"exchange rate unavailable for {declaration_date}",
+            })
+            continue
+
+        # ------------------------------------------------------------------
+        # STRICT: goods conversion failure → skip shipment.
+        # ------------------------------------------------------------------
+        try:
+            goods_usd = convert_to_usd(goods_amount, line_currency, rates)
+        except ExchangeRateError:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "goods currency conversion failed",
+            })
+            continue
+
+        if goods_usd <= ZERO:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "goods converted to zero USD",
+            })
+            continue
+
+        # ------------------------------------------------------------------
+        # STRICT for line-transport: uses the same line_currency as goods.
+        # Failure here skips the shipment because we cannot split costs
+        # correctly without this value.
+        # ------------------------------------------------------------------
+        try:
+            transport_lines_usd = (
+                convert_to_usd(transportation_lines_amount, line_currency, rates)
+                if transportation_lines_amount > ZERO
+                else ZERO
+            )
+        except ExchangeRateError:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "TRANSPORTATION line currency conversion failed",
+            })
+            continue
+
+        # ------------------------------------------------------------------
+        # TOLERANT: header transport conversion. Bad currency or conversion
+        # error → contribute 0, do not skip.
+        # ------------------------------------------------------------------
+        header_transport_usd = ZERO
+        if header_transport_price > ZERO and header_currency_valid:
+            try:
+                header_transport_usd = convert_to_usd(
+                    header_transport_price, header_transport_currency, rates
+                )
+            except ExchangeRateError:
+                header_transport_usd = ZERO  # tolerant: keep going
+                warnings["soft"].append({
+                    "import_code": imp.import_code,
+                    "reason": "header transport currency conversion failed — header transport contributed 0",
+                })
+
+        transport_usd = header_transport_usd + transport_lines_usd
+
+        # Percent is 0 when transport_usd is 0 — shipment is still included.
+        transport_percent = (
+            (transport_usd / goods_usd) * Decimal("100")
+            if transport_usd > ZERO
+            else ZERO
+        )
+
+        method = _shipping_method_key(imp)
+        cards["all"] += 1
+        cards[method] += 1
+        total_goods_usd += goods_usd
+        total_transport_usd += transport_usd
+
+        if include_rows:
+            rows.append({
+                "import_code": imp.import_code,
+                "vendor_name": imp.vendor_name,
+                "shipping_method": imp.shipping_method,
+                "declaration_c_number": imp.declaration_c_number,
+                "declaration_date": imp.declaration_date,
+                "goods_amount": goods_amount.quantize(Decimal("0.01")),
+                "goods_currency": line_currency,
+                "goods_usd": goods_usd.quantize(Decimal("0.01")),
+                "transportation_lines_amount": transportation_lines_amount.quantize(Decimal("0.01")),
+                "header_transport_amount": header_transport_price.quantize(Decimal("0.01")),
+                "header_transport_currency": header_transport_currency,
+                "transport_usd": transport_usd.quantize(Decimal("0.01")),
+                "transport_percent": transport_percent.quantize(Decimal("0.01")),
+            })
+
+    overall_percent = ZERO
+    if total_goods_usd > ZERO:
+        overall_percent = (total_transport_usd / total_goods_usd) * Decimal("100")
+
+    result = {
+        "cards": cards,
+        "summary": {
+            "total_goods_usd": total_goods_usd.quantize(Decimal("0.01")),
+            "total_transport_usd": total_transport_usd.quantize(Decimal("0.01")),
+            "overall_percent": overall_percent.quantize(Decimal("0.01")),
+        },
+        "warnings": warnings,
     }
 
     if include_rows:

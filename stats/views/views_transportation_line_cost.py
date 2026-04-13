@@ -89,6 +89,8 @@ def build_transportation_line_fallback_analysis(
         item_no=item_no,
     )
 
+    warnings = {"skipped": [], "soft": [], "info": []}
+
     result = {
         "cards": {
             "all": 0,
@@ -104,7 +106,7 @@ def build_transportation_line_fallback_analysis(
             "overall_percent": Decimal("0.00"),
         },
         "rows": [],
-        "errors": [],
+        "warnings": warnings,
     }
 
     # Preload unique declaration dates once
@@ -121,19 +123,28 @@ def build_transportation_line_fallback_analysis(
         try:
             rate_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
         except ExchangeRateError as exc:
-            result["errors"].append(f"{declaration_date}: {exc}")
+            warnings["skipped"].append({
+                "import_code": None,
+                "reason": f"exchange rate unavailable for {declaration_date}: {exc}",
+            })
             failed_dates.add(declaration_date)
         except Exception as exc:
-            result["errors"].append(
-                f"{declaration_date}: unexpected exchange-rate error: {exc}"
-            )
+            warnings["skipped"].append({
+                "import_code": None,
+                "reason": f"exchange rate unavailable for {declaration_date}: unexpected error: {exc}",
+            })
             failed_dates.add(declaration_date)
 
     for imp in qs:
         header_transport_price = _safe_decimal(imp.transport_price)
 
-        # Run fallback only when header transport is empty/zero
+        # Info: imports with a header transport price belong to the standard
+        # analysis, not fallback. This is an expected exclusion, not an error.
         if header_transport_price > ZERO:
+            warnings["info"].append({
+                "import_code": imp.import_code,
+                "reason": "has header transport price — handled by standard analysis",
+            })
             continue
 
         declaration_date = imp.declaration_date
@@ -141,6 +152,10 @@ def build_transportation_line_fallback_analysis(
             continue
 
         if declaration_date in failed_dates:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": f"exchange rate unavailable for {declaration_date}",
+            })
             continue
 
         rates = rate_cache.get(declaration_date)
@@ -149,7 +164,10 @@ def build_transportation_line_fallback_analysis(
 
         line_currency = _normalize_currency(imp.currency_code)
         if not line_currency:
-            result["errors"].append(f"{imp.import_code}: missing currency_code, skipped")
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "currency code missing",
+            })
             continue
 
         total_lines_amount = ZERO
@@ -167,7 +185,13 @@ def build_transportation_line_fallback_analysis(
                 transportation_lines_amount += line_amount
                 transportation_line_count += 1
 
+        # Soft: no TRANSPORTATION lines means we cannot determine transport
+        # cost via this method. Import is excluded but this is not an error.
         if transportation_line_count == 0:
+            warnings["soft"].append({
+                "import_code": imp.import_code,
+                "reason": "no TRANSPORTATION lines found — excluded from fallback",
+            })
             continue
 
         goods_amount = total_lines_amount - transportation_lines_amount

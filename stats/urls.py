@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from stats.views.cost_export import export_cost_analysis_excel
+from stats.views.cost_export import export_cost_analysis_excel, export_unified_cost_analysis_excel
 from stats.views.fallback_cost_export import export_fallback_cost_analysis_excel
 
 app_name = 'stats'
@@ -11,4 +11,5 @@ urlpatterns = [
     path('cost/', views.cost_analysis, name='cost'),
     path("cost/export/", export_cost_analysis_excel, name="cost_export"),
     path("cost/fallback-export/", export_fallback_cost_analysis_excel, name="fallback_cost_export"),
+    path("cost/unified-export/", export_unified_cost_analysis_excel, name="unified_cost_export"),
 ]
