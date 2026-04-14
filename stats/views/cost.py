@@ -1,18 +1,9 @@
-from datetime import datetime, date
+from datetime import date
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from imports.models import Import, ImportLine
 from stats.cost_services import build_cost_analysis, build_unified_cost_analysis
+from stats.utils import parse_date, get_vendor_suggestions, get_item_suggestions
 from .views_transportation_line_cost import build_transportation_line_fallback_analysis
-
-
-def parse_date(date_str):
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, "%Y-%m-%d").date()
-    except ValueError:
-        return None
 
 
 @login_required
@@ -114,22 +105,6 @@ def cost_analysis(request):
         or warnings["unified"]["info"]
     )
 
-    vendor_suggestions = (
-        Import.objects.exclude(vendor_name__isnull=True)
-        .exclude(vendor_name__exact="")
-        .values_list("vendor_name", flat=True)
-        .distinct()
-        .order_by("vendor_name")[:300]
-    )
-
-    item_suggestions = (
-        ImportLine.objects.exclude(item_no__isnull=True)
-        .exclude(item_no__exact="")
-        .values_list("item_no", flat=True)
-        .distinct()
-        .order_by("item_no")[:300]
-    )
-
     context = {
         "analysis": data,
         "fallback_analysis": fallback_analysis,
@@ -140,7 +115,7 @@ def cost_analysis(request):
         "date_to": date_to_str,
         "vendor_name": vendor_name,
         "item_no": item_no,
-        "vendor_suggestions": vendor_suggestions,
-        "item_suggestions": item_suggestions,
+        "vendor_suggestions": get_vendor_suggestions(),
+        "item_suggestions": get_item_suggestions(),
     }
     return render(request, "stats/cost_analysis.html", context)

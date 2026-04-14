@@ -3,14 +3,13 @@ from __future__ import annotations
 from decimal import Decimal
 from imports.models import Import
 from django.db.models import Sum
+from stats.constants import ZERO, TWO_PLACES, SUPPORTED_CURRENCIES, TRANSPORTATION_ITEM_NO
 from stats.exchange_rates import (
-    fetch_nbg_rates_for_date,
+    get_nbg_rates_for_date,
     convert_to_usd,
     ExchangeRateError,
 )
-
-ZERO = Decimal("0")
-SUPPORTED_CURRENCIES = {"USD", "EUR", "GEL", "GBP", "TRY", "ILS", "CNY"}
+from stats.utils import normalize_currency
 
 
 def _declared_imports_queryset(date_from=None, date_to=None, vendor_name=None, item_no=None):
@@ -40,9 +39,6 @@ def _sum_goods_amount(import_obj: Import) -> Decimal:
 
     return result if result is not None else ZERO
 
-
-def _normalize_currency(code: str | None) -> str:
-    return (code or "").upper().strip()
 
 
 def _shipping_method_key(import_obj: Import) -> str:
@@ -78,11 +74,20 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
     warnings = {"skipped": [], "soft": [], "info": []}
 
     for imp in qs:
-        goods_amount = _sum_goods_amount(imp)
+        # Sum line amounts in Python using the prefetch cache.
+        # _sum_goods_amount() used .aggregate() which fires a separate SQL query
+        # per import despite prefetch_related("lines") already loading the lines.
+        # This loop uses imp.lines.all() which hits the prefetch cache instead.
+        # Behaviour is identical: NULL line_amounts are excluded, zero-value lines
+        # are included (matching the original .exclude(line_amount__isnull=True)).
+        goods_amount = sum(
+            (line.line_amount for line in imp.lines.all() if line.line_amount is not None),
+            ZERO,
+        )
         transport_amount = imp.transport_price or ZERO
 
-        goods_currency = _normalize_currency(imp.currency_code)
-        transport_currency = _normalize_currency(imp.transport_currency)
+        goods_currency = normalize_currency(imp.currency_code)
+        transport_currency = normalize_currency(imp.transport_currency)
 
         if goods_amount <= 0:
             warnings["skipped"].append({
@@ -134,7 +139,7 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
 
         if declaration_date not in rates_cache:
             try:
-                rates_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
+                rates_cache[declaration_date] = get_nbg_rates_for_date(declaration_date)
             except ExchangeRateError:
                 rates_cache[declaration_date] = None
 
@@ -179,13 +184,13 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
                 "shipping_method": imp.shipping_method,
                 "declaration_c_number": imp.declaration_c_number,
                 "declaration_date": imp.declaration_date,
-                "goods_amount": goods_amount.quantize(Decimal("0.01")),
+                "goods_amount": goods_amount.quantize(TWO_PLACES),
                 "goods_currency": goods_currency,
-                "goods_usd": goods_usd.quantize(Decimal("0.01")),
-                "transport_amount": transport_amount.quantize(Decimal("0.01")),
+                "goods_usd": goods_usd.quantize(TWO_PLACES),
+                "transport_amount": transport_amount.quantize(TWO_PLACES),
                 "transport_currency": transport_currency,
-                "transport_usd": transport_usd.quantize(Decimal("0.01")),
-                "transport_percent": transport_percent.quantize(Decimal("0.01")),
+                "transport_usd": transport_usd.quantize(TWO_PLACES),
+                "transport_percent": transport_percent.quantize(TWO_PLACES),
             })
 
     overall_percent = ZERO
@@ -193,9 +198,9 @@ def build_cost_analysis(date_from=None, date_to=None, vendor_name=None, item_no=
         overall_percent = (total_transport_usd / total_goods_usd) * Decimal("100")
 
     summary = {
-        "total_goods_usd": total_goods_usd.quantize(Decimal("0.01")),
-        "total_transport_usd": total_transport_usd.quantize(Decimal("0.01")),
-        "overall_percent": overall_percent.quantize(Decimal("0.01")),
+        "total_goods_usd": total_goods_usd.quantize(TWO_PLACES),
+        "total_transport_usd": total_transport_usd.quantize(TWO_PLACES),
+        "overall_percent": overall_percent.quantize(TWO_PLACES),
     }
 
     result = {
@@ -246,7 +251,7 @@ def build_unified_cost_analysis(
         # amounts. If it is missing or unsupported the shipment is skipped
         # because goods cannot be converted.
         # ------------------------------------------------------------------
-        line_currency = _normalize_currency(imp.currency_code)
+        line_currency = normalize_currency(imp.currency_code)
         if not line_currency:
             warnings["skipped"].append({
                 "import_code": imp.import_code,
@@ -266,7 +271,7 @@ def build_unified_cost_analysis(
         # and carry on — the shipment is NOT skipped for this reason alone.
         # ------------------------------------------------------------------
         header_transport_price = imp.transport_price or ZERO
-        header_transport_currency = _normalize_currency(imp.transport_currency)
+        header_transport_currency = normalize_currency(imp.transport_currency)
         header_currency_valid = (
             bool(header_transport_currency)
             and header_transport_currency in SUPPORTED_CURRENCIES
@@ -288,7 +293,7 @@ def build_unified_cost_analysis(
             if not line.line_amount or line.line_amount <= ZERO:
                 continue
             total_lines_amount += line.line_amount
-            if (line.item_no or "").strip().upper() == "TRANSPORTATION":
+            if (line.item_no or "").strip().upper() == TRANSPORTATION_ITEM_NO:
                 transportation_lines_amount += line.line_amount
 
         # ------------------------------------------------------------------
@@ -315,7 +320,7 @@ def build_unified_cost_analysis(
 
         if declaration_date not in rates_cache:
             try:
-                rates_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
+                rates_cache[declaration_date] = get_nbg_rates_for_date(declaration_date)
             except ExchangeRateError:
                 rates_cache[declaration_date] = None
 
@@ -405,14 +410,14 @@ def build_unified_cost_analysis(
                 "shipping_method": imp.shipping_method,
                 "declaration_c_number": imp.declaration_c_number,
                 "declaration_date": imp.declaration_date,
-                "goods_amount": goods_amount.quantize(Decimal("0.01")),
+                "goods_amount": goods_amount.quantize(TWO_PLACES),
                 "goods_currency": line_currency,
-                "goods_usd": goods_usd.quantize(Decimal("0.01")),
-                "transportation_lines_amount": transportation_lines_amount.quantize(Decimal("0.01")),
-                "header_transport_amount": header_transport_price.quantize(Decimal("0.01")),
+                "goods_usd": goods_usd.quantize(TWO_PLACES),
+                "transportation_lines_amount": transportation_lines_amount.quantize(TWO_PLACES),
+                "header_transport_amount": header_transport_price.quantize(TWO_PLACES),
                 "header_transport_currency": header_transport_currency,
-                "transport_usd": transport_usd.quantize(Decimal("0.01")),
-                "transport_percent": transport_percent.quantize(Decimal("0.01")),
+                "transport_usd": transport_usd.quantize(TWO_PLACES),
+                "transport_percent": transport_percent.quantize(TWO_PLACES),
             })
 
     overall_percent = ZERO
@@ -422,9 +427,9 @@ def build_unified_cost_analysis(
     result = {
         "cards": cards,
         "summary": {
-            "total_goods_usd": total_goods_usd.quantize(Decimal("0.01")),
-            "total_transport_usd": total_transport_usd.quantize(Decimal("0.01")),
-            "overall_percent": overall_percent.quantize(Decimal("0.01")),
+            "total_goods_usd": total_goods_usd.quantize(TWO_PLACES),
+            "total_transport_usd": total_transport_usd.quantize(TWO_PLACES),
+            "overall_percent": overall_percent.quantize(TWO_PLACES),
         },
         "warnings": warnings,
     }

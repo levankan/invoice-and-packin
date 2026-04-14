@@ -4,15 +4,13 @@ from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from imports.models import Import
+from stats.constants import ZERO, TWO_PLACES, SUPPORTED_CURRENCIES, TRANSPORTATION_ITEM_NO
 from stats.exchange_rates import (
-    fetch_nbg_rates_for_date,
+    get_nbg_rates_for_date,
     convert_to_usd,
     ExchangeRateError,
 )
-
-ZERO = Decimal("0")
-TRANSPORTATION_ITEM_NO = "TRANSPORTATION"
-SUPPORTED_CURRENCIES = {"USD", "EUR", "GEL", "GBP", "TRY", "ILS", "CNY"}
+from stats.utils import normalize_currency
 
 
 def _safe_decimal(value) -> Decimal:
@@ -23,11 +21,6 @@ def _safe_decimal(value) -> Decimal:
     except (InvalidOperation, TypeError, ValueError):
         return ZERO
 
-
-def _normalize_currency(code: Optional[str]) -> str:
-    if not code:
-        return ""
-    return str(code).strip().upper()
 
 
 def _declared_imports_queryset(date_from=None, date_to=None, vendor_name=None, item_no=None):
@@ -69,7 +62,7 @@ def _convert_amount_to_usd(amount: Decimal, currency_code: str, rates) -> Decima
     if amount <= ZERO:
         return ZERO
 
-    currency_code = _normalize_currency(currency_code)
+    currency_code = normalize_currency(currency_code)
     if currency_code not in SUPPORTED_CURRENCIES:
         return ZERO
 
@@ -81,6 +74,7 @@ def build_transportation_line_fallback_analysis(
     date_to=None,
     vendor_name=None,
     item_no=None,
+    include_rows=False,
 ):
     qs = _declared_imports_queryset(
         date_from=date_from,
@@ -90,6 +84,8 @@ def build_transportation_line_fallback_analysis(
     )
 
     warnings = {"skipped": [], "soft": [], "info": []}
+
+    rows = []
 
     result = {
         "cards": {
@@ -105,7 +101,6 @@ def build_transportation_line_fallback_analysis(
             "total_transport_usd": Decimal("0.00"),
             "overall_percent": Decimal("0.00"),
         },
-        "rows": [],
         "warnings": warnings,
     }
 
@@ -121,7 +116,7 @@ def build_transportation_line_fallback_analysis(
 
     for declaration_date in declaration_dates:
         try:
-            rate_cache[declaration_date] = fetch_nbg_rates_for_date(declaration_date)
+            rate_cache[declaration_date] = get_nbg_rates_for_date(declaration_date)
         except ExchangeRateError as exc:
             warnings["skipped"].append({
                 "import_code": None,
@@ -162,7 +157,7 @@ def build_transportation_line_fallback_analysis(
         if not rates:
             continue
 
-        line_currency = _normalize_currency(imp.currency_code)
+        line_currency = normalize_currency(imp.currency_code)
         if not line_currency:
             warnings["skipped"].append({
                 "import_code": imp.import_code,
@@ -216,24 +211,25 @@ def build_transportation_line_fallback_analysis(
         result["summary"]["total_goods_usd"] += goods_usd
         result["summary"]["total_transport_usd"] += transport_usd
 
-        result["rows"].append(
-            {
-                "import_code": imp.import_code,
-                "vendor_name": imp.vendor_name or "",
-                "shipping_method": imp.shipping_method or "",
-                "declaration_c_number": imp.declaration_c_number or "",
-                "declaration_date": imp.declaration_date,
-                "currency_code": line_currency,
-                "transportation_line_count": transportation_line_count,
-                "total_lines_amount": total_lines_amount.quantize(Decimal("0.01")),
-                "transportation_lines_amount": transportation_lines_amount.quantize(Decimal("0.01")),
-                "goods_amount": goods_amount.quantize(Decimal("0.01")),
-                "total_lines_usd": total_lines_usd.quantize(Decimal("0.01")),
-                "transport_usd": transport_usd.quantize(Decimal("0.01")),
-                "goods_usd": goods_usd.quantize(Decimal("0.01")),
-                "percent": percent.quantize(Decimal("0.01")),
-            }
-        )
+        if include_rows:
+            rows.append(
+                {
+                    "import_code": imp.import_code,
+                    "vendor_name": imp.vendor_name or "",
+                    "shipping_method": imp.shipping_method or "",
+                    "declaration_c_number": imp.declaration_c_number or "",
+                    "declaration_date": imp.declaration_date,
+                    "currency_code": line_currency,
+                    "transportation_line_count": transportation_line_count,
+                    "total_lines_amount": total_lines_amount.quantize(TWO_PLACES),
+                    "transportation_lines_amount": transportation_lines_amount.quantize(TWO_PLACES),
+                    "goods_amount": goods_amount.quantize(TWO_PLACES),
+                    "total_lines_usd": total_lines_usd.quantize(TWO_PLACES),
+                    "transport_usd": transport_usd.quantize(TWO_PLACES),
+                    "goods_usd": goods_usd.quantize(TWO_PLACES),
+                    "percent": percent.quantize(TWO_PLACES),
+                }
+            )
 
     total_goods_usd = result["summary"]["total_goods_usd"]
     total_transport_usd = result["summary"]["total_transport_usd"]
@@ -242,14 +238,15 @@ def build_transportation_line_fallback_analysis(
     if total_goods_usd > ZERO:
         overall_percent = (total_transport_usd / total_goods_usd) * Decimal("100")
 
-    result["summary"]["total_goods_usd"] = total_goods_usd.quantize(Decimal("0.01"))
-    result["summary"]["total_transport_usd"] = total_transport_usd.quantize(Decimal("0.01"))
-    result["summary"]["overall_percent"] = overall_percent.quantize(Decimal("0.01"))
+    result["summary"]["total_goods_usd"] = total_goods_usd.quantize(TWO_PLACES)
+    result["summary"]["total_transport_usd"] = total_transport_usd.quantize(TWO_PLACES)
+    result["summary"]["overall_percent"] = overall_percent.quantize(TWO_PLACES)
 
-    result["rows"] = sorted(
-        result["rows"],
-        key=lambda x: (x["declaration_date"] or "", x["import_code"]),
-        reverse=True,
-    )
+    if include_rows:
+        result["rows"] = sorted(
+            rows,
+            key=lambda x: (x["declaration_date"] or "", x["import_code"]),
+            reverse=True,
+        )
 
     return result

@@ -1,22 +1,16 @@
-from datetime import datetime
-
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
-from django.utils.text import slugify
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 
 from stats.cost_services import build_cost_analysis, build_unified_cost_analysis
-
-
-def parse_date(date_str):
-    if not date_str:
-        return None
-    try:
-        return datetime.strptime(date_str, "%Y-%m-%d").date()
-    except ValueError:
-        return None
+from stats.excel_helpers import (
+    make_workbook_styles,
+    write_filter_row,
+    write_summary_section,
+    write_detail_header_row,
+)
+from stats.utils import parse_date, build_export_filename
 
 
 @login_required
@@ -38,14 +32,8 @@ def export_cost_analysis_excel(request):
     )
 
     wb = Workbook()
-
-    header_fill = PatternFill("solid", fgColor="1F4E78")
-    header_font = Font(color="FFFFFF", bold=True)
-    title_font = Font(size=14, bold=True)
-    section_font = Font(size=12, bold=True)
-    zebra_fill = PatternFill("solid", fgColor="F8FAFC")
-    thin = Side(style="thin", color="D9E2F3")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    styles = make_workbook_styles()
+    header_fill, header_font, title_font, section_font, zebra_fill, border = styles
 
     # -----------------------------
     # Sheet 1: Summary
@@ -53,58 +41,20 @@ def export_cost_analysis_excel(request):
     ws = wb.active
     ws.title = "Cost Analysis"
 
-    ws["A1"] = "Transportation Cost Analysis"
-    ws["A1"].font = title_font
-
-    ws["A3"] = "Date From"
-    ws["B3"] = date_from_str or "-"
-    ws["C3"] = "Date To"
-    ws["D3"] = date_to_str or "-"
-    ws["E3"] = "Vendor Name"
-    ws["F3"] = vendor_name or "-"
-    ws["G3"] = "Item Number"
-    ws["H3"] = item_no or "-"
-
-    ws["A5"] = "Summary"
-    ws["A5"].font = section_font
-
-    summary_headers = ["Metric", "Value"]
     summary_data = [
-        ["All Shipments", analysis["cards"]["all"]],
-        ["Air", analysis["cards"]["air"]],
-        ["Sea", analysis["cards"]["sea"]],
-        ["Road", analysis["cards"]["road"]],
-        ["Courier", analysis["cards"]["courier"]],
-        ["Other", analysis["cards"]["other"]],
-        ["Total Goods Value (USD)", float(analysis["summary"]["total_goods_usd"])],
-        ["Total Transport Cost (USD)", float(analysis["summary"]["total_transport_usd"])],
-        ["Transport %", float(analysis["summary"]["overall_percent"]) / 100],
+        ["All Shipments",               analysis["cards"]["all"]],
+        ["Air",                         analysis["cards"]["air"]],
+        ["Sea",                         analysis["cards"]["sea"]],
+        ["Road",                        analysis["cards"]["road"]],
+        ["Courier",                     analysis["cards"]["courier"]],
+        ["Other",                       analysis["cards"]["other"]],
+        ["Total Goods Value (USD)",     float(analysis["summary"]["total_goods_usd"])],
+        ["Total Transport Cost (USD)",  float(analysis["summary"]["total_transport_usd"])],
+        ["Transport %",                 float(analysis["summary"]["overall_percent"]) / 100],
     ]
 
-    start_row = 7
-    for col_num, value in enumerate(summary_headers, 1):
-        cell = ws.cell(row=start_row, column=col_num, value=value)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = border
-
-    for row_index, row_data in enumerate(summary_data, start_row + 1):
-        for col_num, value in enumerate(row_data, 1):
-            cell = ws.cell(row=row_index, column=col_num, value=value)
-            cell.border = border
-
-            if row_index % 2 == 0:
-                cell.fill = zebra_fill
-
-            if col_num == 2 and row_data[0] in {
-                "Total Goods Value (USD)",
-                "Total Transport Cost (USD)",
-            }:
-                cell.number_format = '0.00'
-
-            if col_num == 2 and row_data[0] == "Transport %":
-                cell.number_format = '0.00%'
+    write_summary_section(ws, "Transportation Cost Analysis", summary_data, styles)
+    write_filter_row(ws, date_from_str, date_to_str, vendor_name, item_no)
 
     ws.column_dimensions["A"].width = 30
     ws.column_dimensions["B"].width = 20
@@ -114,7 +64,6 @@ def export_cost_analysis_excel(request):
     ws.column_dimensions["F"].width = 25
     ws.column_dimensions["G"].width = 15
     ws.column_dimensions["H"].width = 20
-
     ws.freeze_panes = "A7"
 
     # -----------------------------
@@ -137,12 +86,7 @@ def export_cost_analysis_excel(request):
         "Transport %",
     ]
 
-    for col_num, value in enumerate(detail_headers, 1):
-        cell = ws2.cell(row=1, column=col_num, value=value)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = border
+    write_detail_header_row(ws2, detail_headers, styles)
 
     for row_num, row in enumerate(analysis.get("rows", []), start=2):
         values = [
@@ -163,62 +107,30 @@ def export_cost_analysis_excel(request):
         for col_num, value in enumerate(values, 1):
             cell = ws2.cell(row=row_num, column=col_num, value=value)
             cell.border = border
-
             if row_num % 2 == 0:
                 cell.fill = zebra_fill
-
             if col_num in [6, 8, 9, 11]:
-                cell.number_format = '0.00'
-
+                cell.number_format = "0.00"
             if col_num == 12:
-                cell.number_format = '0.00%'
+                cell.number_format = "0.00%"
 
     widths = {
-        "A": 16,
-        "B": 35,
-        "C": 18,
-        "D": 20,
-        "E": 15,
-        "F": 15,
-        "G": 14,
-        "H": 15,
-        "I": 18,
-        "J": 18,
-        "K": 15,
-        "L": 15,
+        "A": 16, "B": 35, "C": 18, "D": 20, "E": 15,
+        "F": 15, "G": 14, "H": 15, "I": 18, "J": 18,
+        "K": 15, "L": 15,
     }
-
     for col_letter, width in widths.items():
         ws2.column_dimensions[col_letter].width = width
 
     ws2.freeze_panes = "A2"
     ws2.auto_filter.ref = f"A1:{get_column_letter(len(detail_headers))}{max(2, len(analysis.get('rows', [])) + 1)}"
 
-    # -----------------------------
-    # Dynamic filename
-    # -----------------------------
-    filename_parts = ["cost_analysis"]
-
-    if date_from_str and date_to_str:
-        filename_parts.append(f"{date_from_str}_to_{date_to_str}")
-    elif date_from_str:
-        filename_parts.append(f"from_{date_from_str}")
-    elif date_to_str:
-        filename_parts.append(f"to_{date_to_str}")
-
-    if vendor_name:
-        filename_parts.append(f"vendor_{slugify(vendor_name)}")
-
-    if item_no:
-        filename_parts.append(f"item_{slugify(item_no)}")
-
-    filename = "_".join(filename_parts) + ".xlsx"
+    filename = build_export_filename("cost_analysis", date_from_str, date_to_str, vendor_name, item_no)
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
     wb.save(response)
     return response
 
@@ -242,14 +154,8 @@ def export_unified_cost_analysis_excel(request):
     )
 
     wb = Workbook()
-
-    header_fill = PatternFill("solid", fgColor="1F4E78")
-    header_font = Font(color="FFFFFF", bold=True)
-    title_font = Font(size=14, bold=True)
-    section_font = Font(size=12, bold=True)
-    zebra_fill = PatternFill("solid", fgColor="F8FAFC")
-    thin = Side(style="thin", color="D9E2F3")
-    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    styles = make_workbook_styles()
+    header_fill, header_font, title_font, section_font, zebra_fill, border = styles
 
     # -----------------------------
     # Sheet 1: Summary
@@ -257,58 +163,20 @@ def export_unified_cost_analysis_excel(request):
     ws = wb.active
     ws.title = "Unified Cost Analysis"
 
-    ws["A1"] = "Unified Transportation Cost Analysis"
-    ws["A1"].font = title_font
-
-    ws["A3"] = "Date From"
-    ws["B3"] = date_from_str or "-"
-    ws["C3"] = "Date To"
-    ws["D3"] = date_to_str or "-"
-    ws["E3"] = "Vendor Name"
-    ws["F3"] = vendor_name or "-"
-    ws["G3"] = "Item Number"
-    ws["H3"] = item_no or "-"
-
-    ws["A5"] = "Summary"
-    ws["A5"].font = section_font
-
-    summary_headers = ["Metric", "Value"]
     summary_data = [
-        ["All Shipments",                  analysis["cards"]["all"]],
-        ["Air",                            analysis["cards"]["air"]],
-        ["Sea",                            analysis["cards"]["sea"]],
-        ["Road",                           analysis["cards"]["road"]],
-        ["Courier",                        analysis["cards"]["courier"]],
-        ["Other",                          analysis["cards"]["other"]],
-        ["Total Goods Value (USD)",        float(analysis["summary"]["total_goods_usd"])],
-        ["Total Transport Cost (USD)",     float(analysis["summary"]["total_transport_usd"])],
-        ["Transport %",                    float(analysis["summary"]["overall_percent"]) / 100],
+        ["All Shipments",               analysis["cards"]["all"]],
+        ["Air",                         analysis["cards"]["air"]],
+        ["Sea",                         analysis["cards"]["sea"]],
+        ["Road",                        analysis["cards"]["road"]],
+        ["Courier",                     analysis["cards"]["courier"]],
+        ["Other",                       analysis["cards"]["other"]],
+        ["Total Goods Value (USD)",     float(analysis["summary"]["total_goods_usd"])],
+        ["Total Transport Cost (USD)",  float(analysis["summary"]["total_transport_usd"])],
+        ["Transport %",                 float(analysis["summary"]["overall_percent"]) / 100],
     ]
 
-    start_row = 7
-    for col_num, value in enumerate(summary_headers, 1):
-        cell = ws.cell(row=start_row, column=col_num, value=value)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = border
-
-    for row_index, row_data in enumerate(summary_data, start_row + 1):
-        for col_num, value in enumerate(row_data, 1):
-            cell = ws.cell(row=row_index, column=col_num, value=value)
-            cell.border = border
-
-            if row_index % 2 == 0:
-                cell.fill = zebra_fill
-
-            if col_num == 2 and row_data[0] in {
-                "Total Goods Value (USD)",
-                "Total Transport Cost (USD)",
-            }:
-                cell.number_format = '0.00'
-
-            if col_num == 2 and row_data[0] == "Transport %":
-                cell.number_format = '0.00%'
+    write_summary_section(ws, "Unified Transportation Cost Analysis", summary_data, styles)
+    write_filter_row(ws, date_from_str, date_to_str, vendor_name, item_no)
 
     ws.column_dimensions["A"].width = 30
     ws.column_dimensions["B"].width = 20
@@ -318,7 +186,6 @@ def export_unified_cost_analysis_excel(request):
     ws.column_dimensions["F"].width = 25
     ws.column_dimensions["G"].width = 15
     ws.column_dimensions["H"].width = 20
-
     ws.freeze_panes = "A7"
 
     # -----------------------------
@@ -342,12 +209,7 @@ def export_unified_cost_analysis_excel(request):
         "Transport %",
     ]
 
-    for col_num, value in enumerate(detail_headers, 1):
-        cell = ws2.cell(row=1, column=col_num, value=value)
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal="center", vertical="center")
-        cell.border = border
+    write_detail_header_row(ws2, detail_headers, styles)
 
     for row_num, row in enumerate(analysis.get("rows", []), start=2):
         values = [
@@ -369,64 +231,31 @@ def export_unified_cost_analysis_excel(request):
         for col_num, value in enumerate(values, 1):
             cell = ws2.cell(row=row_num, column=col_num, value=value)
             cell.border = border
-
             if row_num % 2 == 0:
                 cell.fill = zebra_fill
-
             # Numeric columns: Goods Amount, Goods USD,
             # TRANSPORTATION Lines Amount, Header Transport Amount, Transport USD
             if col_num in [6, 8, 9, 10, 12]:
-                cell.number_format = '0.00'
-
+                cell.number_format = "0.00"
             if col_num == 13:
-                cell.number_format = '0.00%'
+                cell.number_format = "0.00%"
 
     widths = {
-        "A": 16,
-        "B": 35,
-        "C": 18,
-        "D": 22,
-        "E": 15,
-        "F": 15,
-        "G": 14,
-        "H": 15,
-        "I": 28,
-        "J": 22,
-        "K": 22,
-        "L": 22,
-        "M": 15,
+        "A": 16, "B": 35, "C": 18, "D": 22, "E": 15,
+        "F": 15, "G": 14, "H": 15, "I": 28, "J": 22,
+        "K": 22, "L": 22, "M": 15,
     }
-
     for col_letter, width in widths.items():
         ws2.column_dimensions[col_letter].width = width
 
     ws2.freeze_panes = "A2"
     ws2.auto_filter.ref = f"A1:{get_column_letter(len(detail_headers))}{max(2, len(analysis.get('rows', [])) + 1)}"
 
-    # -----------------------------
-    # Dynamic filename
-    # -----------------------------
-    filename_parts = ["unified_cost_analysis"]
-
-    if date_from_str and date_to_str:
-        filename_parts.append(f"{date_from_str}_to_{date_to_str}")
-    elif date_from_str:
-        filename_parts.append(f"from_{date_from_str}")
-    elif date_to_str:
-        filename_parts.append(f"to_{date_to_str}")
-
-    if vendor_name:
-        filename_parts.append(f"vendor_{slugify(vendor_name)}")
-
-    if item_no:
-        filename_parts.append(f"item_{slugify(item_no)}")
-
-    filename = "_".join(filename_parts) + ".xlsx"
+    filename = build_export_filename("unified_cost_analysis", date_from_str, date_to_str, vendor_name, item_no)
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
     wb.save(response)
     return response

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal, InvalidOperation
 import requests
+from django.core.cache import cache
 
 
 class ExchangeRateError(Exception):
@@ -90,6 +91,26 @@ def fetch_nbg_rates_for_date(dt: date) -> dict[str, Decimal]:
     if "USD" not in rates:
         raise ExchangeRateError(f"USD rate missing in NBG response for {dt}")
 
+    return rates
+
+
+def get_nbg_rates_for_date(dt: date) -> dict[str, Decimal]:
+    """
+    Cached wrapper around fetch_nbg_rates_for_date.
+
+    Exchange rates for a given date are historical and never change,
+    so a 24-hour TTL is safe. The raw fetcher is left untouched.
+    """
+    if not dt:
+        raise ExchangeRateError("Date is required for NBG exchange rate lookup")
+
+    cache_key = f"nbg_rates_{dt.strftime('%Y-%m-%d')}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    rates = fetch_nbg_rates_for_date(dt)
+    cache.set(cache_key, rates, timeout=86400)  # 24 hours
     return rates
 
 
