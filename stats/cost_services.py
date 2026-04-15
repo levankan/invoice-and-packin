@@ -297,6 +297,18 @@ def build_unified_cost_analysis(
                 transportation_lines_amount += line.line_amount
 
         # ------------------------------------------------------------------
+        # STRICT: at least one transport source must be present.
+        # If both header transport price and TRANSPORTATION lines are zero,
+        # the shipment has no transport cost recorded — exclude it.
+        # ------------------------------------------------------------------
+        if header_transport_price <= ZERO and transportation_lines_amount <= ZERO:
+            warnings["skipped"].append({
+                "import_code": imp.import_code,
+                "reason": "no transport cost found — neither header transport price nor TRANSPORTATION lines present",
+            })
+            continue
+
+        # ------------------------------------------------------------------
         # STRICT: goods_amount must be positive. Skip immediately — do not
         # force to 0 — because a zero or negative goods value means we
         # cannot produce a meaningful cost split for this shipment.
