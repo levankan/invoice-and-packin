@@ -14,13 +14,13 @@ SECRET_KEY = config("DJANGO_SECRET_KEY", default="unsafe-secret")
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1", cast=Csv())
 
-SESSION_COOKIE_SECURE = True
+#SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 AUTH_USER_MODEL = 'core.User'
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-SECURE_SSL_REDIRECT = True
-CSRF_TRUSTED_ORIGINS = ["https://shipmnent.com", "https://www.shipmnent.com"]
+#SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+#SECURE_SSL_REDIRECT = True
+#CSRF_TRUSTED_ORIGINS = ["https://shipmnent.com", "https://www.shipmnent.com"]
 
 
 AUTHENTICATION_BACKENDS = [
