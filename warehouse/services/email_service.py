@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.utils.html import escape
 from admin_area.models import DeliveryEmailConfiguration
 from imports.models import ImportLine
 
@@ -34,10 +35,8 @@ def send_delivery_email(import_obj):
 
     subject = config.email_subject or f"Shipment Delivered: {import_code}"
 
-    # Get related import lines
     lines = ImportLine.objects.filter(import_header=import_obj)
 
-    # Plain text fallback
     text_body = f"""
 {config.email_text}
 
@@ -50,15 +49,23 @@ Received At: {received_at_value}
 Received By: {received_by_value}
 """
 
-    # Build HTML rows
+    safe_email_text = escape(config.email_text or "").replace("\n", "<br>")
+    safe_import_code = escape(str(import_code))
+    safe_tracking_no = escape(str(tracking_no))
+    safe_vendor_reference = escape(str(vendor_reference))
+    safe_declaration_c_number = escape(str(declaration_c_number))
+    safe_declaration_a_number = escape(str(declaration_a_number))
+    safe_received_at_value = escape(str(received_at_value))
+    safe_received_by_value = escape(str(received_by_value))
+
     table_rows = ""
     for line in lines:
-        document_no = getattr(line, "document_no", "") or ""
-        line_no = getattr(line, "line_no", "") or ""
-        item_no = getattr(line, "item_no", "") or ""
-        description = getattr(line, "description", "") or ""
-        quantity = getattr(line, "quantity", "") or ""
-        uom = getattr(line, "unit_of_measure", "") or getattr(line, "uom", "") or ""
+        document_no = escape(str(getattr(line, "document_no", "") or ""))
+        line_no = escape(str(getattr(line, "line_no", "") or ""))
+        item_no = escape(str(getattr(line, "item_no", "") or ""))
+        description = escape(str(getattr(line, "description", "") or ""))
+        quantity = escape(str(getattr(line, "quantity", "") or ""))
+        uom = escape(str(getattr(line, "unit_of_measure", "") or getattr(line, "uom", "") or ""))
 
         table_rows += f"""
         <tr>
@@ -74,15 +81,15 @@ Received By: {received_by_value}
     html_body = f"""
     <html>
     <body style="font-family: Arial, sans-serif; font-size: 14px; color: #222;">
-        <p>{config.email_text}</p>
+        <p>{safe_email_text}</p>
 
-        <p><strong>Import Code:</strong> {import_code}</p>
-        <p><strong>Tracking Number:</strong> {tracking_no}</p>
-        <p><strong>Vendor Reference:</strong> {vendor_reference}</p>
-        <p><strong>Declaration C Number:</strong> {declaration_c_number}</p>
-        <p><strong>Declaration A Number:</strong> {declaration_a_number}</p>
-        <p><strong>Received At:</strong> {received_at_value}</p>
-        <p><strong>Received By:</strong> {received_by_value}</p>
+        <p><strong>Import Code:</strong> {safe_import_code}</p>
+        <p><strong>Tracking Number:</strong> {safe_tracking_no}</p>
+        <p><strong>Vendor Reference:</strong> {safe_vendor_reference}</p>
+        <p><strong>Declaration C Number:</strong> {safe_declaration_c_number}</p>
+        <p><strong>Declaration A Number:</strong> {safe_declaration_a_number}</p>
+        <p><strong>Received At:</strong> {safe_received_at_value}</p>
+        <p><strong>Received By:</strong> {safe_received_by_value}</p>
 
         <br>
 
