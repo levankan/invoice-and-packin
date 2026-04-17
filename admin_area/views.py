@@ -508,9 +508,10 @@ def vendor_edit(request, pk):
 @login_required
 @user_passes_test(is_superuser)
 def vendor_delete(request, pk):
-    vendor = get_object_or_404(Vendor, pk=pk)
-    vendor.delete()
-    messages.success(request, "Vendor deleted.")
+    if request.method == "POST":
+        vendor = get_object_or_404(Vendor, pk=pk)
+        vendor.delete()
+        messages.success(request, "Vendor deleted.")
     return redirect("vendors_view")
 
 
@@ -599,6 +600,7 @@ from django.shortcuts import render, redirect
 from .models import DeliveryEmailConfiguration
 
 
+@login_required
 @user_passes_test(lambda u: u.is_superuser)
 def manage_emails(request):
     config = DeliveryEmailConfiguration.objects.first()

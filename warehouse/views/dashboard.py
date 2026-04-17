@@ -36,7 +36,7 @@ def dashboard(request):
                 Q(declaration_a_number__icontains=query)
             ).distinct()
 
-            # Auto-mark Delivered if exactly one match
+            
             if results.count() >= 1:
                 imp = results.first()
 

@@ -101,15 +101,7 @@ def invoice_pdf_view(request, export_id):
         grand_total_qty += values["total_qty"]
         grand_total_value += values["total_value"]
 
-    # ---- Temporary debug: remove after confirming images load ----
-    print("STATIC_ROOT =", settings.STATIC_ROOT)
-    print("logo_uri =", _static_file_uri("img/atc_logo.jpeg", request))
-    print("signature_uri =", _static_file_uri("img/signature.jpeg", request))
-    print("stamp_uri =", _static_file_uri("img/stamp.jpeg", request))
-    print("logo exists =", os.path.exists(os.path.join(settings.STATIC_ROOT, "img/atc_logo.jpeg")))
-    print("signature exists =", os.path.exists(os.path.join(settings.STATIC_ROOT, "img/signature.jpeg")))
-    print("stamp exists =", os.path.exists(os.path.join(settings.STATIC_ROOT, "img/stamp.jpeg")))
-
+    
     # ---- Render invoice template ----
     html_string = render_to_string("core/invoice.html", {
         "export": export,
