@@ -307,10 +307,14 @@
                 {# MAIN ROW #}
                 <tr class="{% if imp.declaration_a_number %}row-highlight{% endif %}">
                   <td class="fw-semibold text-nowrap">
-                    <button type="button"
-                            class="btn btn-link p-0 toggle-lines"
-                            data-import-id="{{ imp.id }}">
+                    <span class="user-select-text">
                       {{ imp.import_code }}
+                    </span>
+
+                    <button type="button"
+                            class="btn btn-link p-0 ms-1 toggle-lines"
+                            data-import-id="{{ imp.id }}">
+                      ▾
                     </button>
                   </td>
 
